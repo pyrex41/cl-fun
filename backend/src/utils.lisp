@@ -45,18 +45,54 @@
    (local-time:now)))
 
 ;;; JSON utilities
+(defun plist-to-alist (plist)
+  "Convert property list to association list"
+  (loop for (key value) on plist by #'cddr
+        collect (cons key value)))
+
+(defun normalize-json-keys (object)
+  "Convert Jonathan's pipe-escaped keywords to regular keywords and plist to alist"
+  (cond
+    ((null object) nil)
+    ;; Handle plists (convert to alist)
+    ((and (consp object) (keywordp (car object)))
+     (plist-to-alist
+      (loop for (key value) on object by #'cddr
+            collect (intern (string-upcase (symbol-name key)) :keyword)
+            collect (normalize-json-keys value))))
+    ;; Handle cons cells (alists)
+    ((consp object)
+     (cons (normalize-json-keys (car object))
+           (normalize-json-keys (cdr object))))
+    ;; Pass through everything else
+    (t object)))
+
 (defun parse-json (string)
   "Parse JSON string, returning nil on error"
   (handler-case
-      (jonathan:parse string)
+      (normalize-json-keys (jonathan:parse string))
     (error (e)
       (when *debug-mode*
         (format t "JSON parse error: ~A~%" e))
       nil)))
 
+(defun alist-to-hash (alist)
+  "Convert association list to hash table for Jonathan"
+  (let ((hash (make-hash-table :test 'equal)))
+    (dolist (pair alist)
+      (setf (gethash (string-downcase (symbol-name (car pair))) hash)
+            (cdr pair)))
+    hash))
+
 (defun to-json-string (object)
   "Convert object to JSON string"
-  (jonathan:to-json object))
+  (cond
+    ;; If it's an alist (list of cons cells), convert to hash table
+    ((and (listp object)
+          (every #'consp object))
+     (jonathan:to-json (alist-to-hash object)))
+    ;; Otherwise pass through
+    (t (jonathan:to-json object))))
 
 ;;; HTTP utilities
 (defun get-json-body ()
