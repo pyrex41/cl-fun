@@ -1,0 +1,19 @@
+{
+  "name": "collabcanvas-frontend",
+  "version": "0.1.0",
+  "description": "Real-time collaborative design tool frontend",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf dist node_modules"
+  },
+  "dependencies": {
+    "pixi.js": "^7.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-legacy": "^5.0.0",
+    "vite": "^5.0.0"
+  }
+}

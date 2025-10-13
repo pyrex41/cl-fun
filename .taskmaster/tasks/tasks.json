@@ -2,14 +2,14 @@
   "master": {
     "tasks": [
       {
-        "id": 1,
+        "id": "1",
         "title": "Set up project structure and dependencies",
         "description": "Initialize the backend and frontend project structures, install required libraries and tools as specified in the technical stack.",
         "details": "For backend: Use Roswell to set up SBCL Common Lisp project with ASDF system definition. Install Hunchentoot, Hunchensocket, cl-sqlite, Jonathan, Ironclad, Bordeaux-threads via Quicklisp. For frontend: Initialize Vite project with PixiJS v7, vanilla JavaScript ES6+. Create directory structures as per architecture (backend/src/, frontend/src/). Ensure Docker setup with Debian base.",
         "testStrategy": "Verify backend loads in REPL with (ql:quickload :collabcanvas). Check frontend builds with npm run build. Confirm all dependencies are installed without errors.",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -17,8 +17,10 @@
             "description": "Set up the Common Lisp project using Roswell to initialize SBCL with ASDF system definition and create the backend/src/ directory structure.",
             "dependencies": [],
             "details": "Use Roswell to create a new SBCL project named 'collabcanvas' with ASDF system definition. Ensure the project structure includes backend/src/ for source files. Verify that the ASDF system loads correctly in the REPL.",
-            "status": "pending",
-            "testStrategy": "Load the project in SBCL REPL and check that the ASDF system is defined without errors."
+            "status": "done",
+            "testStrategy": "Load the project in SBCL REPL and check that the ASDF system is defined without errors.",
+            "updatedAt": "2025-10-13T21:24:51.583Z",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -28,8 +30,10 @@
               1
             ],
             "details": "After setting up the backend project, use Quicklisp to install Hunchentoot for web server, Hunchensocket for WebSockets, cl-sqlite for database, Jonathan for JSON handling, Ironclad for cryptography, and Bordeaux-threads for threading. Ensure all packages are available and loadable.",
-            "status": "pending",
-            "testStrategy": "Run (ql:quickload :collabcanvas) in the REPL and confirm all dependencies load without errors."
+            "status": "done",
+            "testStrategy": "Run (ql:quickload :collabcanvas) in the REPL and confirm all dependencies load without errors.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:24:52.880Z"
           },
           {
             "id": 3,
@@ -37,8 +41,10 @@
             "description": "Set up the frontend project using Vite for build tooling and initialize with PixiJS v7 and vanilla JavaScript ES6+, creating the frontend/src/ directory.",
             "dependencies": [],
             "details": "Use npm or yarn to initialize a Vite project in the frontend directory. Install PixiJS v7 as a dependency. Create the frontend/src/ structure for source files. Configure Vite for vanilla JS ES6+ development.",
-            "status": "pending",
-            "testStrategy": "Run npm run build in the frontend directory and verify that the build completes successfully with PixiJS integrated."
+            "status": "done",
+            "testStrategy": "Run npm run build in the frontend directory and verify that the build completes successfully with PixiJS integrated.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:24:54.220Z"
           },
           {
             "id": 4,
@@ -48,8 +54,10 @@
               3
             ],
             "details": "After initializing the Vite project, install PixiJS v7 and confirm that the package.json includes all necessary dependencies for vanilla JS ES6+ development. Check for any peer dependencies and resolve them.",
-            "status": "pending",
-            "testStrategy": "Check that npm install completes without errors and that PixiJS can be imported in a test JS file."
+            "status": "done",
+            "testStrategy": "Check that npm install completes without errors and that PixiJS can be imported in a test JS file.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:24:55.568Z"
           },
           {
             "id": 5,
@@ -62,13 +70,16 @@
               4
             ],
             "details": "Write a Dockerfile with Debian base image. Include instructions to install SBCL, Roswell, Node.js, and other necessary tools. Copy project files and set up commands to run the backend and frontend. Ensure the container can build and run the application.",
-            "status": "pending",
-            "testStrategy": "Build the Docker image and run the container, verifying that both backend and frontend start without errors."
+            "status": "done",
+            "testStrategy": "Build the Docker image and run the container, verifying that both backend and frontend start without errors.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:24:56.916Z"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-13T21:24:56.916Z"
       },
       {
-        "id": 2,
+        "id": "2",
         "title": "Implement database schema and setup",
         "description": "Create and initialize the SQLite database with the required tables for users, sessions, and canvas states.",
         "details": "Use cl-sqlite to execute the schema.sql file creating users, sessions, and canvas_states tables. Include indexes for performance. Ensure database file is created in data/ directory. Implement utility functions in database.lisp for connecting and executing queries.",
@@ -77,7 +88,7 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -86,7 +97,8 @@
             "dependencies": [],
             "details": "Write a schema.sql file that includes CREATE TABLE statements for users (id, email, username, password_hash), sessions (id, user_id, session_id, expires_at), and canvas_states (id, session_id, state_json). Add PRIMARY KEY and UNIQUE constraints, and indexes for performance on frequently queried columns like email and session_id.",
             "status": "pending",
-            "testStrategy": "Validate the SQL syntax by attempting to execute it in a SQLite environment and check for errors."
+            "testStrategy": "Validate the SQL syntax by attempting to execute it in a SQLite environment and check for errors.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -97,7 +109,8 @@
             ],
             "details": "In database.lisp, define a function to connect to the SQLite database file located in the data/ directory, using cl-sqlite. Ensure the connection is reusable and handle any connection errors gracefully.",
             "status": "pending",
-            "testStrategy": "Call the connection function and verify that the database file is created in data/ if it doesn't exist, and that subsequent calls reuse the connection."
+            "testStrategy": "Call the connection function and verify that the database file is created in data/ if it doesn't exist, and that subsequent calls reuse the connection.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -108,7 +121,8 @@
             ],
             "details": "Implement a function in database.lisp that reads and executes the schema.sql file using the established database connection. Ensure all tables are created with their indexes and constraints.",
             "status": "pending",
-            "testStrategy": "After execution, query the database to confirm that tables users, sessions, and canvas_states exist with the correct columns and indexes."
+            "testStrategy": "After execution, query the database to confirm that tables users, sessions, and canvas_states exist with the correct columns and indexes.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -119,7 +133,8 @@
             ],
             "details": "Define utility functions for executing SELECT, INSERT, UPDATE, and DELETE queries, handling parameters securely to prevent SQL injection. Include functions for fetching results and handling transactions.",
             "status": "pending",
-            "testStrategy": "Write and execute test queries to insert sample data into the tables and retrieve it, verifying that the utilities work correctly and data integrity is maintained."
+            "testStrategy": "Write and execute test queries to insert sample data into the tables and retrieve it, verifying that the utilities work correctly and data integrity is maintained.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -130,12 +145,14 @@
             ],
             "details": "Check that the SQLite database file is created in the data/ directory. Run a final verification to ensure all tables, indexes, and constraints are properly set up and functional.",
             "status": "pending",
-            "testStrategy": "Use SQLite commands to inspect the database file, confirm table structures, and perform basic operations to ensure everything is working as expected."
+            "testStrategy": "Use SQLite commands to inspect the database file, confirm table structures, and perform basic operations to ensure everything is working as expected.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-13T21:24:58.407Z"
       },
       {
-        "id": 3,
+        "id": "3",
         "title": "Implement authentication backend",
         "description": "Develop the authentication system including user registration, login, logout, and session management using SHA-256 hashing.",
         "details": "In auth.lisp, implement functions for hashing passwords with Ironclad, creating sessions, validating logins. Add HTTP endpoints /api/register, /api/login, /api/logout using Hunchentoot. Store sessions in SQLite with 24-hour expiry. Handle unique constraints for email and username.",
@@ -144,7 +161,7 @@
         "dependencies": [
           "2"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -153,7 +170,8 @@
             "dependencies": [],
             "details": "In the database setup, define a 'users' table with columns: id (primary key), email (unique), username (unique), password_hash (text). Define a 'sessions' table with columns: id (primary key), user_id (foreign key to users), session_id (unique), created_at (timestamp), expires_at (timestamp). Use SQLite pragmas for foreign keys.\n<info added on 2025-10-13T20:19:17.572Z>\nInstead of creating new tables, this subtask should confirm that Task 2 successfully created the users and sessions tables with the correct columns and constraints. Query the SQLite database schema using PRAGMA table_info or similar to validate the structure: users table with id (primary key), email (unique), username (unique), password_hash (text); sessions table with id (primary key), user_id (foreign key to users), session_id (unique), created_at (timestamp), expires_at (timestamp). Ensure foreign key constraints are enabled and unique constraints are in place on email and username. Raise errors if the schema does not match expectations.\n</info added on 2025-10-13T20:19:17.572Z>",
             "status": "pending",
-            "testStrategy": "Verify table creation by querying the database schema and inserting test data to confirm unique constraints."
+            "testStrategy": "Verify table creation by querying the database schema and inserting test data to confirm unique constraints.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -164,7 +182,8 @@
             ],
             "details": "In auth.lisp, define a function hash-password that takes a plain password string, uses Ironclad to compute SHA-256 hash, and returns the hex-encoded string. Ensure it handles UTF-8 encoding properly.",
             "status": "pending",
-            "testStrategy": "Unit test the function with known inputs and verify outputs match expected SHA-256 hashes."
+            "testStrategy": "Unit test the function with known inputs and verify outputs match expected SHA-256 hashes.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -176,7 +195,8 @@
             ],
             "details": "Using Hunchentoot, add a POST handler for /api/register that parses JSON body for email, username, password. Validate inputs, hash password, insert into users table, handle unique constraint violations by returning appropriate error responses.",
             "status": "pending",
-            "testStrategy": "Use curl to send POST requests with valid and invalid data, check for successful registration and error messages for duplicates."
+            "testStrategy": "Use curl to send POST requests with valid and invalid data, check for successful registration and error messages for duplicates.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -189,7 +209,8 @@
             ],
             "details": "Add a POST handler for /api/login that takes email/username and password. Query user by email or username, verify password hash, generate a unique session ID, insert into sessions table with 24-hour expiry, return session ID in response.",
             "status": "pending",
-            "testStrategy": "Test login with correct and incorrect credentials using curl, verify session creation in database and response contains session ID."
+            "testStrategy": "Test login with correct and incorrect credentials using curl, verify session creation in database and response contains session ID.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -200,12 +221,14 @@
             ],
             "details": "Add a POST handler for /api/logout that takes session ID, deletes the session from the database. Optionally, implement session validation middleware for protected endpoints to check expiry.",
             "status": "pending",
-            "testStrategy": "Login to get a session, call logout, verify session is removed from database, and test that expired sessions are invalidated."
+            "testStrategy": "Login to get a session, call logout, verify session is removed from database, and test that expired sessions are invalidated.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-13T21:24:59.652Z"
       },
       {
-        "id": 4,
+        "id": "4",
         "title": "Implement authentication frontend",
         "description": "Create the login/register modal UI and logic for handling authentication on the client side.",
         "details": "In auth.js, build modal with tabs for login/register, fields for email, password, username. Use fetch API to call backend endpoints. Store sessionId in localStorage. Block canvas access until authenticated. Handle errors and display messages.",
@@ -214,7 +237,7 @@
         "dependencies": [
           "3"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -222,8 +245,10 @@
             "description": "Build the basic HTML structure for the authentication modal including tabs for login and register.",
             "dependencies": [],
             "details": "In auth.js, create a modal element with two tabs: one for login and one for register. Use CSS to style the modal as an overlay that appears when authentication is required. Ensure the modal is hidden by default and can be toggled.",
-            "status": "pending",
-            "testStrategy": "Open the app and verify the modal appears with login and register tabs visible."
+            "status": "done",
+            "testStrategy": "Open the app and verify the modal appears with login and register tabs visible.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:27:24.151Z"
           },
           {
             "id": 2,
@@ -233,8 +258,10 @@
               1
             ],
             "details": "In the login tab, add fields for email and password. In the register tab, add fields for email, password, and username. Include submit buttons for each form. Validate that required fields are filled before submission.",
-            "status": "pending",
-            "testStrategy": "Switch between tabs and confirm fields are present and functional."
+            "status": "done",
+            "testStrategy": "Switch between tabs and confirm fields are present and functional.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:28:10.289Z"
           },
           {
             "id": 3,
@@ -244,8 +271,10 @@
               2
             ],
             "details": "On form submission, collect form data and use fetch to call the appropriate backend endpoint. Handle the response asynchronously. Prepare for storing sessionId on success.",
-            "status": "pending",
-            "testStrategy": "Submit forms with valid data and check network requests in browser dev tools."
+            "status": "done",
+            "testStrategy": "Submit forms with valid data and check network requests in browser dev tools.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:28:11.618Z"
           },
           {
             "id": 4,
@@ -255,8 +284,10 @@
               3
             ],
             "details": "Upon successful response, store the sessionId in localStorage. Hide the modal and allow access to the canvas. Check for existing sessionId on app load to skip modal if already authenticated.",
-            "status": "pending",
-            "testStrategy": "Register and login, then refresh the page to verify session persists and canvas is accessible."
+            "status": "done",
+            "testStrategy": "Register and login, then refresh the page to verify session persists and canvas is accessible.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:28:12.950Z"
           },
           {
             "id": 5,
@@ -266,13 +297,16 @@
               3
             ],
             "details": "On failed responses, parse error messages from the backend and display them in the modal. Clear messages on successful attempts. Ensure the modal remains open on errors.",
-            "status": "pending",
-            "testStrategy": "Attempt login/register with invalid credentials and verify error messages appear."
+            "status": "done",
+            "testStrategy": "Attempt login/register with invalid credentials and verify error messages appear.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:28:14.350Z"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-13T21:28:14.350Z"
       },
       {
-        "id": 5,
+        "id": "5",
         "title": "Set up WebSocket server infrastructure",
         "description": "Establish the WebSocket server with room management for canvas collaboration.",
         "details": "In websocket.lisp, create canvas-room class with thread-safe client lists. Implement connection handling, message routing for auth, cursor, object operations. Use Hunchensocket for WebSocket acceptor. Add functions for broadcasting messages to room members.",
@@ -281,7 +315,7 @@
         "dependencies": [
           "3"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -290,7 +324,8 @@
             "dependencies": [],
             "details": "Configure Hunchensocket to create a WebSocket acceptor that listens on a specified port, handling the basic setup for WebSocket connections.",
             "status": "pending",
-            "testStrategy": "Start the server and verify that it listens on the port without errors, using a simple connection test."
+            "testStrategy": "Start the server and verify that it listens on the port without errors, using a simple connection test.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -301,7 +336,8 @@
             ],
             "details": "In websocket.lisp, implement a canvas-room class that includes thread-safe lists for managing connected clients, ensuring safe concurrent access.",
             "status": "pending",
-            "testStrategy": "Instantiate the class and perform basic operations like adding/removing clients in a multi-threaded environment to check for race conditions."
+            "testStrategy": "Instantiate the class and perform basic operations like adding/removing clients in a multi-threaded environment to check for race conditions.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -312,7 +348,8 @@
             ],
             "details": "Add logic to accept incoming WebSocket connections, associate them with canvas rooms, and manage client addition/removal from room lists upon connect/disconnect.",
             "status": "pending",
-            "testStrategy": "Connect multiple clients via browser console and verify they are added to the room; disconnect and check removal."
+            "testStrategy": "Connect multiple clients via browser console and verify they are added to the room; disconnect and check removal.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -323,7 +360,8 @@
             ],
             "details": "In websocket.lisp, create handlers for message types including authentication, cursor updates, and object operations, parsing incoming messages and dispatching to appropriate functions.",
             "status": "pending",
-            "testStrategy": "Send test messages of each type from a client and verify they are routed correctly, logging the handling process."
+            "testStrategy": "Send test messages of each type from a client and verify they are routed correctly, logging the handling process.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -334,12 +372,14 @@
             ],
             "details": "Create utility functions in websocket.lisp that iterate over the thread-safe client lists in a canvas-room and send messages to all connected members.",
             "status": "pending",
-            "testStrategy": "Connect multiple clients to a room, send a broadcast message, and verify all clients receive it via console logs."
+            "testStrategy": "Connect multiple clients to a room, send a broadcast message, and verify all clients receive it via console logs.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-13T21:25:01.037Z"
       },
       {
-        "id": 6,
+        "id": "6",
         "title": "Implement canvas rendering with PixiJS",
         "description": "Set up the PixiJS application for the infinite canvas with basic rendering.",
         "details": "In canvas.js, initialize PIXI.Application with full viewport. Create Container for world space. Implement grid rendering at 50px intervals. Set up event listeners for mouse interactions. Define screenToWorld and worldToScreen conversion functions.",
@@ -348,7 +388,7 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -357,7 +397,8 @@
             "dependencies": [],
             "details": "In canvas.js, create a new PIXI.Application with options for width and height set to window.innerWidth and window.innerHeight, and append its view to the document body. Ensure it resizes dynamically with window resize events.",
             "status": "pending",
-            "testStrategy": "Load the canvas and verify that PixiJS application renders and fills the viewport completely without any scrollbars appearing."
+            "testStrategy": "Load the canvas and verify that PixiJS application renders and fills the viewport completely without any scrollbars appearing.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -368,7 +409,8 @@
             ],
             "details": "After initializing the PIXI.Application, create a new PIXI.Container instance and add it to the application's stage. This container will hold all world-space objects and transformations.",
             "status": "pending",
-            "testStrategy": "Check that the container is added to the stage and can hold child objects by adding a test sprite and confirming it renders."
+            "testStrategy": "Check that the container is added to the stage and can hold child objects by adding a test sprite and confirming it renders.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -379,7 +421,8 @@
             ],
             "details": "In the world container, create PIXI.Graphics to draw horizontal and vertical lines at 50px intervals in world coordinates. Update the grid rendering on zoom and pan events to maintain visibility.",
             "status": "pending",
-            "testStrategy": "Zoom and pan the canvas, verify the grid lines appear at correct 50px intervals and adjust dynamically with transformations."
+            "testStrategy": "Zoom and pan the canvas, verify the grid lines appear at correct 50px intervals and adjust dynamically with transformations.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -390,7 +433,8 @@
             ],
             "details": "Attach event listeners to the PIXI.Application view for 'mousedown', 'mousemove', and 'mouseup' events. Store mouse positions and states to handle interactions such as panning or selecting.",
             "status": "pending",
-            "testStrategy": "Click and drag on the canvas, use console logs to verify that mouse events are captured and positions are recorded accurately."
+            "testStrategy": "Click and drag on the canvas, use console logs to verify that mouse events are captured and positions are recorded accurately.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -401,12 +445,14 @@
             ],
             "details": "Create functions screenToWorld(x, y) and worldToScreen(x, y) that account for the world container's position, scale, and rotation. Use these for accurate object placement and interaction in world space.",
             "status": "pending",
-            "testStrategy": "Use console logs to test coordinate conversions by logging screen positions and their world equivalents, ensuring accuracy during zoom and pan."
+            "testStrategy": "Use console logs to test coordinate conversions by logging screen positions and their world equivalents, ensuring accuracy during zoom and pan.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-13T21:25:02.354Z"
       },
       {
-        "id": 7,
+        "id": "7",
         "title": "Implement pan and zoom functionality",
         "description": "Add pan and zoom controls to the canvas for navigation.",
         "details": "In canvas.js, handle middle-click or Alt+left-click drag for pan. Implement mouse wheel zoom with cursor centering, range 0.1x to 10x. Update viewport tracking. Ensure 60 FPS performance using requestAnimationFrame.",
@@ -415,7 +461,7 @@
         "dependencies": [
           "6"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -423,8 +469,10 @@
             "description": "Initialize event listeners in canvas.js for mouse events to handle pan and zoom interactions.",
             "dependencies": [],
             "details": "Add event listeners for mousedown, mousemove, mouseup, and wheel events on the canvas element. Track mouse state variables like isPanning, lastMouseX, lastMouseY, and zoomLevel. Ensure listeners are attached when the canvas is initialized.",
-            "status": "pending",
-            "testStrategy": "Verify that event listeners are attached by checking console logs on mouse interactions."
+            "status": "done",
+            "testStrategy": "Verify that event listeners are attached by checking console logs on mouse interactions.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:27:39.201Z"
           },
           {
             "id": 2,
@@ -434,8 +482,10 @@
               1
             ],
             "details": "In the mousedown event, check for middle button or Alt+left-click to set isPanning to true and record initial mouse position. In mousemove, if isPanning, calculate delta movement and update the viewport offset. Reset on mouseup. Prevent default drag behavior.",
-            "status": "pending",
-            "testStrategy": "Test middle-click drag and Alt+left-click drag to ensure the canvas pans smoothly without selecting text or other elements."
+            "status": "done",
+            "testStrategy": "Test middle-click drag and Alt+left-click drag to ensure the canvas pans smoothly without selecting text or other elements.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:28:15.758Z"
           },
           {
             "id": 3,
@@ -445,8 +495,10 @@
               1
             ],
             "details": "In the wheel event, calculate zoom factor based on deltaY, clamp between 0.1 and 10. Adjust zoom level and recompute viewport to center on cursor position. Use transform or scale on the canvas rendering context. Update zoomLevel variable.",
-            "status": "pending",
-            "testStrategy": "Scroll mouse wheel in and out, check that zoom scales from 0.1x to 10x and centers on cursor. Verify zoom stops at limits."
+            "status": "done",
+            "testStrategy": "Scroll mouse wheel in and out, check that zoom scales from 0.1x to 10x and centers on cursor. Verify zoom stops at limits.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:28:17.092Z"
           },
           {
             "id": 4,
@@ -457,8 +509,10 @@
               3
             ],
             "details": "Create a viewport object with properties: offsetX, offsetY, zoom. Update these in pan and zoom handlers. Use these to transform world coordinates to screen coordinates in rendering functions. Ensure viewport is reset or initialized properly.",
-            "status": "pending",
-            "testStrategy": "After pan and zoom, inspect viewport values and confirm they match expected changes based on mouse movements."
+            "status": "done",
+            "testStrategy": "After pan and zoom, inspect viewport values and confirm they match expected changes based on mouse movements.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:28:18.386Z"
           },
           {
             "id": 5,
@@ -470,13 +524,16 @@
               4
             ],
             "details": "Wrap pan and zoom updates in requestAnimationFrame to limit to 60 FPS. Debounce rapid events if necessary. Profile with DevTools to confirm no frame drops during interactions. Optimize rendering by only updating changed parts if possible.",
-            "status": "pending",
-            "testStrategy": "Use DevTools Performance tab to record interactions, verify frame rate stays at 60 FPS with no drops during rapid pan and zoom."
+            "status": "done",
+            "testStrategy": "Use DevTools Performance tab to record interactions, verify frame rate stays at 60 FPS with no drops during rapid pan and zoom.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:28:20.031Z"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-13T21:28:20.031Z"
       },
       {
-        "id": 8,
+        "id": "8",
         "title": "Implement object creation",
         "description": "Enable creation of rectangles and circles on the canvas via click-and-drag.",
         "details": "In canvas.js, add tool modes for rectangle ('R') and circle ('C'). On mouse down, start creation; on mouse up, finalize object with properties (id, type, x, y, width/height/radius, color). Use PIXI.Graphics for rendering. Generate unique IDs.",
@@ -485,7 +542,7 @@
         "dependencies": [
           "7"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -494,7 +551,8 @@
             "dependencies": [],
             "details": "Modify the canvas.js file to include a mode variable that can be set to 'rectangle' or 'circle' based on key presses 'R' and 'C'. Ensure the mode affects the creation behavior.",
             "status": "pending",
-            "testStrategy": "Press 'R' and 'C' keys and verify the mode changes via console logs or UI indicators."
+            "testStrategy": "Press 'R' and 'C' keys and verify the mode changes via console logs or UI indicators.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -505,7 +563,8 @@
             ],
             "details": "In canvas.js, attach a mousedown event listener to the canvas. On mousedown, record the starting point (x, y) and create a temporary PIXI.Graphics object for previewing the shape being drawn.",
             "status": "pending",
-            "testStrategy": "Switch to rectangle mode, click on canvas, and check if a temporary graphic appears at the click position."
+            "testStrategy": "Switch to rectangle mode, click on canvas, and check if a temporary graphic appears at the click position.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -516,7 +575,8 @@
             ],
             "details": "Add a mousemove event listener that, while dragging, calculates width/height for rectangle or radius for circle based on current mouse position and starting point, then redraws the temporary PIXI.Graphics object.",
             "status": "pending",
-            "testStrategy": "Start dragging after mousedown, move mouse, and verify the shape resizes in real-time on the canvas."
+            "testStrategy": "Start dragging after mousedown, move mouse, and verify the shape resizes in real-time on the canvas.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -527,7 +587,8 @@
             ],
             "details": "In the mouseup event listener, remove the temporary graphic, create a new PIXI.Graphics object with final dimensions, assign properties like id, type, x, y, width/height/radius, color, and add it to the canvas stage.",
             "status": "pending",
-            "testStrategy": "Complete a click-drag action, release mouse, and confirm a permanent object appears with correct size and properties."
+            "testStrategy": "Complete a click-drag action, release mouse, and confirm a permanent object appears with correct size and properties.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -538,12 +599,14 @@
             ],
             "details": "Create a function in canvas.js that generates unique IDs, perhaps using a counter or timestamp-based method. Assign this ID to each new object upon finalization in the mouseup handler.",
             "status": "pending",
-            "testStrategy": "Create multiple objects and verify each has a unique ID by inspecting object properties or logging them."
+            "testStrategy": "Create multiple objects and verify each has a unique ID by inspecting object properties or logging them.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-13T21:29:03.397Z"
       },
       {
-        "id": 9,
+        "id": "9",
         "title": "Implement object manipulation",
         "description": "Add selection, dragging, multi-select, and deletion for objects.",
         "details": "In canvas.js, implement select mode ('V') for clicking to select, Shift+click for multi-select. Enable dragging selected objects. Add Delete key handler for removal. Update object positions in world coordinates.",
@@ -561,7 +624,8 @@
             "dependencies": [],
             "details": "Modify canvas.js to listen for the 'V' key press event and set the current tool mode to 'select'. Ensure this mode allows for object selection without creating new objects.",
             "status": "pending",
-            "testStrategy": "Press 'V' key and verify select mode is activated, preventing object creation."
+            "testStrategy": "Press 'V' key and verify select mode is activated, preventing object creation.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -572,7 +636,8 @@
             ],
             "details": "In canvas.js, add mouse click event handler in select mode to detect clicks on objects using PIXI's hit detection. Mark the clicked object as selected and visually indicate selection (e.g., highlight).",
             "status": "pending",
-            "testStrategy": "Create an object, enter select mode, click on it, and verify it is selected and highlighted."
+            "testStrategy": "Create an object, enter select mode, click on it, and verify it is selected and highlighted.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -583,7 +648,8 @@
             ],
             "details": "Extend the click handler in canvas.js to check for Shift key during click. If Shift is held, add the clicked object to the selection without deselecting others. Maintain a list of selected objects.",
             "status": "pending",
-            "testStrategy": "Create multiple objects, select one, then Shift+click another, and verify both are selected."
+            "testStrategy": "Create multiple objects, select one, then Shift+click another, and verify both are selected.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -594,7 +660,8 @@
             ],
             "details": "In canvas.js, add mouse down, move, and up event handlers for dragging. On mouse down on selected objects, initiate drag. Update positions during move and finalize on mouse up, converting screen coordinates to world coordinates.",
             "status": "pending",
-            "testStrategy": "Select an object, drag it to a new position, and verify the position updates correctly in world coordinates."
+            "testStrategy": "Select an object, drag it to a new position, and verify the position updates correctly in world coordinates.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -605,12 +672,13 @@
             ],
             "details": "In canvas.js, add a keydown event listener for the Delete key. When pressed, remove all selected objects from the canvas and update the object list. Ensure positions are handled in world coordinates if needed.",
             "status": "pending",
-            "testStrategy": "Select one or more objects, press Delete key, and verify they are removed from the canvas."
+            "testStrategy": "Select one or more objects, press Delete key, and verify they are removed from the canvas.",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 10,
+        "id": "10",
         "title": "Implement WebSocket client",
         "description": "Develop the client-side WebSocket connection and message handling.",
         "details": "In websocket.js, create WebSocketClient class to connect to ws://host/ws/{canvas-id}. Handle auth message on connect. Implement send/receive for cursor, object operations. Add reconnection logic and throttling for cursor updates (30/sec).",
@@ -619,7 +687,7 @@
         "dependencies": [
           "5"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -627,8 +695,10 @@
             "description": "Set up the basic WebSocketClient class in websocket.js with constructor and initial properties.",
             "dependencies": [],
             "details": "In websocket.js, define a WebSocketClient class with a constructor that takes host, canvasId, and authToken. Initialize properties like ws (WebSocket instance), isConnected (boolean), and message handlers. Ensure the class is exportable for use in other modules.",
-            "status": "pending",
-            "testStrategy": null
+            "status": "done",
+            "testStrategy": null,
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:27:55.378Z"
           },
           {
             "id": 2,
@@ -638,8 +708,10 @@
               1
             ],
             "details": "In the WebSocketClient class, add a connect() method that creates a new WebSocket connection to ws://host/ws/{canvas-id}. On connection open, send an auth message with the authToken. Listen for auth-success or auth-failure responses and handle accordingly, updating connection status.",
-            "status": "pending",
-            "testStrategy": "Connect to a test server, verify WebSocket opens, send auth message, and check for auth-success response."
+            "status": "done",
+            "testStrategy": "Connect to a test server, verify WebSocket opens, send auth message, and check for auth-success response.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:28:21.428Z"
           },
           {
             "id": 3,
@@ -649,8 +721,10 @@
               2
             ],
             "details": "In the WebSocketClient class, implement sendMessage() method to send JSON messages for cursor positions and object operations (create, update, delete). Add onMessage handler to parse incoming messages and dispatch to appropriate handlers for cursor updates and object changes. Ensure messages are properly formatted as JSON.",
-            "status": "pending",
-            "testStrategy": "Send a test cursor update message and verify it's received. Send an object-create message and check the response."
+            "status": "done",
+            "testStrategy": "Send a test cursor update message and verify it's received. Send an object-create message and check the response.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:28:22.890Z"
           },
           {
             "id": 4,
@@ -660,8 +734,10 @@
               2
             ],
             "details": "In the WebSocketClient class, add an onClose handler that attempts to reconnect after a delay (e.g., exponential backoff). Track reconnection attempts and stop after a maximum number. Re-authenticate upon successful reconnection. Provide a method to manually disconnect.",
-            "status": "pending",
-            "testStrategy": "Disconnect the WebSocket manually, verify automatic reconnection occurs, and auth is re-sent."
+            "status": "done",
+            "testStrategy": "Disconnect the WebSocket manually, verify automatic reconnection occurs, and auth is re-sent.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:28:24.212Z"
           },
           {
             "id": 5,
@@ -671,13 +747,16 @@
               3
             ],
             "details": "In the WebSocketClient class, implement a throttling mechanism using a timer or library to ensure cursor position updates are sent at most 30 times per second. Buffer or drop excess updates. Integrate this into the cursor sending logic to prevent flooding the server.",
-            "status": "pending",
-            "testStrategy": "Simulate rapid cursor movements and verify that no more than 30 updates are sent per second."
+            "status": "done",
+            "testStrategy": "Simulate rapid cursor movements and verify that no more than 30 updates are sent per second.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-13T21:28:25.505Z"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-13T21:28:25.505Z"
       },
       {
-        "id": 11,
+        "id": "11",
         "title": "Implement real-time synchronization for objects",
         "description": "Sync object creation, updates, and deletions across all connected clients.",
         "details": "Integrate WebSocketClient with CanvasManager: on local object create/update/delete, send message. On receive, update canvas. Broadcast via server. Use last-write-wins for conflicts.",
@@ -696,7 +775,8 @@
             "dependencies": [],
             "details": "In CanvasManager, hook into object creation, update, and deletion events to serialize the object data (id, type, position, etc.) into a JSON message and send it via WebSocketClient to the server.",
             "status": "pending",
-            "testStrategy": "Use browser console to verify messages are sent on object actions, check network tab for WebSocket frames."
+            "testStrategy": "Use browser console to verify messages are sent on object actions, check network tab for WebSocket frames.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -707,7 +787,8 @@
             ],
             "details": "Add a WebSocket message handler in CanvasManager that parses incoming JSON messages for object create, update, or delete operations, and updates the local canvas state accordingly, ensuring UI reflects changes.",
             "status": "pending",
-            "testStrategy": "Send manual WebSocket messages from server and observe canvas updates in real-time without local actions."
+            "testStrategy": "Send manual WebSocket messages from server and observe canvas updates in real-time without local actions.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -718,7 +799,8 @@
             ],
             "details": "In the server code, upon receiving a message from a client, relay it to all other connected WebSocket clients, ensuring efficient broadcasting without echoing back to the originator.",
             "status": "pending",
-            "testStrategy": "Connect multiple clients, perform an action on one, and verify the message is received by others via server logs or client-side logs."
+            "testStrategy": "Connect multiple clients, perform an action on one, and verify the message is received by others via server logs or client-side logs.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -729,7 +811,8 @@
             ],
             "details": "Attach timestamps to all object change messages. In the message handler, compare timestamps on conflicts (e.g., simultaneous updates to the same object) and apply the most recent one, discarding older changes.",
             "status": "pending",
-            "testStrategy": "Simulate conflicts by rapidly updating the same object from two clients and verify only the latest change persists."
+            "testStrategy": "Simulate conflicts by rapidly updating the same object from two clients and verify only the latest change persists.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -740,12 +823,13 @@
             ],
             "details": "Open multiple browser windows, create, update, and delete objects in one, and verify immediate reflection in others. Use network tools to confirm latency under 100ms and handle edge cases like disconnections.",
             "status": "pending",
-            "testStrategy": "Follow the test strategy from the parent task: Open two browser windows, perform actions in one, check sync in the other, measure latency."
+            "testStrategy": "Follow the test strategy from the parent task: Open two browser windows, perform actions in one, check sync in the other, measure latency.",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 12,
+        "id": "12",
         "title": "Implement cursor synchronization",
         "description": "Enable real-time cursor position sharing with presence.",
         "details": "In websocket.js, send cursor updates on mouse move (throttled). On receive, render remote cursors with username labels in unique colors. Update presence list on connect/disconnect.",
@@ -754,7 +838,7 @@
         "dependencies": [
           "10"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -763,7 +847,8 @@
             "dependencies": [],
             "details": "In canvas.js, add an event listener for mousemove events on the canvas element. Use a throttling mechanism (e.g., lodash.throttle or custom implementation) to limit updates to every 50ms or less to avoid excessive sending.",
             "status": "pending",
-            "testStrategy": "Move mouse rapidly and verify that position updates are throttled, not sent on every pixel movement."
+            "testStrategy": "Move mouse rapidly and verify that position updates are throttled, not sent on every pixel movement.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -774,7 +859,8 @@
             ],
             "details": "In websocket.js, on each throttled mouse move, send a message containing the current cursor x, y coordinates, username, and a unique color identifier via the WebSocket connection.",
             "status": "pending",
-            "testStrategy": "Move mouse and use browser dev tools to inspect WebSocket messages, confirming position data is sent with username and color."
+            "testStrategy": "Move mouse and use browser dev tools to inspect WebSocket messages, confirming position data is sent with username and color.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -785,7 +871,8 @@
             ],
             "details": "In websocket.js, add a message handler to receive cursor update messages, parse the JSON payload to extract position, username, and color, and store or update a list of remote cursors.",
             "status": "pending",
-            "testStrategy": "Open multiple browser windows, move mouse in one, and check console logs in others for received messages with correct data."
+            "testStrategy": "Open multiple browser windows, move mouse in one, and check console logs in others for received messages with correct data.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -796,7 +883,8 @@
             ],
             "details": "In canvas.js, for each remote cursor in the list, render a cursor icon (e.g., a small arrow or dot) at the received position, add a text label with the username, and apply the unique color. Update positions in real-time as new messages arrive.",
             "status": "pending",
-            "testStrategy": "With multiple users, move cursors and verify they appear in other windows with labels, colors, and <50ms latency using browser performance tools."
+            "testStrategy": "With multiple users, move cursors and verify they appear in other windows with labels, colors, and <50ms latency using browser performance tools.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -807,12 +895,14 @@
             ],
             "details": "In websocket.js, on WebSocket open (connect), send a join message with username. On close (disconnect), send a leave message. Maintain a presence list and update the UI (e.g., a sidebar) to show current online users.",
             "status": "pending",
-            "testStrategy": "Open/close browser windows and check that the presence list updates immediately on join/leave, reflecting accurate user counts."
+            "testStrategy": "Open/close browser windows and check that the presence list updates immediately on join/leave, reflecting accurate user counts.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-13T21:29:04.917Z"
       },
       {
-        "id": 13,
+        "id": "13",
         "title": "Implement state persistence",
         "description": "Save and load canvas state to/from SQLite database.",
         "details": "In canvas-state.lisp, implement save function with debounced updates (500ms). Load state on connection via GET /api/canvas/state. Store as JSON blob in canvas_states table.",
@@ -831,7 +921,8 @@
             "dependencies": [],
             "details": "Create a table named 'canvas_states' with columns: id (primary key, auto-increment), state_json (text for JSON blob), and timestamp (datetime for last update). Ensure the table is created in the SQLite database used by the application.",
             "status": "pending",
-            "testStrategy": "Run a database query to verify the table exists with correct columns."
+            "testStrategy": "Run a database query to verify the table exists with correct columns.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -842,7 +933,8 @@
             ],
             "details": "In canvas-state.lisp, create a save-canvas-state function that serializes the canvas state to JSON and inserts/updates it in the canvas_states table. Implement debouncing using a timer (500ms delay) to batch saves and avoid overloading the database on rapid changes.",
             "status": "pending",
-            "testStrategy": "Simulate rapid canvas changes and check that saves occur only after 500ms of inactivity, verifying database entries."
+            "testStrategy": "Simulate rapid canvas changes and check that saves occur only after 500ms of inactivity, verifying database entries.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -853,7 +945,8 @@
             ],
             "details": "In canvas-state.lisp, add a handler for GET /api/canvas/state that queries the canvas_states table for the latest state JSON, parses it, and returns it in the response. Handle cases where no state exists (return empty or default state).",
             "status": "pending",
-            "testStrategy": "Use curl or a browser to call the endpoint and verify it returns the correct JSON state or default when no data is present."
+            "testStrategy": "Use curl or a browser to call the endpoint and verify it returns the correct JSON state or default when no data is present.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -864,7 +957,8 @@
             ],
             "details": "Modify the canvas manipulation code (e.g., in canvas.js or related Lisp functions) to call the debounced save function whenever objects are created, moved, or deleted. Ensure the state includes all necessary object properties for accurate restoration.",
             "status": "pending",
-            "testStrategy": "Create and modify objects on the canvas, then check the database to confirm the state is saved correctly after debouncing."
+            "testStrategy": "Create and modify objects on the canvas, then check the database to confirm the state is saved correctly after debouncing.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -875,12 +969,13 @@
             ],
             "details": "In the client-side code (e.g., canvas.js), add logic to fetch the state via GET /api/canvas/state on page load or connection, and populate the canvas with the loaded objects. Handle authentication if required, and merge or replace existing state appropriately.",
             "status": "pending",
-            "testStrategy": "Refresh the page after making changes, verify that the canvas reloads with the persisted state. Test with multiple users or disconnections."
+            "testStrategy": "Refresh the page after making changes, verify that the canvas reloads with the persisted state. Test with multiple users or disconnections.",
+            "parentId": "undefined"
           }
         ]
       },
       {
-        "id": 14,
+        "id": "14",
         "title": "Implement user interface components",
         "description": "Build the UI for toolbar, presence list, and status bar.",
         "details": "In HTML/CSS/JS, create toolbar for tools (select, rectangle, circle), color picker. Add presence list in top-right. Implement status bar for tool, position, zoom. Ensure dark theme consistency.",
@@ -889,7 +984,7 @@
         "dependencies": [
           "4"
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -898,7 +993,8 @@
             "dependencies": [],
             "details": "In HTML, add a div for the toolbar. Use CSS for styling with dark theme. In JS, create buttons for each tool and a color input. Attach event listeners to switch tool modes in canvas.js.",
             "status": "pending",
-            "testStrategy": "Click each tool button and verify the active tool changes. Select a color and confirm it applies to new objects."
+            "testStrategy": "Click each tool button and verify the active tool changes. Select a color and confirm it applies to new objects.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -909,7 +1005,8 @@
             ],
             "details": "Add a div in the top-right of the page layout. Use JS to fetch and display user list from backend. Style with dark theme CSS. Update list on user join/leave events.",
             "status": "pending",
-            "testStrategy": "Simulate multiple users logging in and verify the list updates in real-time. Check positioning doesn't overlap with other UI elements."
+            "testStrategy": "Simulate multiple users logging in and verify the list updates in real-time. Check positioning doesn't overlap with other UI elements.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -920,7 +1017,8 @@
             ],
             "details": "Insert a status bar div at the bottom of the page. In JS, update text content based on current tool, mouse coordinates, and zoom factor. Ensure responsive design and dark theme.",
             "status": "pending",
-            "testStrategy": "Switch tools and move mouse; verify status bar updates accurately. Zoom in/out and check zoom display changes."
+            "testStrategy": "Switch tools and move mouse; verify status bar updates accurately. Zoom in/out and check zoom display changes.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -933,7 +1031,8 @@
             ],
             "details": "Define CSS variables for dark theme colors (e.g., background, text, borders). Apply these to all UI elements created. Test for consistency in visibility and aesthetics.",
             "status": "pending",
-            "testStrategy": "Inspect UI in browser dev tools for color consistency. Verify readability and contrast in dark mode."
+            "testStrategy": "Inspect UI in browser dev tools for color consistency. Verify readability and contrast in dark mode.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -947,12 +1046,14 @@
             ],
             "details": "Use CSS flexbox or grid to arrange components: toolbar top-left, presence top-right, status bottom. Ensure canvas remains central and unobstructed. Make layout responsive.",
             "status": "pending",
-            "testStrategy": "Resize browser window and confirm UI elements adjust properly. Verify canvas interaction isn't blocked by UI overlays."
+            "testStrategy": "Resize browser window and confirm UI elements adjust properly. Verify canvas interaction isn't blocked by UI overlays.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-13T21:29:06.345Z"
       },
       {
-        "id": 15,
+        "id": "15",
         "title": "Deploy application to Fly.io",
         "description": "Containerize and deploy the application to Fly.io for public access.",
         "details": "Create Dockerfile as specified. Build frontend and backend. Configure fly.toml. Use fly deploy. Ensure health check endpoint.",
@@ -969,14 +1070,12 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-10-13T19:29:12.767Z",
+      "lastModified": "2025-10-13T21:29:06.346Z",
       "taskCount": 15,
-      "completedCount": 0,
+      "completedCount": 8,
       "tags": [
         "master"
-      ],
-      "created": "2025-10-13T19:51:34.818Z",
-      "description": "Tasks for master context"
+      ]
     }
   }
 }

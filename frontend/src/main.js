@@ -1,0 +1,350 @@
+// main.js - Application entry point for CollabCanvas
+
+import './styles.css'
+import { CanvasManager } from './canvas.js'
+import { WebSocketClient } from './websocket.js'
+import { AuthManager } from './auth.js'
+
+class CollabCanvas {
+    constructor() {
+        this.canvasManager = null
+        this.wsClient = null
+        this.authManager = null
+        this.sessionId = null
+        this.userId = null
+        this.username = null
+        this.canvasId = this.getCanvasId()
+    }
+
+    getCanvasId() {
+        // Get canvas ID from URL or generate new one
+        const params = new URLSearchParams(window.location.search)
+        let canvasId = params.get('canvas')
+
+        if (!canvasId) {
+            canvasId = 'canvas-' + Math.random().toString(36).substr(2, 9)
+            // Update URL without reload
+            const newUrl = new URL(window.location)
+            newUrl.searchParams.set('canvas', canvasId)
+            window.history.replaceState({}, '', newUrl)
+        }
+
+        return canvasId
+    }
+
+    async init() {
+        console.log('Initializing CollabCanvas...')
+
+        // Update canvas ID in status bar
+        document.getElementById('canvas-id').textContent = this.canvasId
+
+        // Initialize authentication
+        this.authManager = new AuthManager()
+
+        // Check for existing session
+        this.sessionId = localStorage.getItem('sessionId')
+
+        if (this.sessionId) {
+            // Validate session with backend
+            const isValid = await this.validateSession()
+
+            if (!isValid) {
+                this.sessionId = null
+                localStorage.removeItem('sessionId')
+            }
+        }
+
+        if (!this.sessionId) {
+            // Show auth modal and wait for authentication
+            const authData = await this.authManager.showModal()
+            this.sessionId = authData.sessionId
+            this.userId = authData.userId
+            this.username = authData.username
+            localStorage.setItem('sessionId', this.sessionId)
+        }
+
+        // Initialize canvas
+        this.initCanvas()
+
+        // Initialize WebSocket connection
+        this.initWebSocket()
+
+        // Setup UI event handlers
+        this.setupUIHandlers()
+
+        console.log('CollabCanvas initialized successfully')
+    }
+
+    async validateSession() {
+        try {
+            const response = await fetch('/api/session', {
+                headers: {
+                    'Authorization': this.sessionId
+                }
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                if (data.data && data.data.valid) {
+                    this.userId = data.data.userId
+                    this.username = data.data.username
+                    return true
+                }
+            }
+        } catch (error) {
+            console.error('Session validation failed:', error)
+        }
+
+        return false
+    }
+
+    initCanvas() {
+        const container = document.getElementById('canvas-container')
+        this.canvasManager = new CanvasManager(container)
+
+        // Set up canvas callbacks for WebSocket synchronization
+        this.canvasManager.onCursorMove = (x, y) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendCursorUpdate(x, y)
+            }
+        }
+
+        this.canvasManager.onObjectCreated = (object) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendObjectCreate(object)
+            }
+        }
+
+        this.canvasManager.onObjectUpdated = (objectId, updates) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendObjectUpdate(objectId, updates)
+            }
+        }
+
+        this.canvasManager.onObjectDeleted = (objectId) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendObjectDelete(objectId)
+            }
+        }
+
+        // Update status bar callbacks
+        this.canvasManager.onToolChange = (tool) => {
+            document.getElementById('current-tool').textContent =
+                tool.charAt(0).toUpperCase() + tool.slice(1)
+        }
+
+        this.canvasManager.onMouseMove = (x, y) => {
+            document.getElementById('mouse-position').textContent = `${Math.round(x)}, ${Math.round(y)}`
+        }
+
+        this.canvasManager.onZoomChange = (zoom) => {
+            document.getElementById('zoom-level').textContent = `${Math.round(zoom * 100)}%`
+        }
+
+        this.canvasManager.onObjectCountChange = (count) => {
+            document.getElementById('object-count').textContent = count
+        }
+    }
+
+    initWebSocket() {
+        const wsUrl = `ws://${window.location.hostname}:8080/ws/${this.canvasId}`
+
+        this.wsClient = new WebSocketClient(wsUrl, this.sessionId, this.canvasId)
+
+        // Set up WebSocket callbacks
+        this.wsClient.onAuthSuccess = (data) => {
+            console.log('WebSocket authenticated:', data)
+
+            // Load initial canvas state
+            if (data.canvasState) {
+                this.canvasManager.loadState(data.canvasState)
+            }
+        }
+
+        this.wsClient.onUserConnected = (data) => {
+            this.updatePresenceList()
+            this.showNotification(`${data.username} joined`, 'info')
+        }
+
+        this.wsClient.onUserDisconnected = (data) => {
+            this.updatePresenceList()
+            this.canvasManager.removeRemoteCursor(data.userId)
+            this.showNotification(`${data.username} left`, 'info')
+        }
+
+        this.wsClient.onPresenceUpdate = (users) => {
+            this.updatePresenceList(users)
+        }
+
+        this.wsClient.onCursorUpdate = (data) => {
+            this.canvasManager.updateRemoteCursor(
+                data.userId,
+                data.x,
+                data.y,
+                data.username,
+                data.color
+            )
+        }
+
+        this.wsClient.onObjectCreated = (data) => {
+            this.canvasManager.createRemoteObject(data.object)
+        }
+
+        this.wsClient.onObjectUpdated = (data) => {
+            this.canvasManager.updateRemoteObject(data.objectId, data.updates)
+        }
+
+        this.wsClient.onObjectDeleted = (data) => {
+            this.canvasManager.deleteRemoteObject(data.objectId)
+        }
+
+        this.wsClient.onError = (error) => {
+            console.error('WebSocket error:', error)
+            this.showNotification('Connection error', 'error')
+        }
+
+        this.wsClient.onReconnecting = () => {
+            this.showNotification('Reconnecting...', 'warning')
+        }
+
+        this.wsClient.onReconnected = () => {
+            this.showNotification('Reconnected', 'success')
+        }
+
+        // Connect to WebSocket
+        this.wsClient.connect()
+    }
+
+    setupUIHandlers() {
+        // Tool buttons
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tool = btn.dataset.tool
+                this.canvasManager.setTool(tool)
+
+                // Update active button
+                document.querySelectorAll('.tool-btn').forEach(b =>
+                    b.classList.remove('active'))
+                btn.classList.add('active')
+            })
+        })
+
+        // Color picker
+        const colorPicker = document.getElementById('color-picker')
+        colorPicker.addEventListener('change', (e) => {
+            this.canvasManager.setColor(e.target.value)
+        })
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Prevent shortcuts when typing in inputs
+            if (e.target.tagName === 'INPUT') return
+
+            switch(e.key.toLowerCase()) {
+                case 'v':
+                    this.selectTool('select')
+                    break
+                case 'r':
+                    this.selectTool('rectangle')
+                    break
+                case 'c':
+                    this.selectTool('circle')
+                    break
+                case 'delete':
+                case 'backspace':
+                    if (!e.target.isContentEditable) {
+                        e.preventDefault()
+                        this.canvasManager.deleteSelected()
+                    }
+                    break
+                case 'z':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault()
+                        if (e.shiftKey) {
+                            this.canvasManager.redo()
+                        } else {
+                            this.canvasManager.undo()
+                        }
+                    }
+                    break
+            }
+        })
+
+        // Logout button (if added to UI)
+        const logoutBtn = document.getElementById('logout-btn')
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                await this.logout()
+            })
+        }
+    }
+
+    selectTool(tool) {
+        this.canvasManager.setTool(tool)
+
+        // Update UI
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            if (btn.dataset.tool === tool) {
+                btn.classList.add('active')
+            } else {
+                btn.classList.remove('active')
+            }
+        })
+    }
+
+    updatePresenceList(users = []) {
+        const container = document.getElementById('users-container')
+        container.innerHTML = ''
+
+        users.forEach(user => {
+            const userItem = document.createElement('div')
+            userItem.className = 'user-item'
+            userItem.innerHTML = `
+                <span class="user-indicator" style="background-color: ${user.color}"></span>
+                <span>${user.username}</span>
+            `
+            container.appendChild(userItem)
+        })
+    }
+
+    showNotification(message, type = 'info') {
+        // Simple notification system (can be enhanced with a library)
+        console.log(`[${type.toUpperCase()}] ${message}`)
+
+        // TODO: Implement visual notifications
+    }
+
+    async logout() {
+        try {
+            await fetch('/api/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': this.sessionId
+                }
+            })
+        } catch (error) {
+            console.error('Logout error:', error)
+        }
+
+        // Clean up
+        localStorage.removeItem('sessionId')
+        this.wsClient.disconnect()
+
+        // Reload page to show login
+        window.location.reload()
+    }
+}
+
+// Initialize application when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        const app = new CollabCanvas()
+        app.init()
+        window.collabCanvas = app // For debugging
+    })
+} else {
+    const app = new CollabCanvas()
+    app.init()
+    window.collabCanvas = app // For debugging
+}
