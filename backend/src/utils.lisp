@@ -77,11 +77,18 @@
       nil)))
 
 (defun alist-to-hash (alist)
-  "Convert association list to hash table for Jonathan"
+  "Convert association list to hash table for Jonathan (recursively)"
   (let ((hash (make-hash-table :test 'equal)))
     (dolist (pair alist)
-      (setf (gethash (string-downcase (symbol-name (car pair))) hash)
-            (cdr pair)))
+      (let ((key (string-downcase (symbol-name (car pair))))
+            (value (cdr pair)))
+        ;; Recursively convert nested alists
+        (setf (gethash key hash)
+              (if (and (listp value)
+                       (every #'consp value)
+                       (not (null value)))
+                  (alist-to-hash value)
+                  value))))
     hash))
 
 (defun to-json-string (object)
