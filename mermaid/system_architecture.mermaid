@@ -1,0 +1,119 @@
+classDiagram
+    class Backend {
+        +start() : void
+        +stop() : void
+        +restart() : void
+    }
+    class Frontend {
+        +init() : void
+        +initCanvas() : void
+        +connectWebSocket() : void
+    }
+    class ConfigModule {
+        +PORT : int
+        +DB_PATH : string
+        +SESSION_TIMEOUT : int
+        +CORS_ORIGIN : string
+    }
+    class Database {
+        +connect() : connection
+        +executeQuery(sql) : result
+        +initDb() : void
+    }
+    class WebSocketServer {
+        +acceptConnection(client) : void
+        +broadcast(message) : void
+        +dispatch(request) : room
+    }
+    class CanvasRoom {
+        -canvasId : string
+        -clients : list
+        -clientsLock : lock
+        +addClient(client) : void
+        +removeClient(client) : void
+        +handleMessage(message) : void
+        +broadcastToAll(message) : void
+        +broadcastToOthers(sender, message) : void
+        +broadcastPresence() : void
+    }
+    class AuthModule {
+        +hashPassword(password) : string
+        +verifyPassword(password, hash) : bool
+        +registerUser(email, password, username) : result
+        +loginUser(email, password) : sessionResult
+        +verifySession(sessionId) : bool
+        +logoutUser(sessionId) : void
+    }
+    class CanvasStateModule {
+        +saveState(canvasId, state) : void
+        +loadState(canvasId) : json
+    }
+    class AIAgentModule {
+        +processCommand(command, state) : operations
+        <<Phase 3>>
+    }
+    class CanvasManager {
+        -app : PIXI.Application
+        -viewport : PIXI.Container
+        -objects : Map
+        -remoteCursors : Map
+        -currentTool : string
+        +screenToWorld(x, y) : coords
+        +worldToScreen(x, y) : coords
+        +pan(event) : void
+        +zoom(event) : void
+        +setTool(tool) : void
+        +createRectangle(id, x, y, w, h, color) : object
+        +createCircle(id, x, y, radius, color) : object
+        +createText(id, text, x, y, fontSize, color) : object
+        +updateObject(id, updates) : void
+        +deleteObject(id) : void
+        +updateRemoteCursor(userId, username, x, y) : void
+        +makeDraggable(obj, id) : void
+        +makeSelectable(obj, id) : void
+        +onObjectCreated : callback
+        +onObjectMoved : callback
+        +onObjectDeleted : callback
+    }
+    class WebSocketClient {
+        -ws : WebSocket
+        -canvas : CanvasManager
+        +connect(url) : void
+        +send(message) : void
+        +handleMessage(data) : void
+        +updateRemoteCursor(userId, username, x, y) : void
+        +createObjectFromData(objData) : void
+        +screenToCanvas(x, y) : coords
+        +attemptReconnect() : void
+    }
+    class AuthManager {
+        +showAuthUI() : void
+        +handleLogin(email, password) : sessionId
+        +handleRegister(email, password, username) : result
+        +isAuthenticated() : bool
+        +getSessionId() : string
+        +getUsername() : string
+    }
+    class PixiJS {
+        <<external library>>
+        +Application
+        +Container
+        +Graphics
+        +Text
+    }
+
+    Backend --> ConfigModule : uses
+    Backend --> Database : uses
+    Backend --> WebSocketServer : hosts
+    Backend --> AuthModule : includes
+    Backend --> CanvasStateModule : includes
+    Backend --> AIAgentModule : includes (Phase 3)
+    WebSocketServer --> CanvasRoom : manages
+    Frontend --> CanvasManager : core
+    Frontend --> WebSocketClient : communicates
+    Frontend --> AuthManager : handles auth
+    CanvasManager --> PixiJS : uses
+    CanvasManager <--> WebSocketClient : callbacks for sync
+    WebSocketClient <--> WebSocketServer : WebSocket protocol
+    Database <--> CanvasStateModule : stores/loads
+    Database <--> AuthModule : stores users/sessions

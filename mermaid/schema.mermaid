@@ -1,0 +1,21 @@
+erDiagram
+    USERS {
+        int id PK
+        text email UK
+        text password_hash
+        text username UK
+        datetime created_at
+    }
+    SESSIONS {
+        text id PK
+        int user_id FK
+        datetime created_at
+        datetime expires_at
+    }
+    CANVAS_STATES {
+        int id PK
+        text canvas_id UK
+        text state
+        datetime updated_at
+    }
+    USERS ||--o{ SESSIONS : "has"

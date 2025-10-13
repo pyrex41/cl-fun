@@ -1,0 +1,19 @@
+flowchart TD
+    A[User Action (e.g., Create Object)] --> B[CanvasManager: Local Update]
+    B --> C[Callback: onObjectCreated]
+    C --> D[WebSocketClient: send('object-create')]
+    D --> E[Server: Receive & Broadcast]
+    E --> F[Database: Debounced Save (CanvasStateModule)]
+    E --> G[Other Clients: WebSocketClient.onMessage]
+    G --> H[CanvasManager: Remote Update]
+    subgraph Frontend1 [User's Frontend]
+        A --> B --> C --> D
+    end
+    subgraph Backend
+        E --> F
+    end
+    subgraph Frontend2 [Other Users' Frontend]
+        G --> H
+    end
+    D --> E
+    E --> G

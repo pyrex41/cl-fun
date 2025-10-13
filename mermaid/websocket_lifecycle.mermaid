@@ -1,0 +1,24 @@
+sequenceDiagram
+    participant Client1 as Client 1
+    participant Server
+    participant Client2 as Client 2
+
+    Client1->>Server: Connect ws://host/ws/{canvas-id}
+    Server->>Client1: Accept Connection, Add to Room
+    Client1->>Server: Send {type: 'auth', sessionId, username, canvasId}
+    Server->>Client1: {type: 'auth-success', userId, username}
+    Server->>Client1: Send Initial Canvas State
+    Server->>Client1: Send Presence Update
+    Server->>Client2: Broadcast Presence Update (User Joined)
+
+    Client1->>Server: Send {type: 'cursor', x, y} (throttled)
+    Server->>Client2: Broadcast {type: 'cursor', userId, username, x, y}
+
+    Client1->>Server: Send {type: 'object-create', object}
+    Server->>Client1: Broadcast {type: 'object-create', object}
+    Server->>Client2: Broadcast {type: 'object-create', object}
+    Server->>Database: Debounce Save State
+
+    Client1->>Server: Close Connection
+    Server->>Server: Remove from Room
+    Server->>Client2: Broadcast Presence Update (User Left)
