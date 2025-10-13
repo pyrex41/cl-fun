@@ -76,6 +76,14 @@
         (format t "JSON parse error: ~A~%" e))
       nil)))
 
+(defun alist-p (obj)
+  "Check if object is an association list"
+  (and (listp obj)
+       (not (null obj))
+       (every #'consp obj)
+       ;; Make sure it's not a nested alist value
+       (every (lambda (pair) (keywordp (car pair))) obj)))
+
 (defun alist-to-hash (alist)
   "Convert association list to hash table for Jonathan (recursively)"
   (let ((hash (make-hash-table :test 'equal)))
@@ -84,9 +92,7 @@
             (value (cdr pair)))
         ;; Recursively convert nested alists
         (setf (gethash key hash)
-              (if (and (listp value)
-                       (every #'consp value)
-                       (not (null value)))
+              (if (alist-p value)
                   (alist-to-hash value)
                   value))))
     hash))
@@ -94,9 +100,8 @@
 (defun to-json-string (object)
   "Convert object to JSON string"
   (cond
-    ;; If it's an alist (list of cons cells), convert to hash table
-    ((and (listp object)
-          (every #'consp object))
+    ;; If it's an alist (list of cons cells with keyword keys), convert to hash table
+    ((alist-p object)
      (jonathan:to-json (alist-to-hash object)))
     ;; Otherwise pass through
     (t (jonathan:to-json object))))
@@ -112,7 +117,10 @@
   "Send JSON response with appropriate headers"
   (setf (hunchentoot:content-type*) "application/json")
   (setf (hunchentoot:return-code*) status)
-  (to-json-string data))
+  ;; Always convert alists to hash tables for Jonathan
+  (if (alist-p data)
+      (jonathan:to-json (alist-to-hash data))
+      (jonathan:to-json data)))
 
 (defun error-response (message &key (status 400))
   "Send error response as JSON"
