@@ -89,14 +89,6 @@
   ()
   (:documentation "Custom acceptor that combines WebSocket and Easy acceptor"))
 
-(defmethod hunchensocket:websocket-connection-established ((acceptor canvas-acceptor) request)
-  "Handle WebSocket connection with error catching for proxy headers"
-  (handler-case
-      (call-next-method)
-    (type-error (e)
-      (format t "WebSocket handshake error (likely proxy headers): ~A~%" e)
-      nil)))
-
 (defun setup-websocket-dispatch ()
   "Setup WebSocket dispatch table"
   (pushnew 'dispatch-websocket-request
