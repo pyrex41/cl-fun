@@ -15,6 +15,7 @@ class CollabCanvas {
         this.userId = null
         this.username = null
         this.canvasId = this.getCanvasId()
+        this.activeUsers = [] // Track active users
     }
 
     getCanvasId() {
@@ -53,20 +54,21 @@ class CollabCanvas {
             if (!isValid) {
                 this.sessionId = null
                 localStorage.removeItem('sessionId')
-            } else {
-                // Session is valid, make sure modal is hidden
-                this.authManager.hideModal()
             }
         }
 
         if (!this.sessionId) {
-            // Show auth modal and wait for authentication
+            // Hide loading screen and show auth modal
+            this.hideLoadingScreen()
             const authData = await this.authManager.showModal()
             this.sessionId = authData.sessionId
             this.userId = authData.userId
             this.username = authData.username
             localStorage.setItem('sessionId', this.sessionId)
         }
+
+        // Hide loading screen (session is valid)
+        this.hideLoadingScreen()
 
         // Initialize canvas
         this.initCanvas()
@@ -78,6 +80,13 @@ class CollabCanvas {
         this.setupUIHandlers()
 
         console.log('CollabCanvas initialized successfully')
+    }
+
+    hideLoadingScreen() {
+        const loadingScreen = document.getElementById('loading-screen')
+        if (loadingScreen) {
+            loadingScreen.classList.add('hidden')
+        }
     }
 
     async validateSession() {
@@ -191,18 +200,31 @@ class CollabCanvas {
         }
 
         this.wsClient.onUserConnected = (data) => {
-            this.updatePresenceList()
+            // Add new user to active users list
+            this.activeUsers.push({
+                'user-id': data.userId || data['user-id'],
+                username: data.username,
+                color: data.color
+            })
+            this.updatePresenceList(this.activeUsers)
             this.showNotification(`${data.username} joined`, 'info')
         }
 
         this.wsClient.onUserDisconnected = (data) => {
-            this.updatePresenceList()
-            this.canvasManager.removeRemoteCursor(data.userId)
+            // Remove user from active users list
+            const userId = data.userId || data['user-id']
+            this.activeUsers = this.activeUsers.filter(u =>
+                (u['user-id'] || u.userId) !== userId
+            )
+            this.updatePresenceList(this.activeUsers)
+            this.canvasManager.removeRemoteCursor(userId)
             this.showNotification(`${data.username} left`, 'info')
         }
 
         this.wsClient.onPresenceUpdate = (users) => {
-            this.updatePresenceList(users)
+            // Replace entire active users list with server's authoritative list
+            this.activeUsers = users
+            this.updatePresenceList(this.activeUsers)
         }
 
         this.wsClient.onCursorUpdate = (data) => {
@@ -332,9 +354,12 @@ class CollabCanvas {
         users.forEach(user => {
             const userItem = document.createElement('div')
             userItem.className = 'user-item'
+            // Handle both kebab-case and camelCase keys
+            const username = user.username
+            const color = user.color
             userItem.innerHTML = `
-                <span class="user-indicator" style="background-color: ${user.color}"></span>
-                <span>${user.username}</span>
+                <span class="user-indicator" style="background-color: ${color}"></span>
+                <span>${username}</span>
             `
             container.appendChild(userItem)
         })
