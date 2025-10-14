@@ -1067,19 +1067,523 @@
           "14"
         ],
         "status": "pending",
-        "subtasks": [],
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Dockerfile and containerize the application",
+            "description": "Develop a Dockerfile to containerize both the frontend and backend components of the application, ensuring all dependencies are included and the app can run in a containerized environment.",
+            "dependencies": [],
+            "details": "Use a Debian base image, install necessary tools like SBCL, Quicklisp, Node.js for Vite build. Copy backend and frontend code, run builds for both, expose necessary ports (e.g., 8080 for backend), and set the entrypoint to start the server. Ensure the Dockerfile follows best practices for multi-stage builds if applicable.",
+            "status": "pending",
+            "testStrategy": "Build the Docker image locally and run it to verify the application starts without errors, checking logs for successful initialization."
+          },
+          {
+            "id": 2,
+            "title": "Configure Fly.io deployment settings",
+            "description": "Set up the fly.toml configuration file with necessary settings for deploying the containerized application to Fly.io, including app name, region, and health checks.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create or edit fly.toml to specify the app name, source directory, build command (if needed), services with internal port mapping, health check endpoint (e.g., /health), and any environment variables required for the application. Ensure compatibility with Fly.io's deployment requirements.",
+            "status": "pending",
+            "testStrategy": "Validate the fly.toml file using Fly CLI commands like 'fly config validate' to ensure no syntax errors and proper configuration."
+          },
+          {
+            "id": 3,
+            "title": "Deploy to Fly.io and verify functionality",
+            "description": "Execute the deployment to Fly.io using the configured settings and perform end-to-end testing to ensure the application is publicly accessible and fully functional.",
+            "dependencies": [
+              2
+            ],
+            "details": "Run 'fly deploy' to push the containerized app to Fly.io. Monitor the deployment logs for success. Once deployed, access the public URL and test the full application flow including user registration, login, canvas object creation, and synchronization between users. Check application logs for any errors.",
+            "status": "pending",
+            "testStrategy": "Access the deployed URL and perform manual tests: register a user, log in, create and manipulate canvas objects, verify real-time sync with another user session. Monitor performance and check for no errors in Fly.io logs or console."
+          }
+        ],
         "updatedAt": "2025-10-14T02:52:04.930Z"
+      },
+      {
+        "id": 16,
+        "title": "Database Schema Updates for Version Tracking",
+        "description": "Modify the database schema to add version tracking fields to canvas objects and create a conflict log table as specified in the PRD.",
+        "details": "Execute the provided SQL statements to alter the canvas_objects table by adding 'version' (INTEGER DEFAULT 1), 'last_modified_by' (INTEGER REFERENCES users(id)), and 'last_modified_at' (TIMESTAMP DEFAULT CURRENT_TIMESTAMP) columns. Create the object_conflicts table with the specified schema including id (SERIAL PRIMARY KEY), canvas_id (TEXT NOT NULL), object_id (TEXT NOT NULL), user_id (INTEGER REFERENCES users(id)), client_version (INTEGER NOT NULL), server_version (INTEGER NOT NULL), attempted_changes (JSON), conflict_type (TEXT), resolved_at (TIMESTAMP), and resolution_type (TEXT). Ensure the database supports JSON for attempted_changes. Use transactions to apply changes safely.",
+        "testStrategy": "Unit test the schema changes by inserting sample data into canvas_objects and object_conflicts tables, verifying that version increments correctly and foreign key constraints are enforced. Integration test with existing queries to ensure no performance regression.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Alter canvas_objects table and create object_conflicts table",
+            "description": "Modify the database schema by adding version tracking fields to the canvas_objects table and creating the new object_conflicts table as specified.",
+            "dependencies": [],
+            "details": "Execute SQL statements to alter the canvas_objects table by adding 'version' (INTEGER DEFAULT 1), 'last_modified_by' (INTEGER REFERENCES users(id)), and 'last_modified_at' (TIMESTAMP DEFAULT CURRENT_TIMESTAMP) columns. Create the object_conflicts table with id (SERIAL PRIMARY KEY), canvas_id (TEXT NOT NULL), object_id (TEXT NOT NULL), user_id (INTEGER REFERENCES users(id)), client_version (INTEGER NOT NULL), server_version (INTEGER NOT NULL), attempted_changes (JSON), conflict_type (TEXT), resolved_at (TIMESTAMP), and resolution_type (TEXT). Ensure JSON support for attempted_changes. Use transactions for safe application.",
+            "status": "pending",
+            "testStrategy": "Insert sample data into both tables and verify constraints and data integrity."
+          },
+          {
+            "id": 2,
+            "title": "Validate database schema changes",
+            "description": "Ensure the schema modifications are correct and do not introduce regressions in the database.",
+            "dependencies": [
+              1
+            ],
+            "details": "After applying the schema changes, run validation checks including verifying table structures, foreign key constraints, and JSON support. Test with sample inserts and queries to confirm the database behaves as expected without performance issues.",
+            "status": "pending",
+            "testStrategy": "Perform unit tests by inserting data and checking version increments, and integration tests with existing queries to ensure no regressions."
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Implement Object Version Management in Backend",
+        "description": "Extend the backend canvas-state.lisp to handle version tracking for canvas objects, ensuring versions increment on updates.",
+        "details": "In canvas-state.lisp, modify the object update functions to read and increment the version field. For each object, store the version in memory cache and persist to database. Implement a function to retrieve the current version of an object. Use optimistic locking by checking the version before applying changes. Pseudo-code: (defun update-object (object-id updates client-version) (let ((current-version (get-object-version object-id))) (if (= client-version current-version) (progn (apply-updates object-id updates) (increment-version object-id) t) nil)))",
+        "testStrategy": "Unit tests for version increment logic and retrieval. Mock database interactions to verify version checks prevent stale updates.",
+        "priority": "high",
+        "dependencies": [
+          16
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Modify Object Update Functions for Version Tracking",
+            "description": "Update the object update functions in canvas-state.lisp to read and increment the version field for each canvas object.",
+            "dependencies": [],
+            "details": "In canvas-state.lisp, locate the existing update functions (e.g., for position, properties). Add logic to retrieve the current version, increment it after successful updates, and persist the new version to the database. Ensure the version is stored as an integer field in the object structure.",
+            "status": "pending",
+            "testStrategy": "Unit tests to verify version increments correctly on updates, using mock objects and database interactions."
+          },
+          {
+            "id": 2,
+            "title": "Implement Version Caching in Memory",
+            "description": "Add in-memory caching for object versions to improve performance and reduce database queries.",
+            "dependencies": [
+              1
+            ],
+            "details": "Integrate a memory cache (e.g., using a hash table in Lisp) to store object versions. On updates, update the cache synchronously with database persistence. Implement cache invalidation or refresh mechanisms if needed for consistency.",
+            "status": "pending",
+            "testStrategy": "Integration tests to check cache updates on version changes, simulating multiple updates and verifying cache accuracy."
+          },
+          {
+            "id": 3,
+            "title": "Add Optimistic Locking Logic",
+            "description": "Implement optimistic locking by checking client-provided versions against current versions before applying updates.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Modify the update-object function as per the pseudo-code: check if client-version matches current-version, apply updates only if they match, then increment version. Return success/failure indicators. Handle version mismatches by rejecting stale updates.",
+            "status": "pending",
+            "testStrategy": "Unit tests for locking logic, including scenarios with matching and mismatching versions, ensuring no updates on conflicts."
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Update WebSocket Protocol for Version Fields",
+        "description": "Modify websocket.lisp to include version fields in update messages and handle new conflict-related message types.",
+        "details": "Update the WebSocket message handlers in websocket.lisp to parse and send version fields in 'object-update' messages. Add handlers for 'object-conflict' and 'resolve-conflict' message types. Implement sending 'object-update-success' and 'object-conflict' responses. Pseudo-code: (defun handle-object-update (message) (let ((object-id (getf message :object-id)) (version (getf message :version)) (updates (getf message :updates))) (if (update-object object-id updates version) (send-success object-id (1+ version)) (send-conflict object-id version (get-server-version object-id) ...))))",
+        "testStrategy": "Integration tests for WebSocket message flows, simulating client-server interactions with version mismatches to ensure correct conflict detection and notifications.",
+        "priority": "high",
+        "dependencies": [
+          17
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update WebSocket Message Handlers for Version Fields",
+            "description": "Modify the existing WebSocket message handlers in websocket.lisp to parse and include version fields in 'object-update' messages, ensuring proper extraction of object-id, version, and updates from incoming messages.",
+            "dependencies": [],
+            "details": "In websocket.lisp, update the handle-object-update function to extract the :version field from the message plist. Modify the update-object function call to pass the version parameter for version checking. Ensure the handler correctly processes the message structure as per the pseudo-code provided, integrating with the existing message routing logic.",
+            "status": "pending",
+            "testStrategy": "Unit tests for message parsing, verifying that version fields are correctly extracted and passed to update functions. Simulate incoming messages with version data to check handler behavior."
+          },
+          {
+            "id": 2,
+            "title": "Add Handlers for New Conflict-Related Message Types",
+            "description": "Implement new message handlers in websocket.lisp for 'object-conflict' and 'resolve-conflict' message types to manage version conflicts in collaborative updates.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add functions like handle-object-conflict and handle-resolve-conflict in websocket.lisp. For 'object-conflict', parse incoming conflict notifications and prepare for resolution. For 'resolve-conflict', handle client-side resolution messages by updating the server state accordingly. Integrate these into the main message routing dispatcher, ensuring they work with the room management system.",
+            "status": "pending",
+            "testStrategy": "Integration tests simulating conflict scenarios: send conflicting updates and verify that 'object-conflict' messages are triggered and handled correctly. Test resolution flows to ensure state consistency."
+          },
+          {
+            "id": 3,
+            "title": "Implement Sending of Update Success and Conflict Responses",
+            "description": "Add functionality to send 'object-update-success' and 'object-conflict' response messages from the server in websocket.lisp based on update outcomes.",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement send-success and send-conflict functions that broadcast or send targeted messages to clients. For success, include the updated object-id and new version (e.g., 1+ version). For conflicts, send the object-id, client version, and server version. Ensure these are called from the handle-object-update function as per the pseudo-code, using the WebSocket broadcasting mechanisms established in the server infrastructure.",
+            "status": "pending",
+            "testStrategy": "End-to-end tests for message flows: Simulate successful updates and verify 'object-update-success' is sent. Trigger version mismatches to confirm 'object-conflict' responses are dispatched correctly, checking client-side receipt."
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "title": "Develop Conflict Detection Engine",
+        "description": "Create a conflict detection engine that compares versions and logs conflicts when detected.",
+        "details": "In a new or extended module (e.g., conflict-engine.lisp), implement version comparison logic. When an update is attempted with a stale version, log the conflict to the object_conflicts table with details like client_version, server_version, attempted_changes, and conflict_type. Pseudo-code: (defun detect-conflict (object-id client-version) (let ((server-version (get-server-version object-id))) (unless (= client-version server-version) (log-conflict object-id client-version server-version ...) t))) Integrate this into the update process.",
+        "testStrategy": "Unit tests for conflict detection algorithm, ensuring it correctly identifies version mismatches. Test logging by verifying database entries after simulated conflicts.",
+        "priority": "high",
+        "dependencies": [
+          16,
+          17,
+          18
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Version Comparison Logic",
+            "description": "Develop the core logic to compare client and server versions for detecting conflicts in the conflict detection engine.",
+            "dependencies": [],
+            "details": "In the conflict-engine.lisp module, implement a function to retrieve the server version for a given object ID and compare it with the client version. Use the provided pseudo-code as a basis: (defun detect-conflict (object-id client-version) (let ((server-version (get-server-version object-id))) (unless (= client-version server-version) ... t))). Ensure the comparison handles integer versions accurately and returns true if a conflict is detected.",
+            "status": "pending",
+            "testStrategy": "Unit tests to verify correct detection of version mismatches, including edge cases like equal versions and large version numbers."
+          },
+          {
+            "id": 2,
+            "title": "Implement Conflict Logging",
+            "description": "Create functionality to log detected conflicts to the database with necessary details.",
+            "dependencies": [
+              1
+            ],
+            "details": "Extend the conflict-engine.lisp module to include a log-conflict function that inserts records into the object_conflicts table. Include fields such as object_id, client_version, server_version, attempted_changes, and conflict_type. Use database utilities from database.lisp to execute the insert query securely, handling any potential database errors.",
+            "status": "pending",
+            "testStrategy": "Integration tests simulating conflicts and verifying that database entries are created correctly with all required fields populated."
+          },
+          {
+            "id": 3,
+            "title": "Integrate Conflict Detection with Update Process",
+            "description": "Incorporate the conflict detection engine into the existing update workflow to check for conflicts before applying changes.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Modify the update process in the relevant module (likely canvas.lisp or similar) to call the detect-conflict function before proceeding with any object updates. If a conflict is detected, prevent the update and ensure the conflict is logged. Integrate seamlessly with WebSocket message handling for real-time conflict detection during collaborative operations.",
+            "status": "pending",
+            "testStrategy": "End-to-end tests using WebSocket connections to simulate update attempts with stale versions, confirming conflicts are detected, logged, and updates are blocked appropriately."
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "title": "Implement Conflict Notification System",
+        "description": "Set up real-time notifications for conflicts to affected clients via WebSocket.",
+        "details": "Extend websocket.lisp to send 'object-conflict' messages to the client when a conflict is detected, including serverState, attemptedChanges, and conflictingUser. Ensure notifications are pushed immediately. For successful updates, broadcast 'object-update-success' to all connected clients for real-time sync. Pseudo-code: (defun notify-conflict (client-socket object-id ...) (send-message client-socket (make-conflict-message object-id ...)))",
+        "testStrategy": "Integration tests with multiple WebSocket clients to verify conflict notifications are sent correctly and only to affected users. End-to-end tests for real-time sync of non-conflicting updates.",
+        "priority": "high",
+        "dependencies": [
+          18,
+          19
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Extend WebSocket for Conflict Messages",
+            "description": "Modify websocket.lisp to send 'object-conflict' messages to the affected client when a conflict is detected, including details like serverState, attemptedChanges, and conflictingUser.",
+            "dependencies": [],
+            "details": "Update the WebSocket implementation in websocket.lisp to include a function that detects conflicts and immediately sends targeted 'object-conflict' messages to the specific client socket involved in the conflict. Ensure the message format includes object-id, serverState, attemptedChanges, and conflictingUser for proper client-side handling.",
+            "status": "pending",
+            "testStrategy": "Integration tests with multiple WebSocket clients to verify conflict notifications are sent correctly and only to affected users."
+          },
+          {
+            "id": 2,
+            "title": "Implement Broadcasting of Update Successes",
+            "description": "Add functionality to broadcast 'object-update-success' messages to all connected clients when an update succeeds, ensuring real-time synchronization.",
+            "dependencies": [
+              1
+            ],
+            "details": "Extend websocket.lisp to broadcast 'object-update-success' messages to all connected WebSocket clients upon successful object updates. This should include the updated object details to allow clients to sync their states in real-time without conflicts.",
+            "status": "pending",
+            "testStrategy": "End-to-end tests for real-time sync of non-conflicting updates across multiple clients."
+          }
+        ]
+      },
+      {
+        "id": 21,
+        "title": "Design and Implement Conflict Resolution UI",
+        "description": "Create frontend UI components for detecting and resolving conflicts, including visual indicators and resolution modal.",
+        "details": "In the frontend JavaScript, add a modal or sidebar that appears on receiving 'object-conflict' WebSocket message. Display side-by-side diffs of client and server states. Provide buttons for 'overwrite', 'discard', or 'merge' resolutions. On resolution, send 'resolve-conflict' message. Add visual indicators (e.g., red border) on conflicting objects. Use libraries like React for UI components if applicable. Pseudo-code: (function handleConflict(message) { showModal(message.objectId, message.serverState, message.attemptedChanges); }) (function resolveConflict(resolution) { sendWebSocket({type: 'resolve-conflict', resolution: resolution, ...}); })",
+        "testStrategy": "UI unit tests for modal rendering and button interactions. Integration tests simulating WebSocket conflicts to verify UI appears and resolutions are sent correctly.",
+        "priority": "high",
+        "dependencies": [
+          20
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design the Conflict Resolution Modal",
+            "description": "Design the UI layout and structure for the modal or sidebar that appears when a conflict is detected, including placeholders for diff display and buttons.",
+            "dependencies": [],
+            "details": "Create wireframes or mockups for the modal, ensuring it is responsive and user-friendly. Include areas for displaying object ID, side-by-side diffs, and resolution options. Use React components if applicable, and ensure accessibility standards are met.",
+            "status": "pending",
+            "testStrategy": "UI design reviews and mockup validations with stakeholders to ensure usability."
+          },
+          {
+            "id": 2,
+            "title": "Implement Side-by-Side Diff Display",
+            "description": "Implement the functionality to display side-by-side diffs of client and server states within the modal.",
+            "dependencies": [],
+            "details": "Develop code to render differences between client and server states, highlighting changes in color (e.g., green for additions, red for deletions). Integrate with the modal component, using libraries like diff-match-patch if needed. Ensure the display is scrollable for large diffs.",
+            "status": "pending",
+            "testStrategy": "Unit tests for diff rendering with sample data, verifying correct highlighting and layout."
+          },
+          {
+            "id": 3,
+            "title": "Add Resolution Buttons and Actions",
+            "description": "Add buttons for 'overwrite', 'discard', or 'merge' resolutions, and handle user interactions.",
+            "dependencies": [],
+            "details": "Implement buttons in the modal that trigger resolution actions. For merge, provide a simple interface if needed. On button click, prepare the resolution data. Ensure buttons are disabled during processing to prevent multiple submissions.",
+            "status": "pending",
+            "testStrategy": "UI interaction tests to verify button clicks trigger correct actions and modal updates."
+          },
+          {
+            "id": 4,
+            "title": "Integrate with WebSocket for Conflict Handling",
+            "description": "Integrate the UI components with WebSocket messages for receiving conflicts and sending resolutions.",
+            "dependencies": [],
+            "details": "Add event listeners for 'object-conflict' WebSocket messages to trigger the modal display. Implement sending 'resolve-conflict' messages upon resolution. Also, add visual indicators like red borders on conflicting objects in the canvas.",
+            "status": "pending",
+            "testStrategy": "Integration tests simulating WebSocket messages to ensure modal appears, indicators show, and resolutions are sent correctly."
+          }
+        ]
+      },
+      {
+        "id": 22,
+        "title": "Add Object Locking Visualization",
+        "description": "Implement frontend features to show which objects are being edited by others, with user avatars or names.",
+        "details": "Extend the frontend to display user information on objects currently being edited. Subscribe to WebSocket updates for lock status. Show avatars/names on locked objects in real-time. Use CSS overlays or tooltips. Pseudo-code: (function updateLockStatus(objectId, user) { addOverlay(objectId, user.avatar, user.name); }) Integrate with existing canvas rendering.",
+        "testStrategy": "UI tests for overlay display on locked objects. End-to-end tests with multiple users to verify real-time updates of lock statuses.",
+        "priority": "medium",
+        "dependencies": [
+          21
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Subscribe to WebSocket Updates for Lock Status",
+            "description": "Implement WebSocket subscription to receive real-time updates on object lock statuses from the server.",
+            "dependencies": [],
+            "details": "Extend the WebSocketClient to listen for lock status messages. On receiving updates, parse the objectId and user information (avatar, name). Store lock states in a local map for quick access. Ensure subscription handles connection drops and reconnections gracefully.",
+            "status": "pending",
+            "testStrategy": "Unit tests for WebSocket message parsing and state updates. Integration tests to simulate server messages and verify local lock map updates."
+          },
+          {
+            "id": 2,
+            "title": "Implement CSS Overlays for Locked Objects",
+            "description": "Create CSS overlays or tooltips to display user avatars and names on locked objects.",
+            "dependencies": [
+              1
+            ],
+            "details": "Design and implement CSS classes for overlays (e.g., positioned absolutely over canvas objects). Include elements for user avatar images and names. Use JavaScript to dynamically add/remove overlays based on lock status updates from the WebSocket subscription.",
+            "status": "pending",
+            "testStrategy": "UI tests to verify overlays appear correctly on locked objects with proper avatar and name display. Test overlay positioning and removal when locks are released."
+          },
+          {
+            "id": 3,
+            "title": "Integrate Lock Visualization with Canvas Rendering",
+            "description": "Integrate the lock overlays into the existing canvas rendering system to show real-time lock status.",
+            "dependencies": [
+              2
+            ],
+            "details": "Modify the canvas rendering logic in canvas.js to check lock status before rendering each object. Call the updateLockStatus function to apply overlays. Ensure overlays update in real-time without disrupting canvas performance, using efficient DOM manipulation.",
+            "status": "pending",
+            "testStrategy": "End-to-end tests with multiple users: Create objects, lock them, and verify overlays appear in real-time across clients. Performance tests to ensure no rendering lag."
+          }
+        ]
+      },
+      {
+        "id": 23,
+        "title": "Implement Resolution Workflows and Undo",
+        "description": "Enhance the conflict resolution UI with preview, undo, and advanced merge options.",
+        "details": "Add preview functionality before applying resolutions, allowing users to see the final state. Implement undo after resolution by storing previous states. For merges, provide a manual merge interface for compatible changes. Pseudo-code: (function previewResolution(resolution) { renderPreview(mergeStates(clientState, serverState, resolution)); }) (function undoResolution(objectId) { revertToPreviousState(objectId); })",
+        "testStrategy": "UI interaction tests for preview and undo features. Scenario-based tests for merge workflows, ensuring data integrity post-resolution.",
+        "priority": "medium",
+        "dependencies": [
+          21
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Preview Functionality for Resolutions",
+            "description": "Add preview functionality before applying resolutions to allow users to see the final merged state.",
+            "dependencies": [],
+            "details": "In the conflict resolution UI, implement a previewResolution function that takes a resolution object and renders a preview of the merged states using clientState, serverState, and the resolution. Use the provided pseudo-code as a base: (function previewResolution(resolution) { renderPreview(mergeStates(clientState, serverState, resolution)); }). Ensure the preview is non-destructive and updates in real-time as users adjust resolutions.",
+            "status": "pending",
+            "testStrategy": "UI tests to verify preview renders correctly and matches expected merged state without applying changes."
+          },
+          {
+            "id": 2,
+            "title": "Implement Undo Mechanism for Resolutions",
+            "description": "Implement undo functionality after resolution by storing and reverting to previous states.",
+            "dependencies": [
+              1
+            ],
+            "details": "Add an undoResolution function that stores previous states before applying resolutions and allows reverting to them using objectId. Base on pseudo-code: (function undoResolution(objectId) { revertToPreviousState(objectId); }). Integrate state storage in the backend or client-side to maintain data integrity, ensuring undo works even after page refreshes if needed.",
+            "status": "pending",
+            "testStrategy": "Scenario tests: Apply resolution, undo, and verify state reverts correctly. Check data integrity post-undo."
+          },
+          {
+            "id": 3,
+            "title": "Create Manual Merge Interface for Compatible Changes",
+            "description": "Provide a manual merge interface for compatible changes in conflict resolution.",
+            "dependencies": [
+              1
+            ],
+            "details": "Develop a UI component for manual merging of compatible changes, allowing users to select and combine elements from client and server states. Include options for side-by-side comparison and manual editing. Ensure it integrates with the preview functionality for a seamless workflow.",
+            "status": "pending",
+            "testStrategy": "Interaction tests: Simulate compatible conflicts, use merge interface to combine changes, and verify the merged result is accurate."
+          },
+          {
+            "id": 4,
+            "title": "Integrate Preview, Undo, and Merge into Conflict Resolution UI",
+            "description": "Integrate all new features (preview, undo, merge) into the overall conflict resolution UI workflow.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Update the conflict resolution UI to incorporate the preview, undo, and manual merge features. Ensure the UI handles user interactions smoothly, such as triggering previews on resolution changes, enabling undo buttons post-resolution, and displaying merge options for compatible conflicts. Maintain high user experience and data integrity as per complexity analysis.",
+            "status": "pending",
+            "testStrategy": "End-to-end UI tests covering the full workflow: preview changes, apply resolution, undo if needed, and use merge options. Verify no data loss or corruption."
+          }
+        ]
+      },
+      {
+        "id": 24,
+        "title": "Conduct Comprehensive Testing",
+        "description": "Perform unit, integration, and end-to-end testing for the object-level locking system, including load and edge case testing.",
+        "details": "Run unit tests for all new functions (version management, conflict detection). Integration tests for WebSocket and database interactions. End-to-end tests simulating concurrent editing, conflicts, and resolutions with 100+ users. Test network failures and race conditions. Use tools like Jest for frontend and Lisp testing frameworks for backend.",
+        "testStrategy": "Achieve 100% coverage on critical paths. Measure performance metrics like <10ms conflict checks and <100ms latency. Validate success criteria: 80% reduction in blocking, zero silent overwrites.",
+        "priority": "high",
+        "dependencies": [
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Unit Testing for Object-Level Locking Functions",
+            "description": "Run unit tests for all new functions related to version management and conflict detection in the object-level locking system.",
+            "dependencies": [],
+            "details": "Use Jest for frontend unit tests and Lisp testing frameworks for backend. Cover functions like version management, conflict detection, ensuring 100% coverage on critical paths. Measure performance metrics such as <10ms for conflict checks.",
+            "status": "pending",
+            "testStrategy": "Achieve 100% code coverage on unit tests for new functions, validate success criteria like zero silent overwrites."
+          },
+          {
+            "id": 2,
+            "title": "Integration Testing for WebSocket and Database Interactions",
+            "description": "Perform integration tests to verify interactions between WebSocket communications and database operations in the locking system.",
+            "dependencies": [
+              1
+            ],
+            "details": "Test WebSocket and database integrations for lock acquisition, release, and conflict resolution. Ensure seamless data flow and handle race conditions. Use profiling tools to maintain <100ms latency.",
+            "status": "pending",
+            "testStrategy": "Integration tests with mocked environments to verify correct handling of concurrent operations and data consistency."
+          },
+          {
+            "id": 3,
+            "title": "End-to-End Testing for Concurrent Editing Scenarios",
+            "description": "Conduct end-to-end tests simulating real-world usage with concurrent editing, conflicts, and resolutions involving multiple users.",
+            "dependencies": [
+              2
+            ],
+            "details": "Simulate 100+ users performing concurrent edits, triggering conflicts and resolutions. Test real-time sync via WebSocket broadcasts for successful updates and conflict notifications. Validate 80% reduction in blocking.",
+            "status": "pending",
+            "testStrategy": "End-to-end tests with multiple browser instances or simulated clients to confirm real-time updates and conflict handling."
+          },
+          {
+            "id": 4,
+            "title": "Load Testing for Scalability and Performance",
+            "description": "Execute load tests to assess the system's performance under high user load and object volume.",
+            "dependencies": [
+              3
+            ],
+            "details": "Test with 1000+ objects and 100+ users to verify scalability. Monitor conflict rates, resolution times, and ensure <5% latency increase. Implement caching and indexing as needed for optimization.",
+            "status": "pending",
+            "testStrategy": "Load tests in a production-like environment, measuring metrics like memory usage (<20% increase) and query performance."
+          },
+          {
+            "id": 5,
+            "title": "Edge Case Validation for Network Failures and Race Conditions",
+            "description": "Validate the system against edge cases including network failures, race conditions, and unusual user behaviors.",
+            "dependencies": [
+              4
+            ],
+            "details": "Test scenarios like network disconnections, rapid successive edits causing race conditions, and invalid inputs. Ensure the system handles these gracefully without data loss or silent overwrites.",
+            "status": "pending",
+            "testStrategy": "Edge case tests simulating failures and anomalies, verifying system resilience and adherence to success criteria."
+          }
+        ]
+      },
+      {
+        "id": 25,
+        "title": "Performance Optimization and Monitoring",
+        "description": "Optimize the system for performance and add monitoring for conflicts and usage metrics.",
+        "details": "Implement caching for version data to reduce database queries. Add indexing on version and last_modified_at columns. Monitor conflict rates, resolution times, and performance degradation. Use profiling tools to ensure <5% latency increase. Pseudo-code: (defun cache-version (object-id version) (setf (gethash object-id *version-cache*) version)) Integrate analytics for collaboration patterns.",
+        "testStrategy": "Load tests with 1000+ objects and 100+ users to verify scalability. Monitor metrics in production-like environment to confirm <20% memory increase and maintained query performance.",
+        "priority": "medium",
+        "dependencies": [
+          24
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Caching for Version Data",
+            "description": "Implement caching mechanism for version data to reduce database queries, including adding indexing on version and last_modified_at columns.",
+            "dependencies": [],
+            "details": "In the system module, add a cache structure (e.g., hash table) for storing version data keyed by object-id. Implement functions to cache and retrieve versions, ensuring thread-safety. Add database indexing on version and last_modified_at columns to optimize queries. Integrate the pseudo-code provided: (defun cache-version (object-id version) (setf (gethash object-id *version-cache*) version)). Ensure cache invalidation on updates.",
+            "status": "pending",
+            "testStrategy": "Unit tests for cache operations including hit/miss ratios and database query reduction verification."
+          },
+          {
+            "id": 2,
+            "title": "Add Monitoring for Conflicts and Usage Metrics",
+            "description": "Set up monitoring for conflict rates, resolution times, performance degradation, and integrate analytics for collaboration patterns.",
+            "dependencies": [
+              1
+            ],
+            "details": "Extend the conflict detection module to log metrics such as conflict rates, resolution times, and performance degradation. Integrate analytics to track collaboration patterns, such as user interactions and update frequencies. Use tools to collect and store these metrics in a database or external service. Ensure real-time monitoring capabilities for production environments.",
+            "status": "pending",
+            "testStrategy": "Load tests with 1000+ objects and 100+ users to monitor metrics in a production-like environment, confirming maintained query performance and <20% memory increase."
+          },
+          {
+            "id": 3,
+            "title": "Profile Performance to Ensure Latency Goals",
+            "description": "Use profiling tools to analyze system performance and ensure no more than 5% latency increase after optimizations.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Employ profiling tools (e.g., built-in Lisp profilers or external tools) to measure latency before and after implementing caching and monitoring. Run benchmarks on key operations like version retrieval and conflict detection. Adjust implementations as needed to meet the <5% latency increase threshold. Document profiling results and integrate continuous profiling in the development pipeline.",
+            "status": "pending",
+            "testStrategy": "Benchmark tests comparing pre- and post-optimization latency on core functions, ensuring <5% increase and verifying scalability under load."
+          }
+        ]
       }
     ],
     "metadata": {
-      "version": "1.0.0",
-      "lastModified": "2025-10-14T02:52:48.265Z",
-      "taskCount": 15,
-      "completedCount": 14,
-      "tags": [
-        "master"
-      ],
       "created": "2025-10-14T14:40:42.116Z",
+      "updated": "2025-10-14T18:52:29.375Z",
       "description": "Tasks for master context"
     }
   },

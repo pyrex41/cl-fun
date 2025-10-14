@@ -1,0 +1,101 @@
+{
+	"meta": {
+		"generatedAt": "2025-10-14T18:55:12.524Z",
+		"tasksAnalyzed": 11,
+		"totalTasks": 25,
+		"analysisCount": 11,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": false
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 15,
+			"taskTitle": "Deploy application to Fly.io",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down the deployment process into subtasks covering containerization, configuration, deployment, and testing.",
+			"reasoning": "This task involves multiple steps like creating a Dockerfile, configuring fly.toml, and deploying, with dependencies on prior builds. It's moderately complex due to potential configuration issues and testing the full application flow, but deployment tools like Fly.io simplify much of it."
+		},
+		{
+			"taskId": 16,
+			"taskTitle": "Database Schema Updates for Version Tracking",
+			"complexityScore": 4,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Divide into subtasks for altering the existing table, creating the new table, and validating the schema changes.",
+			"reasoning": "Primarily SQL-based with straightforward alterations and table creation, but requires careful handling of constraints and JSON support. Testing for regressions adds some effort, but overall low complexity as it's database-focused."
+		},
+		{
+			"taskId": 17,
+			"taskTitle": "Implement Object Version Management in Backend",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Split into subtasks for modifying update functions, implementing caching, and adding optimistic locking logic.",
+			"reasoning": "Involves extending Lisp code with version tracking, caching, and locking mechanisms, which introduces concurrency challenges. Dependencies on schema changes increase integration effort, making it moderately complex."
+		},
+		{
+			"taskId": 18,
+			"taskTitle": "Update WebSocket Protocol for Version Fields",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Separate into subtasks for updating message handlers, adding new message types, and implementing response sending.",
+			"reasoning": "Requires modifying WebSocket protocol in Lisp, handling new message types and version fields, with integration testing for client-server interactions. Moderate complexity due to real-time communication nuances."
+		},
+		{
+			"taskId": 19,
+			"taskTitle": "Develop Conflict Detection Engine",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break into subtasks for implementing version comparison logic, logging conflicts, and integrating with the update process.",
+			"reasoning": "Creating a new module for conflict detection involves algorithmic logic and database logging, with dependencies on multiple prior tasks. Moderate complexity from ensuring accurate detection and handling edge cases."
+		},
+		{
+			"taskId": 20,
+			"taskTitle": "Implement Conflict Notification System",
+			"complexityScore": 6,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Divide into subtasks for extending WebSocket for conflict messages and broadcasting update successes.",
+			"reasoning": "Focuses on real-time notifications via WebSocket, building on protocol updates. Moderate complexity due to the need for immediate, targeted messaging to clients."
+		},
+		{
+			"taskId": 21,
+			"taskTitle": "Design and Implement Conflict Resolution UI",
+			"complexityScore": 7,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Split into subtasks for designing the modal, implementing diff display, adding resolution buttons, and integrating with WebSocket.",
+			"reasoning": "Involves frontend UI design and interactions for conflict resolution, including visual indicators and user actions. Higher complexity from UI/UX considerations, multiple components, and integration with backend notifications."
+		},
+		{
+			"taskId": 22,
+			"taskTitle": "Add Object Locking Visualization",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break into subtasks for subscribing to lock updates, implementing overlays, and integrating with canvas rendering.",
+			"reasoning": "Adds frontend visualization features with real-time updates. Moderate complexity due to UI overlays and WebSocket integration, but simpler than full conflict resolution."
+		},
+		{
+			"taskId": 23,
+			"taskTitle": "Implement Resolution Workflows and Undo",
+			"complexityScore": 7,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Divide into subtasks for adding preview functionality, implementing undo, and creating merge options.",
+			"reasoning": "Enhances UI with advanced features like previews and undo, requiring state management and user interaction logic. High complexity from ensuring data integrity and user experience in resolution workflows."
+		},
+		{
+			"taskId": 24,
+			"taskTitle": "Conduct Comprehensive Testing",
+			"complexityScore": 8,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Separate into subtasks for unit testing, integration testing, end-to-end testing, load testing, and edge case validation.",
+			"reasoning": "Encompasses extensive testing across multiple levels, including performance and concurrency, with dependencies on all prior tasks. High complexity due to the breadth of testing required and achieving specific metrics."
+		},
+		{
+			"taskId": 25,
+			"taskTitle": "Performance Optimization and Monitoring",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Split into subtasks for implementing caching, adding monitoring, and profiling performance.",
+			"reasoning": "Focuses on optimization and monitoring post-implementation, involving caching and analytics. Moderate complexity from performance tuning and ensuring scalability without regressions."
+		}
+	]
+}

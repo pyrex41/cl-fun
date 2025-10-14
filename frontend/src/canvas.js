@@ -89,6 +89,13 @@ export class CanvasManager {
     this.currentTool = 'select'; // 'select', 'rectangle', 'circle', 'text'
     this.currentColor = 0x3498db; // Default blue
 
+    // Drag state (centralized for performance)
+    this.isDragging = false;
+    this.draggedObject = null;
+    this.draggedObjectId = null;
+    this.dragOffset = { x: 0, y: 0 };
+    this.lastDragUpdate = 0;
+
     // Viewport culling
     this.cullingEnabled = true;
     this.cullingPadding = 200; // Extra padding around viewport for smooth scrolling
@@ -109,6 +116,7 @@ export class CanvasManager {
 
     // Setup interaction
     this.setupPanZoom();
+    this.setupCentralizedDrag(); // NEW: Centralized drag handler
     this.setupKeyboardShortcuts();
     this.setupToolHandlers();
     this.setupViewportCulling();
@@ -222,7 +230,56 @@ export class CanvasManager {
       }
     }, { passive: false });
   }
-  
+
+  // ==================== Centralized Drag (Performance Optimized) ====================
+
+  setupCentralizedDrag() {
+    const canvas = this.app.view;
+
+    // Global mousemove handler (only one for all objects)
+    canvas.addEventListener('mousemove', (e) => {
+      if (this.isDragging && this.draggedObject) {
+        const worldPos = this.screenToWorld(e.clientX, e.clientY);
+
+        // Update position immediately
+        this.draggedObject.x = worldPos.x - this.dragOffset.x;
+        this.draggedObject.y = worldPos.y - this.dragOffset.y;
+
+        // Throttle network updates
+        const now = performance.now();
+        if (now - this.lastDragUpdate >= 16) { // 60 FPS
+          if (this.onObjectUpdated) {
+            this.onObjectUpdated(this.draggedObjectId, {
+              x: this.draggedObject.x,
+              y: this.draggedObject.y
+            });
+          }
+          this.lastDragUpdate = now;
+        }
+      }
+    });
+
+    // Global mouseup handler
+    canvas.addEventListener('mouseup', () => {
+      if (this.isDragging && this.draggedObject) {
+        this.draggedObject.alpha = 1;
+
+        // Send final position
+        if (this.onObjectUpdated) {
+          this.onObjectUpdated(this.draggedObjectId, {
+            x: this.draggedObject.x,
+            y: this.draggedObject.y
+          });
+        }
+
+        // Reset drag state
+        this.isDragging = false;
+        this.draggedObject = null;
+        this.draggedObjectId = null;
+      }
+    });
+  }
+
   screenToWorld(screenX, screenY) {
     return {
       x: (screenX - this.viewport.x) / this.viewport.scale.x,
@@ -268,6 +325,8 @@ export class CanvasManager {
     const canvas = this.app.view;
     let drawStart = null;
     let previewShape = null;
+    let lastPreviewUpdate = 0;
+    let previewUpdatePending = false;
 
     // Track cursor movement
     canvas.addEventListener('mousemove', (e) => {
@@ -278,22 +337,32 @@ export class CanvasManager {
         this.onCursorMoved(worldPos.x, worldPos.y);
       }
 
-      // Handle preview shape drawing
-      if (drawStart && previewShape) {
-        const width = worldPos.x - drawStart.x;
-        const height = worldPos.y - drawStart.y;
+      // Handle preview shape drawing with RAF throttling
+      if (drawStart && previewShape && !previewUpdatePending) {
+        previewUpdatePending = true;
+        requestAnimationFrame(() => {
+          const now = performance.now();
+          // Throttle preview updates to 60 FPS
+          if (now - lastPreviewUpdate >= 16) {
+            const currentWorldPos = this.screenToWorld(e.clientX, e.clientY);
+            const width = currentWorldPos.x - drawStart.x;
+            const height = currentWorldPos.y - drawStart.y;
 
-        previewShape.clear();
-        previewShape.beginFill(this.currentColor);
+            previewShape.clear();
+            previewShape.beginFill(this.currentColor);
 
-        if (this.currentTool === 'rectangle') {
-          previewShape.drawRect(drawStart.x, drawStart.y, width, height);
-        } else if (this.currentTool === 'circle') {
-          const radius = Math.sqrt(width * width + height * height);
-          previewShape.drawCircle(drawStart.x, drawStart.y, radius);
-        }
+            if (this.currentTool === 'rectangle') {
+              previewShape.drawRect(drawStart.x, drawStart.y, width, height);
+            } else if (this.currentTool === 'circle') {
+              const radius = Math.sqrt(width * width + height * height);
+              previewShape.drawCircle(drawStart.x, drawStart.y, radius);
+            }
 
-        previewShape.endFill();
+            previewShape.endFill();
+            lastPreviewUpdate = now;
+          }
+          previewUpdatePending = false;
+        });
       }
     });
 
@@ -541,56 +610,21 @@ export class CanvasManager {
   // ==================== Interaction ====================
   
   makeDraggable(obj, id) {
-    let dragData = null;
-    let dragOffset = { x: 0, y: 0 };
-    let lastDragUpdate = 0;
-    const dragUpdateInterval = 50; // Send updates every 50ms during drag (~20 FPS)
-
+    // Only handle pointerdown - centralized handler does the rest
     obj.on('pointerdown', (event) => {
       if (this.currentTool !== 'select') return;
 
-      dragData = event.data;
+      const worldPos = this.screenToWorld(event.data.global.x, event.data.global.y);
+
+      // Set centralized drag state
+      this.isDragging = true;
+      this.draggedObject = obj;
+      this.draggedObjectId = id;
+      this.dragOffset.x = worldPos.x - obj.x;
+      this.dragOffset.y = worldPos.y - obj.y;
+
       obj.alpha = 0.7;
-      dragData.dragging = true;
-
-      // Store the offset between cursor and object position
-      const cursorPos = dragData.getLocalPosition(obj.parent);
-      dragOffset.x = cursorPos.x - obj.x;
-      dragOffset.y = cursorPos.y - obj.y;
-
       event.stopPropagation();
-    });
-
-    obj.on('pointerup', () => {
-      if (dragData && dragData.dragging) {
-        obj.alpha = 1;
-        dragData.dragging = false;
-
-        // Send final position update
-        if (this.onObjectUpdated) {
-          this.onObjectUpdated(id, { x: obj.x, y: obj.y });
-        }
-
-        dragData = null;
-      }
-    });
-
-    obj.on('pointermove', () => {
-      if (dragData && dragData.dragging) {
-        const newPosition = dragData.getLocalPosition(obj.parent);
-        // Apply the offset to maintain cursor position relative to object
-        obj.x = newPosition.x - dragOffset.x;
-        obj.y = newPosition.y - dragOffset.y;
-
-        // Send throttled updates during drag for real-time visualization
-        const now = performance.now();
-        if (now - lastDragUpdate >= dragUpdateInterval) {
-          if (this.onObjectUpdated) {
-            this.onObjectUpdated(id, { x: obj.x, y: obj.y });
-          }
-          lastDragUpdate = now;
-        }
-      }
     });
   }
   
