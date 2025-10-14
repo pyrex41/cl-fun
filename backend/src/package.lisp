@@ -35,6 +35,7 @@
    #:start-server
    #:stop-server
    #:restart-server
+   #:main
    #:*server*
 
    ;; Configuration

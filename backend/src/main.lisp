@@ -268,6 +268,3 @@
       (format t "~%Fatal error: ~A~%" e)
       (stop-server)
       1)))
-
-;;; Export public interface
-(export '(start-server stop-server restart-server main))

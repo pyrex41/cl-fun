@@ -40,11 +40,14 @@ RUN ln -s /app/backend ~/.roswell/local-projects/collabcanvas && \
 # Create standalone binary with embedded Lisp runtime
 RUN ros -e '(ql:quickload :collabcanvas :silent t)' \
         -e '(sb-ext:save-lisp-and-die "collabcanvas-server" \
-              :toplevel (function collabcanvas:main) \
+              :toplevel (quote collabcanvas:main) \
               :executable t \
               :compression t \
               :save-runtime-options t)' && \
-    echo "Standalone binary created successfully"
+    test -f collabcanvas-server && \
+    chmod +x collabcanvas-server && \
+    echo "Standalone binary created successfully" && \
+    ls -lh collabcanvas-server
 
 # Build frontend
 WORKDIR /app/frontend
