@@ -2,6 +2,78 @@
 // Complete PixiJS Canvas Manager for CollabCanvas
 import * as PIXI from 'pixi.js';
 
+export class PerformanceMonitor {
+  constructor(app, canvasManager) {
+    this.app = app;
+    this.canvasManager = canvasManager;
+    this.fpsHistory = [];
+    this.maxHistorySize = 60;
+    this.currentFps = 60;
+    this.lastTime = performance.now();
+    this.frameCount = 0;
+
+    // Bind ticker update
+    this.app.ticker.add(this.update.bind(this));
+
+    console.log('PerformanceMonitor initialized');
+  }
+
+  update(deltaTime) {
+    // Calculate FPS based on delta time (in seconds)
+    const now = performance.now();
+    const deltaMs = now - this.lastTime;
+
+    if (deltaMs > 0) {
+      this.currentFps = Math.round(1000 / deltaMs);
+    }
+
+    this.lastTime = now;
+
+    // Add to history
+    this.fpsHistory.push(this.currentFps);
+    if (this.fpsHistory.length > this.maxHistorySize) {
+      this.fpsHistory.shift(); // Remove oldest entry
+    }
+
+    // Check for low FPS and log warnings
+    if (this.currentFps < 55) {
+      const avgFps = this.getAverageFps();
+      const objectCount = this.canvasManager ? this.canvasManager.objects.size : 0;
+      console.warn(`⚠️ Low FPS detected: ${this.currentFps} FPS (avg: ${avgFps.toFixed(1)}, objects: ${objectCount})`);
+    }
+  }
+
+  getAverageFps() {
+    if (this.fpsHistory.length === 0) return 60;
+    const sum = this.fpsHistory.reduce((a, b) => a + b, 0);
+    return sum / this.fpsHistory.length;
+  }
+
+  getStats() {
+    if (this.fpsHistory.length === 0) {
+      return {
+        current: this.currentFps,
+        average: 60,
+        min: 60,
+        max: 60
+      };
+    }
+
+    return {
+      current: this.currentFps,
+      average: Math.round(this.getAverageFps() * 10) / 10,
+      min: Math.min(...this.fpsHistory),
+      max: Math.max(...this.fpsHistory)
+    };
+  }
+
+  destroy() {
+    if (this.app && this.app.ticker) {
+      this.app.ticker.remove(this.update.bind(this));
+    }
+  }
+}
+
 export class CanvasManager {
   constructor(app) {
     this.app = app;
@@ -16,22 +88,58 @@ export class CanvasManager {
     this.panStart = { x: 0, y: 0 };
     this.currentTool = 'select'; // 'select', 'rectangle', 'circle', 'text'
     this.currentColor = 0x3498db; // Default blue
-    
+
+    // Viewport culling
+    this.cullingEnabled = true;
+    this.cullingPadding = 200; // Extra padding around viewport for smooth scrolling
+    this.lastViewportBounds = null;
+
+    // Performance monitoring
+    this.performanceMonitor = new PerformanceMonitor(app, this);
+
+    // Shared cursor texture for performance optimization
+    this.cursorTexture = this.createSharedCursorTexture();
+
     // Viewport setup
     this.app.stage.addChild(this.viewport);
     this.viewport.sortableChildren = true;
-    
+
     // Grid background (optional visual aid)
     this.drawGrid();
-    
+
     // Setup interaction
     this.setupPanZoom();
     this.setupKeyboardShortcuts();
     this.setupToolHandlers();
-    
+    this.setupViewportCulling();
+
     console.log('Canvas initialized');
   }
-  
+
+  createSharedCursorTexture() {
+    // Create cursor shape using Graphics
+    const graphics = new PIXI.Graphics();
+
+    // Draw cursor pointer (triangle)
+    graphics.beginFill(0xFFFFFF); // White fill (will be tinted)
+    graphics.moveTo(0, 0);
+    graphics.lineTo(12, 18);
+    graphics.lineTo(6, 18);
+    graphics.lineTo(0, 24);
+    graphics.endFill();
+
+    // Render to texture
+    const texture = this.app.renderer.generateTexture(graphics, {
+      resolution: 1,
+      scaleMode: PIXI.SCALE_MODES.LINEAR
+    });
+
+    // Clean up graphics object
+    graphics.destroy();
+
+    return texture;
+  }
+
   // ==================== Grid ====================
   
   drawGrid() {
@@ -223,7 +331,109 @@ export class CanvasManager {
       }
     });
   }
-  
+
+  // ==================== Viewport Culling ====================
+
+  setupViewportCulling() {
+    // Listen for viewport changes (pan and zoom)
+    this.app.ticker.add(() => {
+      if (this.cullingEnabled) {
+        this.updateVisibleObjects();
+      }
+    });
+  }
+
+  updateVisibleObjects() {
+    // Calculate current viewport bounds in world coordinates
+    const viewportBounds = this.getViewportBounds();
+
+    // Check if viewport has changed significantly
+    if (!this.lastViewportBounds ||
+        Math.abs(viewportBounds.left - this.lastViewportBounds.left) > 50 ||
+        Math.abs(viewportBounds.top - this.lastViewportBounds.top) > 50 ||
+        Math.abs(viewportBounds.right - this.lastViewportBounds.right) > 50 ||
+        Math.abs(viewportBounds.bottom - this.lastViewportBounds.bottom) > 50) {
+
+      this.lastViewportBounds = viewportBounds;
+
+      // Update visibility for all objects
+      this.objects.forEach((obj, id) => {
+        const objBounds = this.getObjectBounds(obj);
+        const isVisible = this.isBoundsVisible(objBounds, viewportBounds);
+
+        // Only change visibility if it actually changed to avoid unnecessary operations
+        if (obj.visible !== isVisible) {
+          obj.visible = isVisible;
+        }
+      });
+    }
+  }
+
+  getViewportBounds() {
+    // Get screen dimensions
+    const screenWidth = this.app.renderer.width;
+    const screenHeight = this.app.renderer.height;
+
+    // Convert screen corners to world coordinates
+    const topLeft = this.screenToWorld(0, 0);
+    const bottomRight = this.screenToWorld(screenWidth, screenHeight);
+
+    return {
+      left: topLeft.x - this.cullingPadding,
+      top: topLeft.y - this.cullingPadding,
+      right: bottomRight.x + this.cullingPadding,
+      bottom: bottomRight.y + this.cullingPadding
+    };
+  }
+
+  getObjectBounds(obj) {
+    // Calculate object bounds based on type
+    if (obj.userData) {
+      if (obj.userData.type === 'rectangle') {
+        return {
+          left: obj.x,
+          top: obj.y,
+          right: obj.x + obj.userData.width,
+          bottom: obj.y + obj.userData.height
+        };
+      } else if (obj.userData.type === 'circle') {
+        const radius = obj.userData.radius;
+        return {
+          left: obj.x - radius,
+          top: obj.y - radius,
+          right: obj.x + radius,
+          bottom: obj.y + radius
+        };
+      }
+    }
+
+    // Fallback for objects without userData (like text)
+    if (obj.width && obj.height) {
+      return {
+        left: obj.x,
+        top: obj.y,
+        right: obj.x + obj.width,
+        bottom: obj.y + obj.height
+      };
+    }
+
+    // Last resort - treat as point
+    return {
+      left: obj.x,
+      top: obj.y,
+      right: obj.x,
+      bottom: obj.y
+    };
+  }
+
+  isBoundsVisible(objBounds, viewportBounds) {
+    // Check if object bounds intersect with viewport bounds
+    return !(objBounds.right < viewportBounds.left ||
+             objBounds.left > viewportBounds.right ||
+             objBounds.bottom < viewportBounds.top ||
+             objBounds.top > viewportBounds.bottom);
+  }
+
   createToolObject(start, end) {
     const id = this.generateId();
     
@@ -270,6 +480,7 @@ export class CanvasManager {
     rect.y = y;
     rect.interactive = true;
     rect.buttonMode = true;
+    rect.visible = true; // Start visible, culling will handle visibility
 
     // Store dimensions for selection box
     rect.userData = { width, height, type: 'rectangle' };
@@ -292,6 +503,7 @@ export class CanvasManager {
     circle.y = y;
     circle.interactive = true;
     circle.buttonMode = true;
+    circle.visible = true; // Start visible, culling will handle visibility
 
     // Store dimensions for selection box
     circle.userData = { radius, type: 'circle' };
@@ -315,13 +527,14 @@ export class CanvasManager {
     textObj.y = y;
     textObj.interactive = true;
     textObj.buttonMode = true;
-    
+    textObj.visible = true; // Start visible, culling will handle visibility
+
     this.makeDraggable(textObj, id);
     this.makeSelectable(textObj, id);
-    
+
     this.objects.set(id, textObj);
     this.viewport.addChild(textObj);
-    
+
     return textObj;
   }
   
@@ -460,13 +673,24 @@ export class CanvasManager {
   }
   
   deleteSelected() {
-    this.selectedObjects.forEach(id => {
-      this.deleteObject(id);
-      if (this.onObjectDeleted) {
-        this.onObjectDeleted(id);
-      }
-    });
+    if (this.selectedObjects.size === 0) {
+      return;
+    }
+
+    const idsToDelete = Array.from(this.selectedObjects);
+
+    // Use bulk deletion for better performance
+    const deletedIds = this.deleteObjects(idsToDelete);
+
+    // Clear selection
     this.selectedObjects.clear();
+
+    // Notify about bulk deletion
+    if (this.onObjectsDeleted && deletedIds.length > 0) {
+      this.onObjectsDeleted(deletedIds);
+    }
+
+    console.log(`Deleted ${deletedIds.length} selected objects`);
   }
   
   // ==================== Object Management ====================
@@ -512,6 +736,47 @@ export class CanvasManager {
     console.error(`=== LOAD STATE COMPLETE: ${this.objects.size} objects ===`);
     console.error('Current objects in map:', Array.from(this.objects.keys()));
     console.error('========================================');
+
+    // Trigger viewport culling after loading objects
+    if (this.cullingEnabled) {
+      this.updateVisibleObjects();
+    }
+  }
+
+  applyDelta(id, delta) {
+    const obj = this.objects.get(id);
+    if (!obj) return;
+
+    // Apply all properties from delta
+    for (const [key, value] of Object.entries(delta)) {
+      obj[key] = value;
+    }
+
+    // Handle special cases for Graphics objects
+    if (obj instanceof PIXI.Graphics) {
+      if (delta.width !== undefined || delta.height !== undefined ||
+          delta.color !== undefined || delta.rotation !== undefined) {
+        // Trigger redraw for visual properties
+        this.redrawGraphicsObject(obj);
+      }
+    }
+  }
+
+  redrawGraphicsObject(obj) {
+    // Clear and redraw the graphics object based on its current properties
+    obj.clear();
+
+    // Basic rectangle drawing - you might want to extend this for other shapes
+    if (obj.width && obj.height) {
+      obj.beginFill(obj.color || 0xFF0000);
+      obj.drawRect(0, 0, obj.width, obj.height);
+      obj.endFill();
+    }
+
+    // Apply rotation if set
+    if (obj.rotation) {
+      obj.rotation = obj.rotation;
+    }
   }
 
   updateObject(id, updates) {
@@ -535,19 +800,150 @@ export class CanvasManager {
     if (obj) {
       this.viewport.removeChild(obj);
       this.objects.delete(id);
-      obj.destroy();
+
+      // Destroy object but preserve shared textures
+      obj.destroy({ children: true, texture: false, baseTexture: false });
 
       // Clean up selection indicator if it exists
       const indicator = this.selectionIndicators.get(id);
       if (indicator) {
         this.viewport.removeChild(indicator);
-        indicator.destroy();
+        indicator.destroy({ children: true, texture: false, baseTexture: false });
         this.selectionIndicators.delete(id);
       }
 
       // Remove from selected objects set
       this.selectedObjects.delete(id);
+
+      console.log(`Deleted object ${id} with proper texture preservation`);
     }
+  }
+
+  deleteObjects(ids) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      console.warn('deleteObjects: Expected non-empty array of IDs');
+      return;
+    }
+
+    console.log(`Bulk deleting ${ids.length} objects:`, ids);
+
+    // Collect objects to delete for broadcasting
+    const deletedObjects = [];
+
+    // Delete each object
+    ids.forEach(id => {
+      const obj = this.objects.get(id);
+      if (obj) {
+        this.viewport.removeChild(obj);
+        this.objects.delete(id);
+
+        // Destroy object but preserve shared textures
+        obj.destroy({ children: true, texture: false, baseTexture: false });
+
+        // Clean up selection indicator if it exists
+        const indicator = this.selectionIndicators.get(id);
+        if (indicator) {
+          this.viewport.removeChild(indicator);
+          indicator.destroy({ children: true, texture: false, baseTexture: false });
+          this.selectionIndicators.delete(id);
+        }
+
+        // Remove from selected objects set
+        this.selectedObjects.delete(id);
+
+        deletedObjects.push(id);
+      } else {
+        console.warn(`Object ${id} not found for deletion`);
+      }
+    });
+
+    console.log(`Bulk deleted ${deletedObjects.length} objects successfully`);
+
+    // Return deleted IDs for broadcasting
+    return deletedObjects;
+  }
+
+  verifyObjectDeletion(ids) {
+    if (!Array.isArray(ids)) {
+      ids = [ids];
+    }
+
+    let allClean = true;
+    const issues = [];
+
+    ids.forEach(id => {
+      // Check if object still exists in maps
+      if (this.objects.has(id)) {
+        issues.push(`Object ${id} still in objects map`);
+        allClean = false;
+      }
+
+      if (this.selectionIndicators.has(id)) {
+        issues.push(`Selection indicator for ${id} still exists`);
+        allClean = false;
+      }
+
+      if (this.selectedObjects.has(id)) {
+        issues.push(`Object ${id} still in selectedObjects set`);
+        allClean = false;
+      }
+
+      // Check if PIXI object still has parent (indicating it's still in scene)
+      const obj = this.viewport.children.find(child => child._objectId === id);
+      if (obj) {
+        issues.push(`Object ${id} still in viewport children`);
+        allClean = false;
+      }
+    });
+
+    // Check for orphaned PIXI objects in viewport
+    const orphanedPixiObjects = this.viewport.children.filter(child => {
+      // Look for objects that don't have corresponding entries in our maps
+      return child._objectId && !this.objects.has(child._objectId);
+    });
+
+    if (orphanedPixiObjects.length > 0) {
+      issues.push(`${orphanedPixiObjects.length} orphaned PIXI objects found in viewport`);
+      allClean = false;
+    }
+
+    // Check texture memory (basic check)
+    const textureCount = Object.keys(PIXI.utils.TextureCache).length;
+    if (textureCount > 100) { // Arbitrary threshold
+      issues.push(`High texture count detected: ${textureCount} textures in cache`);
+    }
+
+    if (!allClean) {
+      console.warn('Memory leak verification failed:', issues);
+    } else {
+      console.log(`Memory leak verification passed for ${ids.length} deleted objects`);
+    }
+
+    return {
+      success: allClean,
+      issues: issues,
+      textureCount: textureCount,
+      orphanedObjects: orphanedPixiObjects.length
+    };
+  }
+
+  getMemoryStats() {
+    const pixiChildren = this.viewport.children.length;
+    const objectsInMap = this.objects.size;
+    const selectionIndicators = this.selectionIndicators.size;
+    const selectedObjects = this.selectedObjects.size;
+    const remoteCursors = this.remoteCursors.size;
+
+    return {
+      pixiChildren,
+      objectsInMap,
+      selectionIndicators,
+      selectedObjects,
+      remoteCursors,
+      totalTrackedObjects: objectsInMap + selectionIndicators + selectedObjects + remoteCursors,
+      textureCacheSize: Object.keys(PIXI.utils.TextureCache).length,
+      baseTextureCacheSize: Object.keys(PIXI.utils.BaseTextureCache).length
+    };
   }
 
   // ==================== Remote Object Sync ====================
@@ -668,9 +1064,9 @@ export class CanvasManager {
     return 0x3498db;
   }
 
-  updateRemoteObject(objectId, updates) {
-    console.log('Updating remote object:', objectId, updates);
-    this.updateObject(objectId, updates);
+  updateRemoteObject(objectId, delta) {
+    console.log('Updating remote object with delta:', objectId, delta);
+    this.applyDelta(objectId, delta);
   }
 
   deleteRemoteObject(objectId) {
@@ -690,6 +1086,10 @@ export class CanvasManager {
       y: obj.y
     }));
   }
+
+  getPerformanceStats() {
+    return this.performanceMonitor.getStats();
+  }
   
   // ==================== Remote Cursors ====================
   
@@ -705,24 +1105,24 @@ export class CanvasManager {
       // Create new cursor
       cursor = new PIXI.Container();
 
-      // Cursor pointer (triangle)
-      const pointer = new PIXI.Graphics();
-      pointer.beginFill(colorNum);
-      pointer.moveTo(0, 0);
-      pointer.lineTo(12, 18);
-      pointer.lineTo(6, 18);
-      pointer.lineTo(0, 24);
-      pointer.endFill();
+      // Cursor pointer using shared texture and sprite
+      const pointer = new PIXI.Sprite(this.cursorTexture);
+      pointer.tint = colorNum; // Apply color using tint instead of recreating graphics
 
       // Username label
       const label = new PIXI.Text(username, {
         fontSize: 12,
         fill: 0xFFFFFF,
-        backgroundColor: colorNum,
-        padding: 4
+        fontWeight: 'bold',
+        stroke: colorNum,
+        strokeThickness: 2,
+        dropShadow: true,
+        dropShadowColor: 0x000000,
+        dropShadowAlpha: 0.7,
+        dropShadowDistance: 1
       });
       label.x = 15;
-      label.y = 0;
+      label.y = -5; // Position above cursor tip
 
       cursor.addChild(pointer);
       cursor.addChild(label);
@@ -732,10 +1132,27 @@ export class CanvasManager {
       this.viewport.addChild(cursor);
     }
 
-    cursor.x = x;
-    cursor.y = y;
+    // Add interpolation for smooth rendering despite batching/throttling
+    if (!cursor.lastUpdate) {
+      cursor.lastUpdate = { x, y, time: performance.now() };
+    }
+
+    const now = performance.now();
+    const dt = now - cursor.lastUpdate.time;
+
+    if (dt > 0 && dt < 100) { // Interpolate over last 100ms for smoothness
+      const lerpFactor = Math.min(dt / 100, 1);
+      cursor.x = cursor.lastUpdate.x + (x - cursor.lastUpdate.x) * lerpFactor;
+      cursor.y = cursor.lastUpdate.y + (y - cursor.lastUpdate.y) * lerpFactor;
+    } else {
+      // Large time gap or first update - jump to position
+      cursor.x = x;
+      cursor.y = y;
+    }
+
+    cursor.lastUpdate = { x, y, time: now };
   }
-  
+
   removeRemoteCursor(userId) {
     const cursor = this.remoteCursors.get(userId);
     if (cursor) {
@@ -744,7 +1161,71 @@ export class CanvasManager {
       this.remoteCursors.delete(userId);
     }
   }
-  
+
+  clearAllRemoteCursors() {
+    console.log(`Clearing all remote cursors (${this.remoteCursors.size} cursors)`)
+    this.remoteCursors.forEach((cursor, userId) => {
+      this.viewport.removeChild(cursor)
+      cursor.destroy()
+    })
+    this.remoteCursors.clear()
+    console.log('All remote cursors cleared')
+  }
+
+  startPeriodicCleanup(intervalMs = 60000) {
+    // Run cleanup every minute to catch any orphaned objects
+    this.cleanupInterval = setInterval(() => {
+      this.performCleanup()
+    }, intervalMs)
+    console.log(`Started periodic cleanup (every ${intervalMs / 1000}s)`)
+  }
+
+  stopPeriodicCleanup() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval)
+      this.cleanupInterval = null
+      console.log('Stopped periodic cleanup')
+    }
+  }
+
+  performCleanup() {
+    console.log('=== Performing periodic cleanup ===')
+    let orphanedIndicators = 0
+    let orphanedCursors = 0
+
+    // Clean up selection indicators for deleted objects
+    this.selectionIndicators.forEach((indicator, id) => {
+      if (!this.objects.has(id)) {
+        this.viewport.removeChild(indicator)
+        indicator.destroy()
+        this.selectionIndicators.delete(id)
+        orphanedIndicators++
+      }
+    })
+
+    // Clean up selected objects that no longer exist
+    this.selectedObjects.forEach(id => {
+      if (!this.objects.has(id)) {
+        this.selectedObjects.delete(id)
+      }
+    })
+
+    // Clean up remote cursors that haven't updated in a while (>5 minutes)
+    const fiveMinutesAgo = performance.now() - (5 * 60 * 1000)
+    this.remoteCursors.forEach((cursor, userId) => {
+      if (cursor.lastUpdate && cursor.lastUpdate.time < fiveMinutesAgo) {
+        this.removeRemoteCursor(userId)
+        orphanedCursors++
+      }
+    })
+
+    if (orphanedIndicators > 0 || orphanedCursors > 0) {
+      console.log(`Cleanup complete: ${orphanedIndicators} indicators, ${orphanedCursors} cursors removed`)
+    } else {
+      console.log('Cleanup complete: No orphaned objects found')
+    }
+  }
+
   // ==================== Utilities ====================
   
   generateId() {
@@ -768,6 +1249,40 @@ export class CanvasManager {
       });
     });
     return { objects };
+  }
+
+  destroy() {
+    // Clean up performance monitor
+    if (this.performanceMonitor) {
+      this.performanceMonitor.destroy();
+    }
+
+    // Clean up shared cursor texture
+    if (this.cursorTexture) {
+      this.cursorTexture.destroy();
+    }
+
+    // Clean up PIXI objects
+    this.objects.forEach(obj => {
+      if (obj && typeof obj.destroy === 'function') {
+        obj.destroy();
+      }
+    });
+    this.objects.clear();
+
+    this.selectionIndicators.forEach(indicator => {
+      if (indicator && typeof indicator.destroy === 'function') {
+        indicator.destroy();
+      }
+    });
+    this.selectionIndicators.clear();
+
+    this.remoteCursors.forEach(cursor => {
+      if (cursor && typeof cursor.destroy === 'function') {
+        cursor.destroy();
+      }
+    });
+    this.remoteCursors.clear();
   }
   
   // Callbacks - set these from outside

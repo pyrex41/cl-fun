@@ -2,33 +2,118 @@
 
 (in-package #:collabcanvas)
 
-;;; Database connection management
-(defparameter *database-connection* nil
-  "Global database connection")
+;;; Database connection pool management
+(defstruct db-pool
+  "Connection pool for database connections"
+  (available nil :type list)  ; List of available connections
+  (in-use nil :type list)     ; List of connections currently in use
+  (lock (bt:make-lock "db-pool-lock") :type bt:lock)
+  (condition-variable (bt:make-condition-variable) :type bt:condition-variable)
+  (max-size 10 :type integer)
+  (current-size 0 :type integer))
+
+(defparameter *database-pool* nil
+  "Global database connection pool")
 
 (defun ensure-database-directory ()
   "Ensure the database directory exists"
   (let ((db-dir (directory-namestring (merge-pathnames *database-path*))))
     (ensure-directories-exist db-dir)))
 
+(defun create-database-connection ()
+  "Create a new database connection"
+  (ensure-database-directory)
+  (sqlite:connect (merge-pathnames *database-path*)))
+
+(defun init-database-pool (&optional (size *database-pool-size*))
+  "Initialize the database connection pool with SIZE connections"
+  (setf *database-pool* (make-db-pool :max-size size))
+  (dotimes (i size)
+    (let ((conn (create-database-connection)))
+      (push conn (db-pool-available *database-pool*))
+      (incf (db-pool-current-size *database-pool*))))
+  (format t "Initialized database pool with ~A connections~%" size))
+
+(defun acquire-connection (&optional (timeout *database-connection-timeout*))
+  "Acquire a connection from the pool, waiting up to TIMEOUT seconds if none available"
+  (bt:with-lock-held ((db-pool-lock *database-pool*))
+    (let ((start-time (get-universal-time)))
+      (loop
+        (when (db-pool-available *database-pool*)
+          (let ((conn (pop (db-pool-available *database-pool*))))
+            (push conn (db-pool-in-use *database-pool*))
+            (return-from acquire-connection conn)))
+
+        ;; Check timeout
+        (when (> (- (get-universal-time) start-time) timeout)
+          (error "Timeout waiting for database connection from pool"))
+
+        ;; If pool not at max size, create new connection
+        (when (< (db-pool-current-size *database-pool*)
+                 (db-pool-max-size *database-pool*))
+          (let ((conn (create-database-connection)))
+            (push conn (db-pool-in-use *database-pool*))
+            (incf (db-pool-current-size *database-pool*))
+            (return-from acquire-connection conn)))
+
+        ;; Wait for a connection to be released
+        (bt:condition-wait (db-pool-condition-variable *database-pool*)
+                          (db-pool-lock *database-pool*)
+                          :timeout 1)))))
+
+(defun release-connection (conn)
+  "Release a connection back to the pool"
+  (bt:with-lock-held ((db-pool-lock *database-pool*))
+    (setf (db-pool-in-use *database-pool*)
+          (remove conn (db-pool-in-use *database-pool*)))
+    (push conn (db-pool-available *database-pool*))
+    (bt:condition-notify (db-pool-condition-variable *database-pool*))))
+
+(defun close-database-pool ()
+  "Close all connections in the pool"
+  (when *database-pool*
+    (bt:with-lock-held ((db-pool-lock *database-pool*))
+      ;; Close all available connections
+      (dolist (conn (db-pool-available *database-pool*))
+        (sqlite:disconnect conn))
+      ;; Close all in-use connections (shouldn't normally happen)
+      (dolist (conn (db-pool-in-use *database-pool*))
+        (sqlite:disconnect conn))
+      (setf (db-pool-available *database-pool*) nil)
+      (setf (db-pool-in-use *database-pool*) nil)
+      (setf (db-pool-current-size *database-pool*) 0))
+    (format t "Closed database connection pool~%")))
+
+(defmacro with-db-connection ((conn-var) &body body)
+  "Execute body with a connection from the pool, ensuring it's released afterward"
+  `(let ((,conn-var (acquire-connection)))
+     (unwind-protect
+          (progn ,@body)
+       (release-connection ,conn-var))))
+
+;;; Legacy compatibility - keep with-database for backward compatibility
+(defmacro with-database (&body body)
+  "Execute body with database connection (legacy compatibility, uses pool)"
+  (let ((conn (gensym "CONN")))
+    `(with-db-connection (,conn)
+       (let ((*database-connection* ,conn))
+         ,@body))))
+
+;;; For backward compatibility with code expecting *database-connection*
+(defparameter *database-connection* nil
+  "Current database connection (for backward compatibility)")
+
 (defun connect-database ()
-  "Connect to the SQLite database"
+  "Connect to the SQLite database (legacy compatibility)"
   (ensure-database-directory)
   (setf *database-connection*
         (sqlite:connect (merge-pathnames *database-path*))))
 
 (defun disconnect-database ()
-  "Disconnect from the database"
+  "Disconnect from the database (legacy compatibility)"
   (when *database-connection*
     (sqlite:disconnect *database-connection*)
     (setf *database-connection* nil)))
-
-(defmacro with-database (&body body)
-  "Execute body with database connection"
-  `(bt:with-lock-held (*database-lock*)
-     (unless *database-connection*
-       (connect-database))
-     ,@body))
 
 ;;; Database initialization
 (defun init-database ()
@@ -150,19 +235,31 @@
 
 ;;; Canvas state operations
 (defun save-canvas-state (canvas-id state-json)
-  "Save or update canvas state"
-  (let ((existing (execute-single
-                   "SELECT id FROM canvas_states WHERE canvas_id = ?"
-                   canvas-id)))
-    (if existing
-        (execute-non-query
-         "UPDATE canvas_states
-          SET state_json = ?, version = version + 1, updated_at = datetime('now')
-          WHERE canvas_id = ?"
-         state-json canvas-id)
-        (execute-non-query
-         "INSERT INTO canvas_states (canvas_id, state_json) VALUES (?, ?)"
-         canvas-id state-json))))
+  "Save or update canvas state using INSERT OR REPLACE with transaction"
+  (with-db-connection (conn)
+    ;; Use transaction for atomic operation
+    (sqlite:execute-non-query conn "BEGIN TRANSACTION")
+    (handler-case
+        (progn
+          ;; Get current version if exists
+          (let* ((current-version
+                  (let ((row (sqlite:execute-single conn
+                                                     "SELECT version FROM canvas_states WHERE canvas_id = ?"
+                                                     canvas-id)))
+                    (if row (first row) 0)))
+                 (new-version (1+ current-version)))
+            ;; Use INSERT OR REPLACE for efficiency
+            (sqlite:execute-non-query conn
+                                     "INSERT OR REPLACE INTO canvas_states (canvas_id, state_json, version, created_at, updated_at)
+                                      VALUES (?, ?, ?,
+                                              COALESCE((SELECT created_at FROM canvas_states WHERE canvas_id = ?), datetime('now')),
+                                              datetime('now'))"
+                                     canvas-id state-json new-version canvas-id)
+            (sqlite:execute-non-query conn "COMMIT")
+            new-version))
+      (error (e)
+        (sqlite:execute-non-query conn "ROLLBACK")
+        (error "Failed to save canvas state: ~A" e)))))
 
 (defun load-canvas-state (canvas-id)
   "Load canvas state"

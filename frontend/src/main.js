@@ -5,6 +5,7 @@ import * as PIXI from 'pixi.js'
 import { CanvasManager } from './canvas.js'
 import { WebSocketClient } from './websocket.js'
 import { AuthManager } from './auth.js'
+import { PerformanceTest } from './performance-test.js'
 
 class CollabCanvas {
     constructor() {
@@ -129,6 +130,30 @@ class CollabCanvas {
 
         this.canvasManager = new CanvasManager(app)
 
+        // Make performance stats available globally for console access
+        window.getPerformanceStats = () => {
+            return this.canvasManager.getPerformanceStats();
+        };
+
+        // Make latency stats available globally
+        window.getLatencyStats = () => {
+            if (!this.wsClient) return null;
+            return this.wsClient.getLatencyStats();
+        };
+
+        window.logLatencyStats = () => {
+            if (!this.wsClient) {
+                console.warn('WebSocket client not initialized');
+                return;
+            }
+            this.wsClient.logLatencyStats();
+        };
+
+        window.getLatencyStatsByType = (messageType) => {
+            if (!this.wsClient) return null;
+            return this.wsClient.getLatencyStatsByType(messageType);
+        };
+
         // Set up canvas callbacks for WebSocket synchronization
         this.canvasManager.onCursorMoved = (x, y) => {
             if (this.wsClient && this.wsClient.isConnected) {
@@ -154,6 +179,12 @@ class CollabCanvas {
             }
         }
 
+        this.canvasManager.onObjectsDeleted = (objectIds) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendObjectsDelete(objectIds)
+            }
+        }
+
         // Update status bar callbacks
         this.canvasManager.onToolChange = (tool) => {
             document.getElementById('current-tool').textContent =
@@ -171,6 +202,11 @@ class CollabCanvas {
         this.canvasManager.onObjectCountChange = (count) => {
             document.getElementById('object-count').textContent = count
         }
+
+        // Start periodic memory cleanup (every 60 seconds)
+        // This removes orphaned selection indicators and inactive cursors
+        this.canvasManager.startPeriodicCleanup(60000)
+        console.log('Started periodic memory cleanup (60s interval)')
     }
 
     initWebSocket() {
@@ -247,13 +283,31 @@ class CollabCanvas {
         this.wsClient.onObjectUpdated = (data) => {
             // Backend sends 'object-id' (kebab-case)
             const objectId = data['object-id'] || data.objectId
-            this.canvasManager.updateRemoteObject(objectId, data.updates)
+            this.canvasManager.updateRemoteObject(objectId, data.delta)
         }
 
         this.wsClient.onObjectDeleted = (data) => {
-            // Backend sends 'object-id' (kebab-case)
-            const objectId = data['object-id'] || data.objectId
-            this.canvasManager.deleteRemoteObject(objectId)
+            // Remove user from active users list
+            const userId = data.userId || data['user-id']
+            this.activeUsers = this.activeUsers.filter(u =>
+                (u['user-id'] || u.userId) !== userId
+            )
+            this.updatePresenceList(this.activeUsers)
+            this.canvasManager.removeRemoteCursor(userId)
+            this.showNotification(`${data.username} left`, 'info')
+        }
+
+        this.wsClient.onObjectsDeleted = (data) => {
+            const objectIds = data['object-ids'] || data.objectIds || []
+            console.log('Received bulk delete for objects:', objectIds)
+
+            // Handle remote bulk deletion
+            if (objectIds.length > 0) {
+                objectIds.forEach(objectId => {
+                    this.canvasManager.deleteObject(objectId)
+                })
+                console.log(`Processed remote bulk deletion of ${objectIds.length} objects`)
+            }
         }
 
         this.wsClient.onError = (error) => {
@@ -307,6 +361,12 @@ class CollabCanvas {
                     break
                 case 'c':
                     this.selectTool('circle')
+                    break
+                case 'p':
+                    if (e.ctrlKey && e.shiftKey) {
+                        e.preventDefault()
+                        this.runPerformanceTest()
+                    }
                     break
                 case 'delete':
                 case 'backspace':
@@ -390,10 +450,36 @@ class CollabCanvas {
 
         // Clean up
         localStorage.removeItem('sessionId')
-        this.wsClient.disconnect()
+
+        // Stop periodic cleanup timer
+        if (this.canvasManager) {
+            this.canvasManager.stopPeriodicCleanup()
+        }
+
+        // Disconnect WebSocket (also cleans up cursor throttle)
+        if (this.wsClient) {
+            this.wsClient.disconnect()
+        }
 
         // Reload page to show login
         window.location.reload()
+    }
+
+    async runPerformanceTest() {
+        console.log('Starting performance test... Press Ctrl+Shift+P to run object culling performance tests');
+
+        if (!this.canvasManager) {
+            console.error('Canvas manager not initialized');
+            return;
+        }
+
+        try {
+            const tester = new PerformanceTest(this.canvasManager);
+            await tester.runComprehensiveTest();
+            console.log('Performance test completed successfully');
+        } catch (error) {
+            console.error('Performance test failed:', error);
+        }
     }
 }
 

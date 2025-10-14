@@ -21,6 +21,12 @@
 (defparameter *database-lock* (bt:make-lock "database-lock")
   "Lock for database operations")
 
+(defparameter *database-pool-size* 10
+  "Number of connections in the database pool")
+
+(defparameter *database-connection-timeout* 5
+  "Timeout in seconds when waiting for a database connection from pool")
+
 ;;; Frontend Configuration
 (defparameter *frontend-path*
   (or (uiop:getenv "FRONTEND_PATH")
