@@ -439,11 +439,11 @@
           (format t "Client ~A disconnected from canvas ~A~%"
                   (client-username client) canvas-id)
 
-          ;; Notify others of disconnection (high priority)
-          (queue-message-by-priority room
-                                   `((:type . "user-disconnected")
-                                     (:user-id . ,(client-user-id client))
-                                     (:username . ,(client-username client))))
+          ;; Notify others of disconnection (broadcast immediately)
+          (broadcast-to-all room
+                          `((:type . "user-disconnected")
+                            (:user-id . ,(client-user-id client))
+                            (:username . ,(client-username client))))
 
           ;; Remove from room
           (remove-client-from-room room websocket)
@@ -560,17 +560,20 @@
                         (:message . "Invalid or expired session")))))))
 
 (defun handle-cursor-update (resource websocket data room)
-  "Handle cursor position update by queuing it"
+  "Handle cursor position update by broadcasting immediately"
   (let ((client (gethash websocket (room-clients room))))
     (when client
       (let ((x (cdr (assoc :x data)))
             (y (cdr (assoc :y data))))
-        ;; Queue the update instead of broadcasting immediately
-        (queue-cursor-update room
-                            (client-user-id client)
-                            (client-username client)
-                            (client-color client)
-                            x y)))))
+        ;; Broadcast cursor update immediately to all other clients
+        (broadcast-to-room room
+                          `((:type . "cursor")
+                            (:user-id . ,(client-user-id client))
+                            (:username . ,(client-username client))
+                            (:color . ,(client-color client))
+                            (:x . ,x)
+                            (:y . ,y))
+                          websocket)))))
 
 (defun handle-object-create (resource websocket data room)
   "Handle object creation"
@@ -599,12 +602,13 @@
          (update-canvas-object canvas-id object-id object-data
                              (client-user-id client))
 
-         ;; Queue for priority processing
-         (queue-message-by-priority room
-                                  `((:type . "object-create")
-                                    (:object . ,object-data)
-                                    (:user-id . ,(client-user-id client))
-                                    (:username . ,(client-username client))))))))
+         ;; Broadcast immediately to all other clients
+         (broadcast-to-room room
+                          `((:type . "object-create")
+                            (:object . ,object-data)
+                            (:user-id . ,(client-user-id client))
+                            (:username . ,(client-username client)))
+                          websocket)))))
 
 (defun handle-object-update (resource websocket data room)
   "Handle object update"
@@ -658,13 +662,14 @@
                                      (client-user-id client))
                  (format t "Object updated in canvas state~%")
 
-                 ;; Queue delta update for priority processing
-                 (queue-message-by-priority room
-                                          `((:type . "object-update")
-                                            (:object-id . ,object-id)
-                                            (:delta . ,delta)
-                                            (:user-id . ,(client-user-id client))
-                                            (:username . ,(client-username client))))
+                 ;; Broadcast delta update immediately to all other clients
+                 (broadcast-to-room room
+                                  `((:type . "object-update")
+                                    (:object-id . ,object-id)
+                                    (:delta . ,delta)
+                                    (:user-id . ,(client-user-id client))
+                                    (:username . ,(client-username client)))
+                                  websocket)
                  (format t "Delta broadcast to room complete~%"))))
           (unless current-object
             (format t "WARNING: Object ~A not found in canvas ~A~%" object-id canvas-id))
@@ -687,12 +692,13 @@
               (progn
                (format t "Object ~A deleted successfully from canvas ~A~%"
                        object-id canvas-id)
-                 ;; Queue for priority processing
-                 (queue-message-by-priority room
-                                          `((:type . "object-delete")
-                                            (:object-id . ,object-id)
-                                            (:user-id . ,(client-user-id client))
-                                            (:username . ,(client-username client)))))
+                 ;; Broadcast immediately to all other clients
+                 (broadcast-to-room room
+                                  `((:type . "object-delete")
+                                    (:object-id . ,object-id)
+                                    (:user-id . ,(client-user-id client))
+                                    (:username . ,(client-username client)))
+                                  websocket))
                (format t "WARNING: Object ~A not found in canvas ~A~%"
                        object-id canvas-id)))))))
 
@@ -715,9 +721,10 @@
           (format t "Bulk deleted ~A/~A objects successfully from canvas ~A~%"
                   deleted-count (length object-ids) canvas-id)
 
-          ;; Queue bulk deletion for priority processing
-          (queue-message-by-priority room
-                                   `((:type . "objects-delete")
-                                     (:object-ids . ,object-ids)
-                                     (:user-id . ,(client-user-id client))
-                                     (:username . ,(client-username client)))))))))
+          ;; Broadcast immediately to all other clients
+          (broadcast-to-room room
+                           `((:type . "objects-delete")
+                             (:object-ids . ,object-ids)
+                             (:user-id . ,(client-user-id client))
+                             (:username . ,(client-username client)))
+                           websocket))))))
