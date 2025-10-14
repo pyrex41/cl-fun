@@ -55,15 +55,20 @@
 
 (defun broadcast-to-room (room message &optional exclude-websocket)
   "Broadcast a message to all clients in a room except the sender"
-  (let ((json-message (to-json-string message)))
+  ;; Serialize JSON once before acquiring lock (performance optimization)
+  (let ((json-message (to-json-string message))
+        (clients-to-send nil))
+    ;; Collect clients under lock (minimize lock time)
     (bt:with-lock-held ((room-lock room))
       (loop for client being the hash-values of (room-clients room)
             unless (eq (client-websocket client) exclude-websocket)
-            do (handler-case
-                   (hunchensocket:send-text-message
-                    (client-websocket client) json-message)
-                 (error (e)
-                   (format t "Error sending to client: ~A~%" e)))))))
+            do (push (client-websocket client) clients-to-send)))
+    ;; Send messages outside of lock
+    (dolist (ws clients-to-send)
+      (handler-case
+          (hunchensocket:send-text-message ws json-message)
+        (error (e)
+          (format t "Error sending to client: ~A~%" e))))))
 
 (defun broadcast-to-all (room message)
   "Broadcast a message to all clients in a room"
@@ -271,13 +276,22 @@
       (let* ((object-id (cdr (assoc :object-id data)))
              (canvas-id (resource-canvas-id resource)))
 
+        (format t "Object deletion requested: ~A in canvas ~A by ~A~%"
+                object-id canvas-id (client-username client))
+
         ;; Delete from canvas state
-        (when (delete-canvas-object canvas-id object-id
-                                   (client-user-id client))
-          ;; Broadcast to all other clients
-          (broadcast-to-room room
-                           `((:type . "object-delete")
-                             (:object-id . ,object-id)
-                             (:user-id . ,(client-user-id client))
-                             (:username . ,(client-username client)))
-                           websocket))))))
+        (let ((deleted (delete-canvas-object canvas-id object-id
+                                            (client-user-id client))))
+          (if deleted
+              (progn
+                (format t "Object ~A deleted successfully from canvas ~A~%"
+                        object-id canvas-id)
+                ;; Broadcast to all other clients
+                (broadcast-to-room room
+                                 `((:type . "object-delete")
+                                   (:object-id . ,object-id)
+                                   (:user-id . ,(client-user-id client))
+                                   (:username . ,(client-username client)))
+                                 websocket))
+              (format t "WARNING: Object ~A not found in canvas ~A~%"
+                      object-id canvas-id)))))))

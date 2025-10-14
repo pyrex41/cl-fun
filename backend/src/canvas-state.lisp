@@ -41,7 +41,11 @@
                   ((and (listp parsed-state) (consp (first parsed-state)))
                    (dolist (pair parsed-state)
                      (when (consp pair)
-                       (setf (gethash (car pair) objects-hash) (cdr pair)))))
+                       ;; Convert keyword keys to strings for consistency
+                       (let ((key (car pair)))
+                         (when (keywordp key)
+                           (setq key (string-downcase (symbol-name key))))
+                         (setf (gethash key objects-hash) (cdr pair))))))
                   ;; If it's a hash table already
                   ((hash-table-p parsed-state)
                    (maphash (lambda (k v)
@@ -123,6 +127,12 @@
          (state (get-or-load-canvas-state canvas-id)))
     (bt:with-lock-held (lock)
       (let ((objects (canvas-state-objects state)))
+        (format t "DEBUG: Trying to delete object ~A~%" object-id)
+        (format t "DEBUG: Object ID type: ~A~%" (type-of object-id))
+        (format t "DEBUG: Current objects in hash: ~A~%"
+                (hash-table-count objects))
+        (format t "DEBUG: All keys in hash: ~{~A ~}~%"
+                (loop for key being the hash-keys of objects collect key))
         (when-let ((object-data (gethash object-id objects)))
           ;; Remove object
           (remhash object-id objects)

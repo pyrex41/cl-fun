@@ -10,7 +10,12 @@ export class WebSocketClient {
         this.reconnectAttempts = 0
         this.maxReconnectAttempts = 5
         this.reconnectDelay = 1000
-        this.cursorThrottle = null
+
+        // Improved cursor throttling
+        this.lastCursorSend = 0
+        this.cursorSendInterval = 16 // ~60 FPS
+        this.pendingCursor = null
+        this.cursorAnimationFrame = null
 
         // Callbacks
         this.onAuthSuccess = () => {}
@@ -140,19 +145,38 @@ export class WebSocketClient {
     }
 
     sendCursorUpdate(x, y) {
-        // Throttle cursor updates to 30 FPS
-        if (this.cursorThrottle) {
-            clearTimeout(this.cursorThrottle)
-        }
+        // Store pending cursor position
+        this.pendingCursor = { x, y }
 
-        this.cursorThrottle = setTimeout(() => {
+        // If we haven't scheduled a send, schedule one
+        if (!this.cursorAnimationFrame) {
+            this.cursorAnimationFrame = requestAnimationFrame(() => {
+                this.processCursorUpdate()
+            })
+        }
+    }
+
+    processCursorUpdate() {
+        const now = performance.now()
+
+        // Check if enough time has passed since last send
+        if (now - this.lastCursorSend >= this.cursorSendInterval && this.pendingCursor) {
             this.send({
                 type: 'cursor',
-                x: x,
-                y: y
+                x: this.pendingCursor.x,
+                y: this.pendingCursor.y
             })
-            this.cursorThrottle = null
-        }, 33) // ~30 FPS
+            this.lastCursorSend = now
+            this.pendingCursor = null
+            this.cursorAnimationFrame = null
+        } else if (this.pendingCursor) {
+            // Schedule another check
+            this.cursorAnimationFrame = requestAnimationFrame(() => {
+                this.processCursorUpdate()
+            })
+        } else {
+            this.cursorAnimationFrame = null
+        }
     }
 
     sendObjectCreate(object) {

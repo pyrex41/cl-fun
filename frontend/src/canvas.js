@@ -525,6 +525,17 @@ export class CanvasManager {
       this.viewport.removeChild(obj);
       this.objects.delete(id);
       obj.destroy();
+
+      // Clean up selection indicator if it exists
+      const indicator = this.selectionIndicators.get(id);
+      if (indicator) {
+        this.viewport.removeChild(indicator);
+        indicator.destroy();
+        this.selectionIndicators.delete(id);
+      }
+
+      // Remove from selected objects set
+      this.selectedObjects.delete(id);
     }
   }
 
