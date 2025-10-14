@@ -5,7 +5,6 @@ import * as PIXI from 'pixi.js'
 import { CanvasManager } from './canvas.js'
 import { WebSocketClient } from './websocket.js'
 import { AuthManager } from './auth.js'
-import { PerformanceTest } from './performance-test.js'
 
 class CollabCanvas {
     constructor() {
@@ -466,20 +465,8 @@ class CollabCanvas {
     }
 
     async runPerformanceTest() {
-        console.log('Starting performance test... Press Ctrl+Shift+P to run object culling performance tests');
-
-        if (!this.canvasManager) {
-            console.error('Canvas manager not initialized');
-            return;
-        }
-
-        try {
-            const tester = new PerformanceTest(this.canvasManager);
-            await tester.runComprehensiveTest();
-            console.log('Performance test completed successfully');
-        } catch (error) {
-            console.error('Performance test failed:', error);
-        }
+        console.log('Performance testing is not available in production build');
+        console.log('Use development build (npm run dev) for performance testing');
     }
 }
 
