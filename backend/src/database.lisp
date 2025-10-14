@@ -7,8 +7,8 @@
   "Connection pool for database connections"
   (available nil :type list)  ; List of available connections
   (in-use nil :type list)     ; List of connections currently in use
-  (lock (bt:make-lock "db-pool-lock") :type bt:lock)
-  (condition-variable (bt:make-condition-variable) :type bt:condition-variable)
+  (lock (bt:make-lock "db-pool-lock"))
+  (condition-variable (bt:make-condition-variable))
   (max-size 10 :type integer)
   (current-size 0 :type integer))
 

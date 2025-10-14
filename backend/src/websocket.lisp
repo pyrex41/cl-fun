@@ -56,15 +56,10 @@
   (bt:with-lock-held (*rooms-lock*)
     (or (gethash canvas-id *canvas-rooms*)
         (let ((room (make-instance 'canvas-room :id canvas-id)))
-          ;; Start flush timer for cursor batching (50ms interval = 20/sec)
-          (setf (room-flush-timer room)
-                (bt:make-timer (lambda () (flush-cursor-batch room))))
-           (bt:schedule-timer (room-flush-timer room) 0.05 :repeat-interval 0.05)
-           ;; Start message processing timer (30ms interval for priority queue)
-           (setf (room-process-timer room)
-                 (bt:make-timer (lambda () (process-message-queue room))))
-           (bt:schedule-timer (room-process-timer room) 0.03 :repeat-interval 0.03)
-           (setf (gethash canvas-id *canvas-rooms*) room)))))
+          ;; TODO: Re-enable timers for cursor batching and message processing
+          ;; For now, messages will be broadcast immediately without batching
+          (setf (gethash canvas-id *canvas-rooms*) room)
+          room))))
 
 (defun add-client-to-room (room client)
   "Add a client to a room"
@@ -89,14 +84,8 @@
         (when (= (get-room-client-count room) 0)
           (format t "~%=== Cleaning up empty room: ~A ===~%" canvas-id)
 
-          ;; Cancel timers
-          (when (room-flush-timer room)
-            (bt:unschedule-timer (room-flush-timer room))
-            (format t "Cancelled flush timer~%"))
-
-          (when (room-process-timer room)
-            (bt:unschedule-timer (room-process-timer room))
-            (format t "Cancelled process timer~%"))
+          ;; TODO: Re-enable timer cancellation when timers are re-enabled
+          ;; (Timers are currently disabled for deployment simplicity)
 
           ;; Clear message queues
           (let ((msg-queue (room-message-queue room)))
@@ -730,4 +719,4 @@
                                    `((:type . "objects-delete")
                                      (:object-ids . ,object-ids)
                                      (:user-id . ,(client-user-id client))
-                                     (:username . ,(client-username client)))))))))
+                                     (:username . ,(client-username client))))))))))
