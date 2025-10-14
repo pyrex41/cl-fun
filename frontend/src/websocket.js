@@ -189,7 +189,7 @@ export class WebSocketClient {
     sendObjectUpdate(objectId, updates) {
         this.send({
             type: 'object-update',
-            objectId: objectId,
+            'object-id': objectId,
             updates: updates
         })
     }
@@ -197,7 +197,7 @@ export class WebSocketClient {
     sendObjectDelete(objectId) {
         this.send({
             type: 'object-delete',
-            objectId: objectId
+            'object-id': objectId
         })
     }
 
