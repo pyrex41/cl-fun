@@ -538,17 +538,18 @@
                            (:color . ,color)
                            (:canvas-state . ,canvas-state)))))
 
-         ;; Notify others of new user (high priority)
-         (queue-message-by-priority room
-                                  `((:type . "user-connected")
-                                    (:user-id . ,user-id)
-                                    (:username . ,username)
-                                    (:color . ,color)))
+         ;; Notify others of new user (broadcast immediately)
+         (broadcast-to-room room
+                          `((:type . "user-connected")
+                            (:user-id . ,user-id)
+                            (:username . ,username)
+                            (:color . ,color))
+                          websocket)  ; Exclude the newly connected user
 
-         ;; Send current presence list (high priority)
-         (queue-message-by-priority room
-                                  `((:type . "presence")
-                                    (:users . ,(get-room-client-list room))))
+         ;; Send presence list to all clients including new user (broadcast immediately)
+         (broadcast-to-all room
+                         `((:type . "presence")
+                           (:users . ,(get-room-client-list room))))
 
         (format t "User ~A authenticated for canvas ~A~%" username canvas-id))
 

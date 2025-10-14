@@ -119,21 +119,26 @@
 (defun init-database ()
   "Initialize the database with schema"
   (ensure-database-directory)
-  (with-database
-    (let ((schema-file (merge-pathnames "db/schema.sql"
-                                        (asdf:system-source-directory :collabcanvas))))
-      (when (probe-file schema-file)
-        (let ((schema (alexandria:read-file-into-string schema-file)))
-          ;; Split schema into individual statements
-          (dolist (statement (cl-ppcre:split ";\\s*" schema))
-            (let ((trimmed (string-trim '(#\Space #\Tab #\Newline) statement)))
-              (when (and trimmed (> (length trimmed) 0))
-                (handler-case
-                    (sqlite:execute-non-query *database-connection*
-                                             (concatenate 'string trimmed ";"))
-                  (sqlite:sqlite-error (e)
-                    (format t "Warning: ~A~%" e))))))))))
-  (format t "Database initialized successfully~%"))
+  ;; Create a temporary connection for schema initialization
+  ;; Don't use the pool here since it hasn't been initialized yet
+  (let ((conn (create-database-connection)))
+    (unwind-protect
+         (let ((schema-file (merge-pathnames "db/schema.sql"
+                                             (asdf:system-source-directory :collabcanvas))))
+           (when (probe-file schema-file)
+             (let ((schema (alexandria:read-file-into-string schema-file)))
+               ;; Split schema into individual statements
+               (dolist (statement (cl-ppcre:split ";\\s*" schema))
+                 (let ((trimmed (string-trim '(#\Space #\Tab #\Newline) statement)))
+                   (when (and trimmed (> (length trimmed) 0))
+                     (handler-case
+                         (sqlite:execute-non-query conn
+                                                  (concatenate 'string trimmed ";"))
+                       (sqlite:sqlite-error (e)
+                         (format t "Warning: ~A~%" e))))))))
+           (format t "Database initialized successfully~%"))
+      ;; Always disconnect the temporary connection
+      (sqlite:disconnect conn))))
 
 ;;; Query execution utilities
 (defun execute-query (query &rest params)
