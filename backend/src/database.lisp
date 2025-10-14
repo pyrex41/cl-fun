@@ -65,7 +65,8 @@
 (defun execute-single (query &rest params)
   "Execute a query and return single row"
   (with-database
-    (apply #'sqlite:execute-single *database-connection* query params)))
+    (let ((rows (apply #'sqlite:execute-to-list *database-connection* query params)))
+      (first rows))))
 
 ;;; User operations
 (defun create-user (email username password-hash)

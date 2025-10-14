@@ -50,15 +50,39 @@
   (loop for (key value) on plist by #'cddr
         collect (cons key value)))
 
+(defun camel-case-to-kebab-case (string)
+  "Convert camelCase to kebab-case: sessionId -> session-id"
+  (let ((result '())
+        (prev-lower nil))
+    (loop for char across string
+          do (cond
+               ;; If uppercase and previous was lowercase, add hyphen before
+               ((and (upper-case-p char) prev-lower)
+                (push #\- result)
+                (push (char-downcase char) result)
+                (setf prev-lower nil))
+               ;; If uppercase, just downcase
+               ((upper-case-p char)
+                (push (char-downcase char) result)
+                (setf prev-lower nil))
+               ;; If lowercase, keep as is
+               (t
+                (push char result)
+                (setf prev-lower t))))
+    (coerce (nreverse result) 'string)))
+
 (defun normalize-json-keys (object)
-  "Convert Jonathan's pipe-escaped keywords to regular keywords and plist to alist"
+  "Convert Jonathan's pipe-escaped keywords to regular keywords and plist to alist.
+   Also converts camelCase to kebab-case for Common Lisp conventions."
   (cond
     ((null object) nil)
     ;; Handle plists (convert to alist)
     ((and (consp object) (keywordp (car object)))
      (plist-to-alist
       (loop for (key value) on object by #'cddr
-            collect (intern (string-upcase (symbol-name key)) :keyword)
+            for key-str = (symbol-name key)
+            for kebab-str = (camel-case-to-kebab-case key-str)
+            collect (intern (string-upcase kebab-str) :keyword)
             collect (normalize-json-keys value))))
     ;; Handle cons cells (alists)
     ((consp object)
@@ -84,27 +108,39 @@
        ;; Make sure it's not a nested alist value
        (every (lambda (pair) (keywordp (car pair))) obj)))
 
-(defun alist-to-hash (alist)
-  "Convert association list to hash table for Jonathan (recursively)"
-  (let ((hash (make-hash-table :test 'equal)))
-    (dolist (pair alist)
-      (let ((key (string-downcase (symbol-name (car pair))))
-            (value (cdr pair)))
-        ;; Recursively convert nested alists
-        (setf (gethash key hash)
-              (if (alist-p value)
-                  (alist-to-hash value)
-                  value))))
-    hash))
+(defun hash-table-to-alist (hash)
+  "Convert hash table to association list"
+  (let ((result '()))
+    (maphash (lambda (key value)
+               (push (cons (intern (string-upcase key) :keyword) value) result))
+             hash)
+    (nreverse result)))
+
+(defun convert-to-hash (obj)
+  "Recursively convert alists to hash tables for Jonathan"
+  (cond
+    ;; If it's a hash table, convert to alist first then to hash
+    ((hash-table-p obj)
+     (convert-to-hash (hash-table-to-alist obj)))
+    ;; If it's an alist, convert to hash table
+    ((and (listp obj)
+          (not (null obj))
+          (every #'consp obj)
+          (every (lambda (pair) (keywordp (car pair))) obj))
+     (let ((hash (make-hash-table :test 'equal)))
+       (dolist (pair obj)
+         (setf (gethash (string-downcase (symbol-name (car pair))) hash)
+               (convert-to-hash (cdr pair))))
+       hash))
+    ;; If it's a list of non-alists, convert each element
+    ((listp obj)
+     (mapcar #'convert-to-hash obj))
+    ;; Otherwise return as-is (atomic values)
+    (t obj)))
 
 (defun to-json-string (object)
   "Convert object to JSON string"
-  (cond
-    ;; If it's an alist (list of cons cells with keyword keys), convert to hash table
-    ((alist-p object)
-     (jonathan:to-json (alist-to-hash object)))
-    ;; Otherwise pass through
-    (t (jonathan:to-json object))))
+  (jonathan:to-json (convert-to-hash object)))
 
 ;;; HTTP utilities
 (defun get-json-body ()
@@ -117,10 +153,8 @@
   "Send JSON response with appropriate headers"
   (setf (hunchentoot:content-type*) "application/json")
   (setf (hunchentoot:return-code*) status)
-  ;; Always convert alists to hash tables for Jonathan
-  (if (alist-p data)
-      (jonathan:to-json (alist-to-hash data))
-      (jonathan:to-json data)))
+  ;; Convert any alists to hash tables recursively
+  (jonathan:to-json (convert-to-hash data)))
 
 (defun error-response (message &key (status 400))
   "Send error response as JSON"

@@ -24,8 +24,7 @@
                  (:file "auth" :depends-on ("package" "database" "utils"))
                  (:file "canvas-state" :depends-on ("package" "database"))
                  (:file "websocket" :depends-on ("package" "auth" "canvas-state"))
-                 (:file "websocket-auth-fix" :depends-on ("websocket"))
-                 (:file "main" :depends-on ("package" "config" "database" "auth" "websocket")))))
+                 (:file "main" :depends-on ("package" "config" "database" "auth" "websocket" "canvas-state")))))
   :in-order-to ((test-op (test-op "collabcanvas/tests"))))
 
 (defsystem "collabcanvas/tests"

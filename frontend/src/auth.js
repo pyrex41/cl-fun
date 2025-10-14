@@ -65,6 +65,7 @@ export class AuthManager {
         try {
             const response = await fetch('/api/login', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json'
                 },
@@ -76,8 +77,8 @@ export class AuthManager {
             if (data.success && data.data) {
                 this.hideModal()
                 this.resolveAuth({
-                    sessionId: data.data.sessionId,
-                    userId: data.data.userId,
+                    sessionId: data.data['session-id'],
+                    userId: data.data['user-id'],
                     username: data.data.username
                 })
             } else {
@@ -98,6 +99,7 @@ export class AuthManager {
         try {
             const response = await fetch('/api/register', {
                 method: 'POST',
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json'
                 },

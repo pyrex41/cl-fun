@@ -63,5 +63,5 @@
 (defparameter *cors-enabled* t
   "Enable CORS for development")
 
-(defparameter *allowed-origins* '("http://localhost:5173" "http://localhost:3000")
+(defparameter *allowed-origins* '("http://localhost:6465" "http://localhost:5173" "http://localhost:3000")
   "List of allowed CORS origins")

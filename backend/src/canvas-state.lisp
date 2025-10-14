@@ -31,13 +31,29 @@
   (or (gethash canvas-id *canvas-states*)
       (let ((db-state (load-canvas-state canvas-id)))
         (if db-state
-            (let ((state (make-canvas-state
-                         :id canvas-id
-                         :objects (parse-json (cdr (assoc :state db-state)))
-                         :version (cdr (assoc :version db-state))
-                         :last-updated (cdr (assoc :updated-at db-state))
-                         :dirty-p nil)))
-              (setf (gethash canvas-id *canvas-states*) state))
+            (let* ((json-state (cdr (assoc :state db-state)))
+                   (parsed-state (parse-json json-state))
+                   (objects-hash (make-hash-table :test 'equal)))
+              ;; Convert alist to hash table
+              (when parsed-state
+                (cond
+                  ;; If it's an alist (list of pairs)
+                  ((and (listp parsed-state) (consp (first parsed-state)))
+                   (dolist (pair parsed-state)
+                     (when (consp pair)
+                       (setf (gethash (car pair) objects-hash) (cdr pair)))))
+                  ;; If it's a hash table already
+                  ((hash-table-p parsed-state)
+                   (maphash (lambda (k v)
+                             (setf (gethash k objects-hash) v))
+                            parsed-state))))
+              (let ((state (make-canvas-state
+                           :id canvas-id
+                           :objects objects-hash
+                           :version (cdr (assoc :version db-state))
+                           :last-updated (cdr (assoc :updated-at db-state))
+                           :dirty-p nil)))
+                (setf (gethash canvas-id *canvas-states*) state)))
             ;; Create new canvas state
             (let ((state (make-canvas-state
                          :id canvas-id
@@ -119,9 +135,21 @@
           t)))))
 
 (defun get-canvas-objects (canvas-id)
-  "Get all objects in a canvas"
+  "Get all objects in a canvas as a list"
   (let ((state (get-or-load-canvas-state canvas-id)))
-    (canvas-state-objects state)))
+    ;; Convert hash table to list of objects for JSON serialization
+    (let ((objects '()))
+      (maphash (lambda (id data)
+                 ;; Ensure the object data includes the id field
+                 ;; If data is an alist, check if :id or :ID exists
+                 (let ((has-id (or (assoc :id data) (assoc :ID data))))
+                   (if has-id
+                       ;; ID already in data, just push it
+                       (push data objects)
+                       ;; ID not in data, add it
+                       (push (cons (cons :id id) data) objects))))
+               (canvas-state-objects state))
+      objects)))
 
 (defun get-canvas-object (canvas-id object-id)
   "Get a specific object from canvas"

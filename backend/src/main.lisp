@@ -15,37 +15,73 @@
                     (:service . "collabcanvas")
                     (:timestamp . ,(current-timestamp)))))
 
-  ;; Authentication routes
-  (hunchentoot:define-easy-handler (register :uri "/api/register"
-                                           :default-request-type :post) ()
-    (handle-register))
+  ;; Test endpoint
+  (hunchentoot:define-easy-handler (test-post :uri "/api/test"
+                                              :default-request-type :post) ()
+    (setf (hunchentoot:content-type*) "application/json")
+    (format t "TEST ENDPOINT CALLED~%")
+    "{\"test\":\"success\"}")
 
-  (hunchentoot:define-easy-handler (login :uri "/api/login"
-                                         :default-request-type :post) ()
-    (handle-login))
+  ;; Authentication routes - check request method internally
+  (hunchentoot:define-easy-handler (register-handler :uri "/api/register") ()
+    (set-cors-headers)
+    (if (eq (hunchentoot:request-method*) :options)
+        (progn
+          (setf (hunchentoot:return-code*) 200)
+          "")
+        (progn
+          (format t "REGISTER HANDLER CALLED~%")
+          (setf (hunchentoot:content-type*) "application/json")
+          (let ((result (handle-register)))
+            (format t "REGISTER RESULT: ~A~%" result)
+            result))))
 
-  (hunchentoot:define-easy-handler (logout :uri "/api/logout"
-                                          :default-request-type :post) ()
-    (handle-logout))
+  (hunchentoot:define-easy-handler (login-handler :uri "/api/login") ()
+    (set-cors-headers)
+    (if (eq (hunchentoot:request-method*) :options)
+        (progn
+          (setf (hunchentoot:return-code*) 200)
+          "")
+        (progn
+          (format t "LOGIN HANDLER CALLED~%")
+          (setf (hunchentoot:content-type*) "application/json")
+          (let ((result (handle-login)))
+            (format t "LOGIN RESULT: ~A~%" result)
+            result))))
 
-  (hunchentoot:define-easy-handler (session :uri "/api/session"
-                                           :default-request-type :get) ()
-    (handle-session-check))
+  (hunchentoot:define-easy-handler (logout-handler :uri "/api/logout") ()
+    (set-cors-headers)
+    (if (eq (hunchentoot:request-method*) :options)
+        (progn
+          (setf (hunchentoot:return-code*) 200)
+          "")
+        (progn
+          (setf (hunchentoot:content-type*) "application/json")
+          (handle-logout))))
+
+  (hunchentoot:define-easy-handler (session-handler :uri "/api/session") ()
+    (set-cors-headers)
+    (if (eq (hunchentoot:request-method*) :options)
+        (progn
+          (setf (hunchentoot:return-code*) 200)
+          "")
+        (progn
+          (setf (hunchentoot:content-type*) "application/json")
+          (handle-session-check))))
 
   ;; Canvas state routes
-  (hunchentoot:define-easy-handler (get-canvas :uri "/api/canvas/state"
-                                              :default-request-type :get) ()
-    (handle-get-canvas-state))
-
-  (hunchentoot:define-easy-handler (save-canvas :uri "/api/canvas/state"
-                                               :default-request-type :post) ()
-    (handle-save-canvas-state))
-
-  ;; OPTIONS handler for CORS preflight
-  (hunchentoot:define-easy-handler (options :uri "/api/*"
-                                           :default-request-type :options) ()
+  (hunchentoot:define-easy-handler (canvas-state-handler :uri "/api/canvas/state") ()
     (set-cors-headers)
-    ""))
+    (cond
+      ((eq (hunchentoot:request-method*) :options)
+       (setf (hunchentoot:return-code*) 200)
+       "")
+      ((eq (hunchentoot:request-method*) :get)
+       (handle-get-canvas-state))
+      ((eq (hunchentoot:request-method*) :post)
+       (handle-save-canvas-state))
+      (t
+       (error-response "Method not allowed" :status 405)))))
 
 ;;; WebSocket Setup
 (defclass canvas-acceptor (hunchensocket:websocket-acceptor

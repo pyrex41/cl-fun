@@ -8,8 +8,9 @@ export class CanvasManager {
     this.viewport = new PIXI.Container();
     this.objects = new Map(); // objectId -> PIXI Graphics
     this.selectedObjects = new Set();
+    this.selectionIndicators = new Map(); // objectId -> selection box Graphics
     this.remoteCursors = new Map(); // userId -> cursor container
-    
+
     // State
     this.isPanning = false;
     this.panStart = { x: 0, y: 0 };
@@ -159,7 +160,35 @@ export class CanvasManager {
     const canvas = this.app.view;
     let drawStart = null;
     let previewShape = null;
-    
+
+    // Track cursor movement
+    canvas.addEventListener('mousemove', (e) => {
+      const worldPos = this.screenToWorld(e.clientX, e.clientY);
+
+      // Notify about cursor movement
+      if (this.onCursorMoved) {
+        this.onCursorMoved(worldPos.x, worldPos.y);
+      }
+
+      // Handle preview shape drawing
+      if (drawStart && previewShape) {
+        const width = worldPos.x - drawStart.x;
+        const height = worldPos.y - drawStart.y;
+
+        previewShape.clear();
+        previewShape.beginFill(this.currentColor);
+
+        if (this.currentTool === 'rectangle') {
+          previewShape.drawRect(drawStart.x, drawStart.y, width, height);
+        } else if (this.currentTool === 'circle') {
+          const radius = Math.sqrt(width * width + height * height);
+          previewShape.drawCircle(drawStart.x, drawStart.y, radius);
+        }
+
+        previewShape.endFill();
+      }
+    });
+
     canvas.addEventListener('mousedown', (e) => {
       if (e.button !== 0 || e.altKey) return; // Left click only, not panning
       
@@ -174,27 +203,7 @@ export class CanvasManager {
         this.viewport.addChild(previewShape);
       }
     });
-    
-    canvas.addEventListener('mousemove', (e) => {
-      if (drawStart && previewShape) {
-        const worldPos = this.screenToWorld(e.clientX, e.clientY);
-        const width = worldPos.x - drawStart.x;
-        const height = worldPos.y - drawStart.y;
-        
-        previewShape.clear();
-        previewShape.beginFill(this.currentColor);
-        
-        if (this.currentTool === 'rectangle') {
-          previewShape.drawRect(drawStart.x, drawStart.y, width, height);
-        } else if (this.currentTool === 'circle') {
-          const radius = Math.sqrt(width * width + height * height);
-          previewShape.drawCircle(drawStart.x, drawStart.y, radius);
-        }
-        
-        previewShape.endFill();
-      }
-    });
-    
+
     canvas.addEventListener('mouseup', (e) => {
       if (drawStart && previewShape) {
         const worldPos = this.screenToWorld(e.clientX, e.clientY);
@@ -261,13 +270,16 @@ export class CanvasManager {
     rect.y = y;
     rect.interactive = true;
     rect.buttonMode = true;
-    
+
+    // Store dimensions for selection box
+    rect.userData = { width, height, type: 'rectangle' };
+
     this.makeDraggable(rect, id);
     this.makeSelectable(rect, id);
-    
+
     this.objects.set(id, rect);
     this.viewport.addChild(rect);
-    
+
     return rect;
   }
   
@@ -280,13 +292,16 @@ export class CanvasManager {
     circle.y = y;
     circle.interactive = true;
     circle.buttonMode = true;
-    
+
+    // Store dimensions for selection box
+    circle.userData = { radius, type: 'circle' };
+
     this.makeDraggable(circle, id);
     this.makeSelectable(circle, id);
-    
+
     this.objects.set(id, circle);
     this.viewport.addChild(circle);
-    
+
     return circle;
   }
   
@@ -314,35 +329,43 @@ export class CanvasManager {
   
   makeDraggable(obj, id) {
     let dragData = null;
-    
+    let dragOffset = { x: 0, y: 0 };
+
     obj.on('pointerdown', (event) => {
       if (this.currentTool !== 'select') return;
-      
+
       dragData = event.data;
       obj.alpha = 0.7;
       dragData.dragging = true;
+
+      // Store the offset between cursor and object position
+      const cursorPos = dragData.getLocalPosition(obj.parent);
+      dragOffset.x = cursorPos.x - obj.x;
+      dragOffset.y = cursorPos.y - obj.y;
+
       event.stopPropagation();
     });
-    
+
     obj.on('pointerup', () => {
       if (dragData && dragData.dragging) {
         obj.alpha = 1;
         dragData.dragging = false;
-        
+
         // Notify about position change
         if (this.onObjectMoved) {
           this.onObjectMoved(id, obj.x, obj.y);
         }
-        
+
         dragData = null;
       }
     });
-    
+
     obj.on('pointermove', () => {
       if (dragData && dragData.dragging) {
         const newPosition = dragData.getLocalPosition(obj.parent);
-        obj.x = newPosition.x;
-        obj.y = newPosition.y;
+        // Apply the offset to maintain cursor position relative to object
+        obj.x = newPosition.x - dragOffset.x;
+        obj.y = newPosition.y - dragOffset.y;
       }
     });
   }
@@ -370,25 +393,53 @@ export class CanvasManager {
   selectObject(id) {
     const obj = this.objects.get(id);
     if (!obj) return;
-    
+
     this.selectedObjects.add(id);
-    
-    // Visual selection indicator
-    if (obj instanceof PIXI.Graphics) {
-      obj.lineStyle(2, 0x00FF00);
-      obj.drawRect(-2, -2, obj.width + 4, obj.height + 4);
+
+    // Remove existing selection indicator if any
+    const existingIndicator = this.selectionIndicators.get(id);
+    if (existingIndicator) {
+      this.viewport.removeChild(existingIndicator);
+      existingIndicator.destroy();
     }
+
+    // Create selection indicator
+    const indicator = new PIXI.Graphics();
+    indicator.lineStyle(2, 0x00FF00);
+
+    if (obj.userData) {
+      if (obj.userData.type === 'rectangle') {
+        // Draw selection box around rectangle
+        const { width, height } = obj.userData;
+        indicator.drawRect(-2, -2, width + 4, height + 4);
+        indicator.x = obj.x;
+        indicator.y = obj.y;
+      } else if (obj.userData.type === 'circle') {
+        // Draw selection box around circle
+        const { radius } = obj.userData;
+        indicator.drawCircle(0, 0, radius + 2);
+        indicator.x = obj.x;
+        indicator.y = obj.y;
+      }
+    }
+
+    // Add to viewport and store reference
+    this.viewport.addChild(indicator);
+    this.selectionIndicators.set(id, indicator);
   }
-  
+
   deselectObject(id) {
     const obj = this.objects.get(id);
     if (!obj) return;
-    
+
     this.selectedObjects.delete(id);
-    
+
     // Remove selection indicator
-    if (obj instanceof PIXI.Graphics) {
-      obj.lineStyle(0);
+    const indicator = this.selectionIndicators.get(id);
+    if (indicator) {
+      this.viewport.removeChild(indicator);
+      indicator.destroy();
+      this.selectionIndicators.delete(id);
     }
   }
   
@@ -408,14 +459,57 @@ export class CanvasManager {
   }
   
   // ==================== Object Management ====================
-  
+
+  loadState(canvasState) {
+    console.error('========================================');
+    console.error('=== LOAD STATE CALLED ===');
+    console.error('========================================');
+    console.error('Canvas state received:', canvasState);
+    console.error('Canvas state type:', typeof canvasState);
+    console.error('Is array?', Array.isArray(canvasState));
+
+    // Clear existing objects
+    console.error('Clearing existing objects...');
+    this.objects.forEach((obj, id) => {
+      this.deleteObject(id);
+    });
+    console.error('Objects cleared. Map size:', this.objects.size);
+
+    // Load objects from state
+    if (canvasState && typeof canvasState === 'object') {
+      // If it's an array, iterate through it
+      if (Array.isArray(canvasState)) {
+        console.error(`=== Loading ${canvasState.length} objects from ARRAY ===`);
+        canvasState.forEach((objData, index) => {
+          console.error(`Loading object ${index}:`, JSON.stringify(objData));
+          this.createRemoteObject(objData);
+        });
+      } else {
+        // If it's an object/hash, iterate through its values
+        const values = Object.values(canvasState);
+        console.error(`=== Loading ${values.length} objects from OBJECT ===`);
+        values.forEach((objData, index) => {
+          console.error(`Loading object ${index}:`, JSON.stringify(objData));
+          this.createRemoteObject(objData);
+        });
+      }
+    } else {
+      console.error('!!! INVALID canvas state !!!:', canvasState);
+    }
+
+    console.error('========================================');
+    console.error(`=== LOAD STATE COMPLETE: ${this.objects.size} objects ===`);
+    console.error('Current objects in map:', Array.from(this.objects.keys()));
+    console.error('========================================');
+  }
+
   updateObject(id, updates) {
     const obj = this.objects.get(id);
     if (!obj) return;
-    
+
     if (updates.x !== undefined) obj.x = updates.x;
     if (updates.y !== undefined) obj.y = updates.y;
-    
+
     // For Graphics objects, need to redraw if dimensions change
     if (obj instanceof PIXI.Graphics) {
       if (updates.width !== undefined || updates.height !== undefined) {
@@ -424,7 +518,7 @@ export class CanvasManager {
       }
     }
   }
-  
+
   deleteObject(id) {
     const obj = this.objects.get(id);
     if (obj) {
@@ -432,6 +526,134 @@ export class CanvasManager {
       this.objects.delete(id);
       obj.destroy();
     }
+  }
+
+  // ==================== Remote Object Sync ====================
+
+  createRemoteObject(objData) {
+    console.log('Creating remote object:', objData);
+    console.log('Object properties:', {
+      id: objData.id,
+      type: objData.type,
+      x: objData.x,
+      y: objData.y,
+      width: objData.width,
+      height: objData.height,
+      radius: objData.radius,
+      color: objData.color,
+      colorType: typeof objData.color
+    });
+
+    // Convert color to proper format (ensure it's a number)
+    const color = this.normalizeColor(objData.color);
+    console.log('Normalized color:', color, 'type:', typeof color);
+
+    // Infer type from data if missing (backwards compatibility)
+    let type = objData.type;
+    if (!type) {
+      console.warn('Object missing type field, inferring from properties:', objData);
+      if (objData.radius !== undefined) {
+        type = 'circle';
+      } else if (objData.width !== undefined && objData.height !== undefined) {
+        type = 'rectangle';
+      } else if (objData.text !== undefined) {
+        type = 'text';
+      } else {
+        console.error('Cannot infer type for object:', objData);
+        return;
+      }
+    }
+
+    if (type === 'rectangle') {
+      // Validate dimensions
+      if (!objData.width || !objData.height || objData.width <= 0 || objData.height <= 0) {
+        console.warn('Skipping rectangle with invalid dimensions:', objData);
+        return;
+      }
+
+      console.log('Creating rectangle with:', {
+        id: objData.id,
+        x: objData.x,
+        y: objData.y,
+        width: objData.width,
+        height: objData.height,
+        color: color
+      });
+      this.createRectangle(
+        objData.id,
+        objData.x,
+        objData.y,
+        objData.width,
+        objData.height,
+        color
+      );
+      console.log('Rectangle created successfully. Objects in map:', this.objects.size);
+    } else if (type === 'circle') {
+      console.log('Creating circle with:', {
+        id: objData.id,
+        x: objData.x,
+        y: objData.y,
+        radius: objData.radius,
+        color: color
+      });
+      this.createCircle(
+        objData.id,
+        objData.x,
+        objData.y,
+        objData.radius,
+        color
+      );
+      console.log('Circle created successfully');
+    } else if (type === 'text') {
+      console.log('Creating text with:', {
+        id: objData.id,
+        text: objData.text,
+        x: objData.x,
+        y: objData.y,
+        fontSize: objData.fontSize,
+        color: color
+      });
+      this.createText(
+        objData.id,
+        objData.text,
+        objData.x,
+        objData.y,
+        objData.fontSize,
+        color
+      );
+      console.log('Text created successfully');
+    } else {
+      console.error('Unknown object type:', type);
+    }
+  }
+
+  normalizeColor(color) {
+    // If it's already a number (0xRRGGBB format), return it
+    if (typeof color === 'number') {
+      return color;
+    }
+
+    // If it's a hex string like "#3498db", convert to number
+    if (typeof color === 'string') {
+      if (color.startsWith('#')) {
+        return parseInt(color.substring(1), 16);
+      }
+      // If it's a string number like "3498db", convert to number
+      return parseInt(color, 16);
+    }
+
+    // Default color if something goes wrong
+    return 0x3498db;
+  }
+
+  updateRemoteObject(objectId, updates) {
+    console.log('Updating remote object:', objectId, updates);
+    this.updateObject(objectId, updates);
+  }
+
+  deleteRemoteObject(objectId) {
+    console.log('Deleting remote object:', objectId);
+    this.deleteObject(objectId);
   }
   
   getObject(id) {
@@ -449,40 +671,45 @@ export class CanvasManager {
   
   // ==================== Remote Cursors ====================
   
-  updateRemoteCursor(userId, username, x, y) {
+  updateRemoteCursor(userId, username, x, y, color) {
     let cursor = this.remoteCursors.get(userId);
-    
+
+    // Convert color string (like "#FF6B6B") to number
+    const colorNum = color && typeof color === 'string' && color.startsWith('#')
+      ? parseInt(color.substring(1), 16)
+      : 0xFF6B6B;
+
     if (!cursor) {
       // Create new cursor
       cursor = new PIXI.Container();
-      
+
       // Cursor pointer (triangle)
       const pointer = new PIXI.Graphics();
-      pointer.beginFill(0xFF6B6B);
+      pointer.beginFill(colorNum);
       pointer.moveTo(0, 0);
       pointer.lineTo(12, 18);
       pointer.lineTo(6, 18);
       pointer.lineTo(0, 24);
       pointer.endFill();
-      
+
       // Username label
       const label = new PIXI.Text(username, {
         fontSize: 12,
         fill: 0xFFFFFF,
-        backgroundColor: 0xFF6B6B,
+        backgroundColor: colorNum,
         padding: 4
       });
       label.x = 15;
       label.y = 0;
-      
+
       cursor.addChild(pointer);
       cursor.addChild(label);
       cursor.zIndex = 1000;
-      
+
       this.remoteCursors.set(userId, cursor);
       this.viewport.addChild(cursor);
     }
-    
+
     cursor.x = x;
     cursor.y = y;
   }

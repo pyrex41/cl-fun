@@ -1,6 +1,7 @@
 // main.js - Application entry point for CollabCanvas
 
 import './styles.css'
+import * as PIXI from 'pixi.js'
 import { CanvasManager } from './canvas.js'
 import { WebSocketClient } from './websocket.js'
 import { AuthManager } from './auth.js'
@@ -17,12 +18,13 @@ class CollabCanvas {
     }
 
     getCanvasId() {
-        // Get canvas ID from URL or generate new one
+        // Get canvas ID from URL or use default shared canvas
         const params = new URLSearchParams(window.location.search)
         let canvasId = params.get('canvas')
 
         if (!canvasId) {
-            canvasId = 'canvas-' + Math.random().toString(36).substr(2, 9)
+            // Use a fixed default canvas so all users join the same one
+            canvasId = 'default-canvas'
             // Update URL without reload
             const newUrl = new URL(window.location)
             newUrl.searchParams.set('canvas', canvasId)
@@ -51,6 +53,9 @@ class CollabCanvas {
             if (!isValid) {
                 this.sessionId = null
                 localStorage.removeItem('sessionId')
+            } else {
+                // Session is valid, make sure modal is hidden
+                this.authManager.hideModal()
             }
         }
 
@@ -78,6 +83,7 @@ class CollabCanvas {
     async validateSession() {
         try {
             const response = await fetch('/api/session', {
+                credentials: 'include',
                 headers: {
                     'Authorization': this.sessionId
                 }
@@ -85,9 +91,10 @@ class CollabCanvas {
 
             if (response.ok) {
                 const data = await response.json()
-                if (data.data && data.data.valid) {
-                    this.userId = data.data.userId
+                if (data.success && data.data && data.data.valid) {
+                    this.userId = data.data['user-id']
                     this.username = data.data.username
+                    console.log('Session restored:', this.username)
                     return true
                 }
             }
@@ -100,10 +107,21 @@ class CollabCanvas {
 
     initCanvas() {
         const container = document.getElementById('canvas-container')
-        this.canvasManager = new CanvasManager(container)
+
+        // Create PixiJS application
+        const app = new PIXI.Application({
+            width: window.innerWidth,
+            height: window.innerHeight,
+            backgroundColor: 0x1a1a1a,
+            resizeTo: window
+        })
+
+        container.appendChild(app.view)
+
+        this.canvasManager = new CanvasManager(app)
 
         // Set up canvas callbacks for WebSocket synchronization
-        this.canvasManager.onCursorMove = (x, y) => {
+        this.canvasManager.onCursorMoved = (x, y) => {
             if (this.wsClient && this.wsClient.isConnected) {
                 this.wsClient.sendCursorUpdate(x, y)
             }
@@ -147,17 +165,28 @@ class CollabCanvas {
     }
 
     initWebSocket() {
-        const wsUrl = `ws://${window.location.hostname}:8080/ws/${this.canvasId}`
+        const wsUrl = `ws://${window.location.hostname}:${window.location.port}/ws/${this.canvasId}`
 
         this.wsClient = new WebSocketClient(wsUrl, this.sessionId, this.canvasId)
 
         // Set up WebSocket callbacks
         this.wsClient.onAuthSuccess = (data) => {
-            console.log('WebSocket authenticated:', data)
+            console.error('=== WebSocket authenticated ===')
+            console.error('Auth data received:', data)
+
+            // Backend sends 'canvas-state' (kebab-case), not 'canvasState'
+            const canvasState = data['canvas-state'] || data.canvasState
+            console.error('canvasState exists?', !!canvasState)
+            console.error('canvasState type:', typeof canvasState)
+            console.error('canvasState length:', canvasState ? canvasState.length : 0)
 
             // Load initial canvas state
-            if (data.canvasState) {
-                this.canvasManager.loadState(data.canvasState)
+            if (canvasState) {
+                console.error('=== CALLING loadState ===')
+                this.canvasManager.loadState(canvasState)
+                console.error('=== loadState RETURNED ===')
+            } else {
+                console.error('=== NO CANVAS STATE IN AUTH RESPONSE ===')
             }
         }
 
@@ -179,9 +208,9 @@ class CollabCanvas {
         this.wsClient.onCursorUpdate = (data) => {
             this.canvasManager.updateRemoteCursor(
                 data.userId,
+                data.username,
                 data.x,
                 data.y,
-                data.username,
                 data.color
             )
         }

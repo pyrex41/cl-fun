@@ -166,6 +166,8 @@
 
         ;; Send success response with initial state
         (let ((canvas-state (get-canvas-objects canvas-id)))
+          (format t "Sending canvas state with ~A objects~%"
+                  (length canvas-state))
           (hunchensocket:send-text-message
            websocket
            (to-json-string `((:type . "auth-success")
@@ -219,6 +221,10 @@
       (let* ((object-data (cdr (assoc :object data)))
              (object-id (cdr (assoc :id object-data)))
              (canvas-id (resource-canvas-id resource)))
+
+        (format t "Object created: ~A in canvas ~A by ~A~%"
+                object-id canvas-id (client-username client))
+        (format t "Object data received: ~A~%" (to-json-string object-data))
 
         ;; Update canvas state
         (update-canvas-object canvas-id object-id object-data
