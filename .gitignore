@@ -23,3 +23,9 @@ node_modules/
 
 # OS specific
 .DS_Store
+
+# MCP configuration files (contain API keys)
+.cursor/mcp.json
+.mcp.json
+.taskmaster/config.json
+.taskmaster/state.json
