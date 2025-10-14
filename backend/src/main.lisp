@@ -89,14 +89,31 @@
   ()
   (:documentation "Custom acceptor that combines WebSocket and Easy acceptor"))
 
-;; Override process-connection to filter Fly.io proxy headers
+;; List of Fly.io proxy headers that cause issues with WebSocket upgrade
+(defparameter *fly-io-headers*
+  '("x-request-start" "fly-client-ip" "fly-forwarded-port"
+    "fly-forwarded-proto" "fly-forwarded-ssl" "fly-region"
+    "fly-request-id" "fly-trace-id")
+  "Headers added by Fly.io proxy that must be filtered")
+
+;; Override headers-in to filter Fly.io headers
+(defmethod hunchentoot:headers-in :around ((request hunchentoot:request))
+  "Filter out Fly.io proxy headers that cause keyword symbol errors"
+  (let ((headers (call-next-method)))
+    ;; Remove problematic headers
+    (remove-if (lambda (header)
+                 (member (string-downcase (car header)) *fly-io-headers*
+                         :test #'string=))
+               headers)))
+
+;; Override process-connection to catch any remaining errors
 (defmethod hunchentoot:process-connection :around ((acceptor canvas-acceptor) socket)
-  "Filter Fly.io proxy headers before processing connection"
+  "Catch errors during connection processing"
   (handler-case
       (call-next-method)
     (error (e)
       ;; Log the error but don't crash the server
-      (format t "Error processing connection: ~A~%" e)
+      (format t "[ERROR] Error while processing connection: ~A~%" e)
       nil)))
 
 (defun setup-websocket-dispatch ()
