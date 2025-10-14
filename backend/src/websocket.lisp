@@ -603,7 +603,7 @@
                                   `((:type . "object-create")
                                     (:object . ,object-data)
                                     (:user-id . ,(client-user-id client))
-                                    (:username . ,(client-username client)))))))
+                                    (:username . ,(client-username client))))))))
 
 (defun handle-object-update (resource websocket data room)
   "Handle object update"
@@ -719,4 +719,4 @@
                                    `((:type . "objects-delete")
                                      (:object-ids . ,object-ids)
                                      (:user-id . ,(client-user-id client))
-                                     (:username . ,(client-username client))))))))))
+                                     (:username . ,(client-username client)))))))))

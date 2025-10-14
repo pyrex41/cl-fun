@@ -436,35 +436,35 @@ export class CanvasManager {
 
   createToolObject(start, end) {
     const id = this.generateId();
-    
+
     if (this.currentTool === 'rectangle') {
       const width = Math.abs(end.x - start.x);
       const height = Math.abs(end.y - start.y);
       const x = Math.min(start.x, end.x);
       const y = Math.min(start.y, end.y);
-      
+
       this.createRectangle(id, x, y, width, height, this.currentColor);
-      
+
       return {
         id,
         type: 'rectangle',
         x, y, width, height,
-        color: this.currentColor
+        color: this.colorToHexString(this.currentColor)
       };
     } else if (this.currentTool === 'circle') {
       const dx = end.x - start.x;
       const dy = end.y - start.y;
       const radius = Math.sqrt(dx * dx + dy * dy);
-      
+
       this.createCircle(id, start.x, start.y, radius, this.currentColor);
-      
+
       return {
         id,
         type: 'circle',
         x: start.x,
         y: start.y,
         radius,
-        color: this.currentColor
+        color: this.colorToHexString(this.currentColor)
       };
     }
   }
@@ -1235,7 +1235,20 @@ export class CanvasManager {
   setColor(color) {
     this.currentColor = color;
   }
-  
+
+  colorToHexString(color) {
+    // Convert JavaScript color number (0x3498db) to CSS hex string ("#3498db")
+    if (typeof color === 'number') {
+      return '#' + color.toString(16).padStart(6, '0');
+    }
+    // If it's already a string with #, return as-is
+    if (typeof color === 'string' && color.startsWith('#')) {
+      return color;
+    }
+    // Default fallback
+    return '#3498db';
+  }
+
   getCanvasState() {
     const objects = [];
     this.objects.forEach((obj, id) => {
