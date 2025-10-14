@@ -89,22 +89,19 @@
   ()
   (:documentation "Custom acceptor that combines WebSocket and Easy acceptor"))
 
-;; List of Fly.io proxy headers that cause issues with WebSocket upgrade
-(defparameter *fly-io-headers*
-  '("x-request-start" "fly-client-ip" "fly-forwarded-port"
-    "fly-forwarded-proto" "fly-forwarded-ssl" "fly-region"
-    "fly-request-id" "fly-trace-id")
-  "Headers added by Fly.io proxy that must be filtered")
-
-;; Override headers-in to filter Fly.io headers
+;; Override headers-in to normalize header names to keyword symbols
 (defmethod hunchentoot:headers-in :around ((request hunchentoot:request))
-  "Filter out Fly.io proxy headers that cause keyword symbol errors"
+  "Normalize all header names to keyword symbols to handle proxy headers"
   (let ((headers (call-next-method)))
-    ;; Remove problematic headers
-    (remove-if (lambda (header)
-                 (member (string-downcase (car header)) *fly-io-headers*
-                         :test #'string=))
-               headers)))
+    ;; Convert any string header names to keyword symbols
+    (mapcar (lambda (header)
+              (cons (if (stringp (car header))
+                        ;; Convert string to keyword symbol
+                        (intern (string-upcase (car header)) :keyword)
+                        ;; Already a symbol, keep as-is
+                        (car header))
+                    (cdr header)))
+            headers)))
 
 ;; Override process-connection to catch any remaining errors
 (defmethod hunchentoot:process-connection :around ((acceptor canvas-acceptor) socket)
