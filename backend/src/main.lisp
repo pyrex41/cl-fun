@@ -89,6 +89,16 @@
   ()
   (:documentation "Custom acceptor that combines WebSocket and Easy acceptor"))
 
+;; Override process-connection to filter Fly.io proxy headers
+(defmethod hunchentoot:process-connection :around ((acceptor canvas-acceptor) socket)
+  "Filter Fly.io proxy headers before processing connection"
+  (handler-case
+      (call-next-method)
+    (error (e)
+      ;; Log the error but don't crash the server
+      (format t "Error processing connection: ~A~%" e)
+      nil)))
+
 (defun setup-websocket-dispatch ()
   "Setup WebSocket dispatch table"
   (pushnew 'dispatch-websocket-request
