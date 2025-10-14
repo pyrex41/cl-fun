@@ -220,11 +220,15 @@ class CollabCanvas {
         }
 
         this.wsClient.onObjectUpdated = (data) => {
-            this.canvasManager.updateRemoteObject(data.objectId, data.updates)
+            // Backend sends 'object-id' (kebab-case)
+            const objectId = data['object-id'] || data.objectId
+            this.canvasManager.updateRemoteObject(objectId, data.updates)
         }
 
         this.wsClient.onObjectDeleted = (data) => {
-            this.canvasManager.deleteRemoteObject(data.objectId)
+            // Backend sends 'object-id' (kebab-case)
+            const objectId = data['object-id'] || data.objectId
+            this.canvasManager.deleteRemoteObject(objectId)
         }
 
         this.wsClient.onError = (error) => {

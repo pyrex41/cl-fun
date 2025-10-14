@@ -330,6 +330,8 @@ export class CanvasManager {
   makeDraggable(obj, id) {
     let dragData = null;
     let dragOffset = { x: 0, y: 0 };
+    let lastDragUpdate = 0;
+    const dragUpdateInterval = 50; // Send updates every 50ms during drag (~20 FPS)
 
     obj.on('pointerdown', (event) => {
       if (this.currentTool !== 'select') return;
@@ -351,7 +353,7 @@ export class CanvasManager {
         obj.alpha = 1;
         dragData.dragging = false;
 
-        // Notify about position change
+        // Send final position update
         if (this.onObjectUpdated) {
           this.onObjectUpdated(id, { x: obj.x, y: obj.y });
         }
@@ -366,6 +368,15 @@ export class CanvasManager {
         // Apply the offset to maintain cursor position relative to object
         obj.x = newPosition.x - dragOffset.x;
         obj.y = newPosition.y - dragOffset.y;
+
+        // Send throttled updates during drag for real-time visualization
+        const now = performance.now();
+        if (now - lastDragUpdate >= dragUpdateInterval) {
+          if (this.onObjectUpdated) {
+            this.onObjectUpdated(id, { x: obj.x, y: obj.y });
+          }
+          lastDragUpdate = now;
+        }
       }
     });
   }

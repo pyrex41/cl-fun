@@ -55,15 +55,20 @@
 
 (defun broadcast-to-room (room message &optional exclude-websocket)
   "Broadcast a message to all clients in a room except the sender"
-  (let ((json-message (to-json-string message)))
+  ;; Serialize JSON once before acquiring lock (performance optimization)
+  (let ((json-message (to-json-string message))
+        (clients-to-send nil))
+    ;; Collect clients under lock (minimize lock time)
     (bt:with-lock-held ((room-lock room))
       (loop for client being the hash-values of (room-clients room)
             unless (eq (client-websocket client) exclude-websocket)
-            do (handler-case
-                   (hunchensocket:send-text-message
-                    (client-websocket client) json-message)
-                 (error (e)
-                   (format t "Error sending to client: ~A~%" e)))))))
+            do (push (client-websocket client) clients-to-send)))
+    ;; Send messages outside of lock
+    (dolist (ws clients-to-send)
+      (handler-case
+          (hunchensocket:send-text-message ws json-message)
+        (error (e)
+          (format t "Error sending to client: ~A~%" e))))))
 
 (defun broadcast-to-all (room message)
   "Broadcast a message to all clients in a room"
@@ -166,6 +171,8 @@
 
         ;; Send success response with initial state
         (let ((canvas-state (get-canvas-objects canvas-id)))
+          (format t "Sending canvas state with ~A objects~%"
+                  (length canvas-state))
           (hunchensocket:send-text-message
            websocket
            (to-json-string `((:type . "auth-success")
@@ -186,7 +193,7 @@
         (hunchensocket:send-text-message
          websocket
          (to-json-string `((:type . "presence")
-                          (:users . ,(get-room-client-list room))))))
+                          (:users . ,(get-room-client-list room)))))
 
         (format t "User ~A authenticated for canvas ~A~%" username canvas-id))
 
@@ -194,7 +201,7 @@
       (hunchensocket:send-text-message
        websocket
        (to-json-string '((:type . "auth-failed")
-                        (:message . "Invalid or expired session"))))))))
+                        (:message . "Invalid or expired session")))))))
 
 (defun handle-cursor-update (resource websocket data room)
   "Handle cursor position update"
@@ -220,6 +227,10 @@
              (object-id (cdr (assoc :id object-data)))
              (canvas-id (resource-canvas-id resource)))
 
+        (format t "Object created: ~A in canvas ~A by ~A~%"
+                object-id canvas-id (client-username client))
+        (format t "Object data received: ~A~%" (to-json-string object-data))
+
         ;; Update canvas state
         (update-canvas-object canvas-id object-id object-data
                             (client-user-id client))
@@ -240,14 +251,23 @@
              (updates (cdr (assoc :updates data)))
              (canvas-id (resource-canvas-id resource)))
 
+        (format t "~%=== OBJECT UPDATE RECEIVED ===~%")
+        (format t "Canvas ID: ~A~%" canvas-id)
+        (format t "Object ID: ~A (type: ~A)~%" object-id (type-of object-id))
+        (format t "Updates: ~A~%" (to-json-string updates))
+
         ;; Get current object and apply updates
         (let ((current-object (get-canvas-object canvas-id object-id)))
+          (format t "Current object found: ~A~%" (if current-object "YES" "NO"))
           (when current-object
+            (format t "Current object data: ~A~%" (to-json-string current-object))
             ;; Merge updates into current object
             (let ((updated-object (append updates current-object)))
+              (format t "Updated object data: ~A~%" (to-json-string updated-object))
               ;; Update canvas state
               (update-canvas-object canvas-id object-id updated-object
                                   (client-user-id client))
+              (format t "Object updated in canvas state~%")
 
               ;; Broadcast to all other clients
               (broadcast-to-room room
@@ -256,7 +276,11 @@
                                  (:updates . ,updates)
                                  (:user-id . ,(client-user-id client))
                                  (:username . ,(client-username client)))
-                               websocket))))))))
+                               websocket)
+              (format t "Broadcast to room complete~%")))
+          (unless current-object
+            (format t "WARNING: Object ~A not found in canvas ~A~%" object-id canvas-id))
+          (format t "=== END OBJECT UPDATE ===~%~%")))))))
 
 (defun handle-object-delete (resource websocket data room)
   "Handle object deletion"
@@ -265,13 +289,22 @@
       (let* ((object-id (cdr (assoc :object-id data)))
              (canvas-id (resource-canvas-id resource)))
 
+        (format t "Object deletion requested: ~A in canvas ~A by ~A~%"
+                object-id canvas-id (client-username client))
+
         ;; Delete from canvas state
-        (when (delete-canvas-object canvas-id object-id
-                                   (client-user-id client))
-          ;; Broadcast to all other clients
-          (broadcast-to-room room
-                           `((:type . "object-delete")
-                             (:object-id . ,object-id)
-                             (:user-id . ,(client-user-id client))
-                             (:username . ,(client-username client)))
-                           websocket))))))
+        (let ((deleted (delete-canvas-object canvas-id object-id
+                                            (client-user-id client))))
+          (if deleted
+              (progn
+                (format t "Object ~A deleted successfully from canvas ~A~%"
+                        object-id canvas-id)
+                ;; Broadcast to all other clients
+                (broadcast-to-room room
+                                 `((:type . "object-delete")
+                                   (:object-id . ,object-id)
+                                   (:user-id . ,(client-user-id client))
+                                   (:username . ,(client-username client)))
+                                 websocket))
+              (format t "WARNING: Object ~A not found in canvas ~A~%"
+                      object-id canvas-id)))))))
