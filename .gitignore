@@ -24,3 +24,9 @@ node_modules/
 # OS specific
 .DS_Store
 .worktree/
+
+# MCP and Task Master configuration
+.mcp.json
+.cursor/
+.taskmaster/config.json
+.taskmaster/state.json
