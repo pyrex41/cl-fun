@@ -38,9 +38,12 @@ RUN ln -s /app/backend ~/.roswell/local-projects/collabcanvas && \
     echo "Dependencies compiled successfully"
 
 # Create standalone binary with embedded Lisp runtime
-RUN ros -e '(ql:quickload :collabcanvas :silent t)' \
+# First ensure the system loads cleanly
+RUN ros -e '(ql:quickload :collabcanvas)' && \
+    echo "System loaded successfully" && \
+    ros -e '(ql:quickload :collabcanvas)' \
         -e '(sb-ext:save-lisp-and-die "collabcanvas-server" \
-              :toplevel (quote collabcanvas:main) \
+              :toplevel (function collabcanvas:main) \
               :executable t \
               :compression t \
               :save-runtime-options t)' && \

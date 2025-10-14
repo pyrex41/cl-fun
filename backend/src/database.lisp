@@ -243,10 +243,10 @@
         (progn
           ;; Get current version if exists
           (let* ((current-version
-                  (let ((row (sqlite:execute-single conn
-                                                     "SELECT version FROM canvas_states WHERE canvas_id = ?"
-                                                     canvas-id)))
-                    (if row (first row) 0)))
+                  (let ((rows (sqlite:execute-to-list conn
+                                                      "SELECT version FROM canvas_states WHERE canvas_id = ?"
+                                                      canvas-id)))
+                    (if rows (first (first rows)) 0)))
                  (new-version (1+ current-version)))
             ;; Use INSERT OR REPLACE for efficiency
             (sqlite:execute-non-query conn
