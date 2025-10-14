@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": "1",
+        "id": 1,
         "title": "Set up project structure and dependencies",
         "description": "Initialize the backend and frontend project structures, install required libraries and tools as specified in the technical stack.",
         "details": "For backend: Use Roswell to set up SBCL Common Lisp project with ASDF system definition. Install Hunchentoot, Hunchensocket, cl-sqlite, Jonathan, Ironclad, Bordeaux-threads via Quicklisp. For frontend: Initialize Vite project with PixiJS v7, vanilla JavaScript ES6+. Create directory structures as per architecture (backend/src/, frontend/src/). Ensure Docker setup with Debian base.",
@@ -79,7 +79,7 @@
         "updatedAt": "2025-10-13T21:24:56.916Z"
       },
       {
-        "id": "2",
+        "id": 2,
         "title": "Implement database schema and setup",
         "description": "Create and initialize the SQLite database with the required tables for users, sessions, and canvas states.",
         "details": "Use cl-sqlite to execute the schema.sql file creating users, sessions, and canvas_states tables. Include indexes for performance. Ensure database file is created in data/ directory. Implement utility functions in database.lisp for connecting and executing queries.",
@@ -152,7 +152,7 @@
         "updatedAt": "2025-10-13T21:24:58.407Z"
       },
       {
-        "id": "3",
+        "id": 3,
         "title": "Implement authentication backend",
         "description": "Develop the authentication system including user registration, login, logout, and session management using SHA-256 hashing.",
         "details": "In auth.lisp, implement functions for hashing passwords with Ironclad, creating sessions, validating logins. Add HTTP endpoints /api/register, /api/login, /api/logout using Hunchentoot. Store sessions in SQLite with 24-hour expiry. Handle unique constraints for email and username.",
@@ -228,7 +228,7 @@
         "updatedAt": "2025-10-13T21:24:59.652Z"
       },
       {
-        "id": "4",
+        "id": 4,
         "title": "Implement authentication frontend",
         "description": "Create the login/register modal UI and logic for handling authentication on the client side.",
         "details": "In auth.js, build modal with tabs for login/register, fields for email, password, username. Use fetch API to call backend endpoints. Store sessionId in localStorage. Block canvas access until authenticated. Handle errors and display messages.",
@@ -306,7 +306,7 @@
         "updatedAt": "2025-10-13T21:28:14.350Z"
       },
       {
-        "id": "5",
+        "id": 5,
         "title": "Set up WebSocket server infrastructure",
         "description": "Establish the WebSocket server with room management for canvas collaboration.",
         "details": "In websocket.lisp, create canvas-room class with thread-safe client lists. Implement connection handling, message routing for auth, cursor, object operations. Use Hunchensocket for WebSocket acceptor. Add functions for broadcasting messages to room members.",
@@ -379,7 +379,7 @@
         "updatedAt": "2025-10-13T21:25:01.037Z"
       },
       {
-        "id": "6",
+        "id": 6,
         "title": "Implement canvas rendering with PixiJS",
         "description": "Set up the PixiJS application for the infinite canvas with basic rendering.",
         "details": "In canvas.js, initialize PIXI.Application with full viewport. Create Container for world space. Implement grid rendering at 50px intervals. Set up event listeners for mouse interactions. Define screenToWorld and worldToScreen conversion functions.",
@@ -452,7 +452,7 @@
         "updatedAt": "2025-10-13T21:25:02.354Z"
       },
       {
-        "id": "7",
+        "id": 7,
         "title": "Implement pan and zoom functionality",
         "description": "Add pan and zoom controls to the canvas for navigation.",
         "details": "In canvas.js, handle middle-click or Alt+left-click drag for pan. Implement mouse wheel zoom with cursor centering, range 0.1x to 10x. Update viewport tracking. Ensure 60 FPS performance using requestAnimationFrame.",
@@ -533,7 +533,7 @@
         "updatedAt": "2025-10-13T21:28:20.031Z"
       },
       {
-        "id": "8",
+        "id": 8,
         "title": "Implement object creation",
         "description": "Enable creation of rectangles and circles on the canvas via click-and-drag.",
         "details": "In canvas.js, add tool modes for rectangle ('R') and circle ('C'). On mouse down, start creation; on mouse up, finalize object with properties (id, type, x, y, width/height/radius, color). Use PIXI.Graphics for rendering. Generate unique IDs.",
@@ -606,7 +606,7 @@
         "updatedAt": "2025-10-14T02:52:42.112Z"
       },
       {
-        "id": "9",
+        "id": 9,
         "title": "Implement object manipulation",
         "description": "Add selection, dragging, multi-select, and deletion for objects.",
         "details": "In canvas.js, implement select mode ('V') for clicking to select, Shift+click for multi-select. Enable dragging selected objects. Add Delete key handler for removal. Update object positions in world coordinates.",
@@ -679,7 +679,7 @@
         "updatedAt": "2025-10-14T02:52:43.333Z"
       },
       {
-        "id": "10",
+        "id": 10,
         "title": "Implement WebSocket client",
         "description": "Develop the client-side WebSocket connection and message handling.",
         "details": "In websocket.js, create WebSocketClient class to connect to ws://host/ws/{canvas-id}. Handle auth message on connect. Implement send/receive for cursor, object operations. Add reconnection logic and throttling for cursor updates (30/sec).",
@@ -757,7 +757,7 @@
         "updatedAt": "2025-10-13T21:28:25.505Z"
       },
       {
-        "id": "11",
+        "id": 11,
         "title": "Implement real-time synchronization for objects",
         "description": "Sync object creation, updates, and deletions across all connected clients.",
         "details": "Integrate WebSocketClient with CanvasManager: on local object create/update/delete, send message. On receive, update canvas. Broadcast via server. Use last-write-wins for conflicts.",
@@ -831,7 +831,7 @@
         "updatedAt": "2025-10-14T02:52:44.596Z"
       },
       {
-        "id": "12",
+        "id": 12,
         "title": "Implement cursor synchronization",
         "description": "Enable real-time cursor position sharing with presence.",
         "details": "In websocket.js, send cursor updates on mouse move (throttled). On receive, render remote cursors with username labels in unique colors. Update presence list on connect/disconnect.",
@@ -904,7 +904,7 @@
         "updatedAt": "2025-10-14T02:52:45.813Z"
       },
       {
-        "id": "13",
+        "id": 13,
         "title": "Implement state persistence",
         "description": "Save and load canvas state to/from SQLite database.",
         "details": "In canvas-state.lisp, implement save function with debounced updates (500ms). Load state on connection via GET /api/canvas/state. Store as JSON blob in canvas_states table.",
@@ -978,7 +978,7 @@
         "updatedAt": "2025-10-14T02:52:47.049Z"
       },
       {
-        "id": "14",
+        "id": 14,
         "title": "Implement user interface components",
         "description": "Build the UI for toolbar, presence list, and status bar.",
         "details": "In HTML/CSS/JS, create toolbar for tools (select, rectangle, circle), color picker. Add presence list in top-right. Implement status bar for tool, position, zoom. Ensure dark theme consistency.",
@@ -1056,7 +1056,7 @@
         "updatedAt": "2025-10-14T02:52:48.264Z"
       },
       {
-        "id": "15",
+        "id": 15,
         "title": "Deploy application to Fly.io",
         "description": "Containerize and deploy the application to Fly.io for public access.",
         "details": "Create Dockerfile as specified. Build frontend and backend. Configure fly.toml. Use fly deploy. Ensure health check endpoint.",
@@ -1078,7 +1078,654 @@
       "completedCount": 14,
       "tags": [
         "master"
-      ]
+      ],
+      "created": "2025-10-14T14:40:42.116Z",
+      "description": "Tasks for master context"
+    }
+  },
+  "perf": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Implement Cursor Update Batching",
+        "description": "Batch cursor updates on the backend and throttle sending on the frontend to reduce network traffic and ensure <50ms latency.",
+        "details": "On the backend, create a message-queue struct with cursor-batch and object-batch. Implement queue-cursor-update to add updates to the batch and flush-cursor-batch to send batched updates every 50ms. On the frontend, create a CursorThrottle class that throttles updates to max 20/sec using setInterval. Ensure batch messages include all cursor positions and latency remains <50ms.",
+        "testStrategy": "Unit test the batching logic to verify updates are queued and flushed correctly. Integration test with multiple clients to measure latency and ensure it stays under 50ms. Load test with 5 concurrent users to confirm no lag.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Backend Message Queue for Cursor Batching",
+            "description": "Create a backend message-queue struct that includes cursor-batch and object-batch components. Implement functions to queue cursor updates and flush batches every 50ms to reduce network traffic.",
+            "dependencies": [],
+            "details": "On the backend, define a message-queue struct with arrays for cursor-batch and object-batch. Implement queue-cursor-update to append updates to the cursor-batch. Implement flush-cursor-batch to send the batched updates via WebSocket or similar every 50ms using a timer. Ensure the batch includes all cursor positions and handles multiple updates efficiently.",
+            "status": "done",
+            "testStrategy": "Unit test the queue and flush functions to verify updates are batched and sent at the correct intervals.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T15:59:40.899Z"
+          },
+          {
+            "id": 2,
+            "title": "Implement Frontend Cursor Throttling Logic",
+            "description": "Create a CursorThrottle class on the frontend to limit cursor updates to a maximum of 20 per second using setInterval, ensuring low latency.",
+            "dependencies": [],
+            "details": "On the frontend, develop a CursorThrottle class that uses setInterval to throttle cursor position updates to no more than 20 per second. Capture cursor movements, buffer them, and send batched updates at the throttled rate. Integrate with the backend batching to maintain overall latency under 50ms.",
+            "status": "done",
+            "testStrategy": "Unit test the throttling mechanism to ensure it limits updates to 20/sec and handles rapid cursor movements without exceeding the rate.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T15:59:42.195Z"
+          },
+          {
+            "id": 3,
+            "title": "Conduct Comprehensive Testing Including Latency Measurements",
+            "description": "Perform unit, integration, and load testing to verify batching and throttling work correctly, with a focus on measuring and ensuring latency remains under 50ms.",
+            "dependencies": [],
+            "details": "Execute unit tests for backend batching and frontend throttling. Run integration tests with multiple clients to simulate real-world usage. Conduct load tests with 5 concurrent users to measure latency using tools like performance.now(). Ensure all tests confirm latency <50ms and no network overload.",
+            "status": "done",
+            "testStrategy": "Use automated testing frameworks for unit and integration tests; employ load testing tools to measure latency percentiles and verify compliance with <50ms requirement under various conditions.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T15:59:43.450Z"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Break down the task into backend queue implementation, frontend throttling logic, and comprehensive testing including latency measurements.",
+        "updatedAt": "2025-10-14T15:59:43.450Z"
+      },
+      {
+        "id": 2,
+        "title": "Implement Delta Compression for Object Updates",
+        "description": "Send only changed fields for object updates to reduce bandwidth by 60-80%.",
+        "details": "On the backend, create create-object-delta function to compare old and new objects and return only changed properties like x, y, width, height, rotation, color. On the frontend, implement applyDelta method to update only the changed properties on the object. Send full object state on creation and deltas thereafter.",
+        "testStrategy": "Unit test delta creation to ensure only changed fields are included. Integration test to verify deltas are applied correctly across clients. Measure bandwidth usage before and after implementation to confirm 60-80% reduction.",
+        "priority": "high",
+        "dependencies": [
+          "1"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Backend Delta Creation Function",
+            "description": "Create the create-object-delta function on the backend to compare old and new objects and return only changed properties such as x, y, width, height, rotation, and color.",
+            "dependencies": [],
+            "details": "On the backend, implement a function that takes old and new object states, performs a deep comparison to identify changed fields, and returns a delta object containing only the modified properties. Ensure the function handles nested objects if necessary and is efficient for real-time updates.",
+            "status": "done",
+            "testStrategy": "Unit test the delta creation to ensure only changed fields are included and no unchanged fields are present.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement Frontend Delta Application and Bandwidth Testing",
+            "description": "Implement the applyDelta method on the frontend to update only the changed properties on objects and measure bandwidth reduction.",
+            "dependencies": [
+              1
+            ],
+            "details": "On the frontend, create an applyDelta method that merges the delta into the existing object state without overwriting unchanged fields. Send full object state on creation and deltas thereafter. Conduct bandwidth measurement tests by comparing network usage before and after implementation to confirm 60-80% reduction.",
+            "status": "done",
+            "testStrategy": "Integration test to verify deltas are applied correctly across clients. Measure bandwidth usage before and after implementation using network profiling tools to confirm the 60-80% reduction.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Separate into backend delta creation, frontend delta application, and bandwidth measurement testing."
+      },
+      {
+        "id": 3,
+        "title": "Implement Priority Queue for Messages",
+        "description": "Prioritize cursor and presence updates over object updates to prevent cursor lag.",
+        "details": "On the backend, create a priority-queue struct with high-priority (cursors, presence), normal-priority (object updates), and low-priority queues. Implement process-message-queue to process high-priority first, then normal with a limit. Ensure message ordering within priorities.",
+        "testStrategy": "Unit test queue processing to verify priority order. Integration test during heavy object updates to ensure cursor updates are not delayed. Performance test to confirm no cursor lag with high object update frequency.",
+        "priority": "medium",
+        "dependencies": [
+          "1",
+          "2"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design Priority Queue Structure",
+            "description": "Create a priority-queue struct with three levels: high-priority for cursors and presence updates, normal-priority for object updates, and low-priority queues to manage message ordering.",
+            "dependencies": [],
+            "details": "Implement a data structure using arrays or linked lists for each priority level, ensuring FIFO ordering within each priority. Include methods to enqueue messages with their priority and dequeue based on priority order.",
+            "status": "done",
+            "testStrategy": "Unit test the queue structure to verify correct enqueuing and dequeuing across priorities.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement Message Processing Logic",
+            "description": "Develop process-message-queue function to process high-priority messages first, then normal-priority with a limit, ensuring no lag in cursor updates.",
+            "dependencies": [
+              1
+            ],
+            "details": "Write logic to iterate through high-priority queue completely, then process up to a configurable limit from normal-priority, and optionally low-priority. Maintain message ordering within priorities using timestamps or sequence numbers.",
+            "status": "done",
+            "testStrategy": "Unit test the processing logic to confirm priority order and limits are respected.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Test Priority Handling Under High Load",
+            "description": "Perform testing to ensure priority queue prevents cursor lag during heavy object updates and concurrent presence changes.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Set up load tests simulating high-frequency object updates while monitoring cursor and presence update delays. Use performance metrics to verify that high-priority messages are processed without significant lag.",
+            "status": "done",
+            "testStrategy": "Integration and performance tests under simulated high load to measure latency and confirm no cursor lag.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Divide into queue structure design, processing logic, and priority testing under high load."
+      },
+      {
+        "id": 4,
+        "title": "Implement Object Culling for Rendering",
+        "description": "Only render objects visible in the viewport plus padding to maintain 60 FPS with 500+ objects.",
+        "details": "In CanvasManager, add setupViewportCulling to listen for viewport moved/zoomed events and call updateVisibleObjects. Implement updateVisibleObjects to calculate visible bounds with 200px padding and set obj.visible and obj.renderable based on intersection. Use getVisibleBounds and isIntersecting helper functions.",
+        "testStrategy": "Unit test bounds calculation and intersection logic. Integration test by creating 500+ objects and verifying only visible ones are rendered. Performance test to ensure 60 FPS during pan/zoom operations.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Viewport Calculation and Culling Logic",
+            "description": "Add setupViewportCulling to listen for viewport events and implement updateVisibleObjects to calculate bounds with padding and set object visibility.",
+            "dependencies": [],
+            "details": "In CanvasManager, add setupViewportCulling method to listen for viewport moved/zoomed events and call updateVisibleObjects. Implement updateVisibleObjects to calculate visible bounds with 200px padding using getVisibleBounds, and set obj.visible and obj.renderable based on intersection using isIntersecting helper functions.",
+            "status": "done",
+            "testStrategy": "Unit test bounds calculation and intersection logic.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Performance Testing with Many Objects",
+            "description": "Test rendering performance with 500+ objects to ensure 60 FPS during pan/zoom operations.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create integration tests by generating 500+ objects and verifying only visible ones are rendered. Perform performance tests to measure FPS during pan/zoom operations, ensuring it maintains 60 FPS with the culling logic in place.",
+            "status": "done",
+            "testStrategy": "Integration test with 500+ objects to verify visibility. Performance test for 60 FPS during pan/zoom.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:02:47.879Z"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Split into viewport calculation, culling logic, and performance testing with many objects.",
+        "updatedAt": "2025-10-14T16:02:47.879Z"
+      },
+      {
+        "id": 5,
+        "title": "Add FPS Monitoring",
+        "description": "Track and log FPS to detect drops below 55 and provide performance stats.",
+        "details": "Create PerformanceMonitor class that uses app.ticker to track FPS in a history array of max 60 entries. Log warnings when FPS < 55, including object count and average FPS. Provide getStats method for current, average, min, max FPS.",
+        "testStrategy": "Unit test FPS tracking accuracy. Integration test by simulating load and checking logs for warnings. Manual test to access stats via console and verify no performance impact from monitoring.",
+        "priority": "medium",
+        "dependencies": [
+          "4"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create PerformanceMonitor Class Structure",
+            "description": "Set up the basic PerformanceMonitor class with necessary properties and initialization.",
+            "dependencies": [],
+            "details": "Define the PerformanceMonitor class with properties for FPS history array (max 60 entries), current FPS, and methods stubs for tracking and stats. Ensure it integrates with app.ticker for updates.",
+            "status": "done",
+            "testStrategy": "Unit test class instantiation and property initialization.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:18:10.090Z"
+          },
+          {
+            "id": 2,
+            "title": "Implement FPS Tracking with Ticker",
+            "description": "Use app.ticker to calculate and track FPS in real-time.",
+            "dependencies": [
+              1
+            ],
+            "details": "In the PerformanceMonitor class, add a ticker listener that calculates FPS based on delta time from the ticker. Update the current FPS value on each tick and prepare for adding to history.",
+            "status": "done",
+            "testStrategy": "Unit test FPS calculation accuracy by mocking ticker events.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:18:11.375Z"
+          },
+          {
+            "id": 3,
+            "title": "Add FPS History Array Management",
+            "description": "Maintain a history array of FPS values with a maximum of 60 entries.",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement logic to add current FPS to the history array on each update, ensuring the array does not exceed 60 entries by removing oldest values. Calculate average FPS from the history.",
+            "status": "done",
+            "testStrategy": "Unit test array management, including adding, removing, and average calculation.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:18:12.803Z"
+          },
+          {
+            "id": 4,
+            "title": "Implement Warning Logging for Low FPS",
+            "description": "Log warnings when FPS drops below 55, including object count and average FPS.",
+            "dependencies": [
+              3
+            ],
+            "details": "Add logic to check if current FPS is below 55, and if so, log a warning message that includes the current object count (assuming access to object count) and the average FPS from history. Use console.warn or similar.",
+            "status": "done",
+            "testStrategy": "Integration test by simulating low FPS scenarios and verifying logs are generated correctly.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:18:14.154Z"
+          },
+          {
+            "id": 5,
+            "title": "Provide getStats Method for FPS Statistics",
+            "description": "Implement getStats method to return current, average, min, and max FPS.",
+            "dependencies": [
+              3
+            ],
+            "details": "Create the getStats method that computes and returns an object with current FPS, average FPS (from history), minimum FPS, and maximum FPS from the history array. Ensure calculations are accurate and efficient.",
+            "status": "done",
+            "testStrategy": "Unit test the getStats method with various history arrays to verify correct stats output.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:18:15.523Z"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "",
+        "updatedAt": "2025-10-14T16:18:15.523Z"
+      },
+      {
+        "id": 6,
+        "title": "Optimize Remote Cursor Rendering",
+        "description": "Use shared textures for cursors to improve performance with multiple remote cursors.",
+        "details": "In createRemoteCursor, create a shared cursorTexture once using PIXI.Graphics for the cursor shape. Use PIXI.Sprite with tint for color instead of individual graphics. Add username label as PIXI.Text. Ensure smooth movement at 60 FPS with 10+ cursors.",
+        "testStrategy": "Unit test texture sharing and sprite creation. Performance test rendering 10+ cursors to confirm no FPS drop. Visual test to ensure cursors are readable and performant.",
+        "priority": "medium",
+        "dependencies": [
+          "4"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Shared Cursor Texture",
+            "description": "Generate a single shared texture for the cursor shape using PIXI.Graphics to avoid recreating graphics for each cursor.",
+            "dependencies": [],
+            "details": "In the PIXI application, create a function to draw a cursor shape (e.g., arrow or pointer) using PIXI.Graphics, render it to a texture once, and store it as a shared resource. This texture will be reused for all remote cursors to optimize memory and rendering performance.",
+            "status": "done",
+            "testStrategy": "Unit test to verify the texture is created correctly and can be reused without errors.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Refactor createRemoteCursor to Use Shared Texture and Sprite",
+            "description": "Update the createRemoteCursor function to use the shared texture with PIXI.Sprite and apply tint for color variations instead of individual graphics.",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify createRemoteCursor to instantiate a PIXI.Sprite using the shared cursorTexture, set its tint property for different colors based on user, and position it accordingly. Remove any code that creates individual PIXI.Graphics for each cursor to reduce overhead.",
+            "status": "done",
+            "testStrategy": "Unit test sprite creation and tint application to ensure colors are applied correctly.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add Username Label to Remote Cursors",
+            "description": "Attach a PIXI.Text label displaying the username to each remote cursor for identification.",
+            "dependencies": [
+              2
+            ],
+            "details": "In createRemoteCursor, create a PIXI.Text object with the username, style it appropriately (e.g., font size, color), and add it as a child to the cursor sprite. Position the text relative to the cursor (e.g., above or beside it) to ensure readability.",
+            "status": "done",
+            "testStrategy": "Visual test to confirm labels are displayed correctly and do not overlap or obscure the cursor.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Implement Smooth Cursor Movement",
+            "description": "Ensure cursor positions are updated smoothly to achieve 60 FPS movement with multiple cursors.",
+            "dependencies": [
+              2
+            ],
+            "details": "Update the cursor update logic to interpolate positions between received updates for fluid animation. Use requestAnimationFrame or PIXI's ticker to animate cursor movement, ensuring it handles 10+ cursors without dropping below 60 FPS.",
+            "status": "done",
+            "testStrategy": "Performance test rendering and animating 10+ cursors to measure FPS and confirm smooth movement.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Optimize and Test Overall Rendering Performance",
+            "description": "Conduct performance optimizations and tests to ensure the system maintains 60 FPS with 10+ remote cursors.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Profile the rendering pipeline, optimize any bottlenecks in texture usage, sprite management, and animation. Run comprehensive tests including unit tests for components, performance benchmarks for FPS, and visual checks for readability and performance.",
+            "status": "done",
+            "testStrategy": "Performance test with 10+ cursors to confirm no FPS drop; visual test for readability; integration test to ensure all components work together seamlessly.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": ""
+      },
+      {
+        "id": 7,
+        "title": "Implement Memory Cleanup on Disconnect",
+        "description": "Properly clean up user data and objects on disconnect to prevent memory leaks.",
+        "details": "On backend, in handle-client-disconnect, remove client from room, broadcast user-left, and clean up user data. On frontend, handleUserLeft to destroy cursors (keeping shared texture), remove from activeUsers, and update UI. Add startPeriodicCleanup to remove orphaned objects every minute.",
+        "testStrategy": "Unit test cleanup functions. Integration test connect/disconnect cycles to verify memory stability. Run 24-hour session test to ensure no memory growth.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Backend Disconnect Handling",
+            "description": "Handle client disconnection on the backend by removing the client from the room, broadcasting user-left events, and cleaning up associated user data to prevent memory leaks.",
+            "dependencies": [],
+            "details": "In the handle-client-disconnect function, ensure the client is removed from the room structure, broadcast a user-left event to other clients, and perform thorough cleanup of user-specific data such as session variables and temporary caches. This prevents orphaned references that could lead to memory accumulation.",
+            "status": "done",
+            "testStrategy": "Unit test the cleanup functions to verify that user data is properly removed upon disconnect.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:16:03.329Z"
+          },
+          {
+            "id": 2,
+            "title": "Implement Frontend Memory Cleanup",
+            "description": "On the frontend, handle user-left events to destroy cursors while preserving shared textures, remove users from active lists, and update the UI accordingly.",
+            "dependencies": [],
+            "details": "In the handleUserLeft function, destroy individual cursor objects but keep shared textures intact to avoid unnecessary reloading. Remove the disconnected user from the activeUsers array and update any UI elements that display user presence. Ensure no references to the user remain in the DOM or memory.",
+            "status": "done",
+            "testStrategy": "Integration test connect/disconnect cycles to verify that frontend memory is stable and no leaks occur during repeated user joins and leaves.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:16:04.616Z"
+          },
+          {
+            "id": 3,
+            "title": "Add Periodic Memory Cleanup and Long-Term Testing",
+            "description": "Implement a periodic cleanup mechanism to remove orphaned objects every minute and conduct thorough testing to ensure no memory growth over time.",
+            "dependencies": [],
+            "details": "Add a startPeriodicCleanup function that runs every minute to scan for and remove orphaned objects, such as unused PIXI elements or stale data structures. Integrate this into the application's main loop. Conduct a 24-hour session test to monitor memory usage and confirm no gradual leaks occur under sustained load.",
+            "status": "done",
+            "testStrategy": "Run a 24-hour session test to ensure no memory growth, combined with memory profiling to detect any leaks during periodic cleanup operations.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:16:05.909Z"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Separate into backend disconnect handling, frontend cleanup, and long-term memory testing.",
+        "updatedAt": "2025-10-14T16:16:05.909Z"
+      },
+      {
+        "id": 8,
+        "title": "Implement Object Deletion with Proper Cleanup",
+        "description": "Ensure deleted objects are fully removed from memory and textures are managed.",
+        "details": "In deleteObject, use obj.destroy with options to destroy children but keep shared textures. Remove from objects and selectedObjects maps. For bulk delete, process multiple IDs and broadcast deletions once. Ensure no orphaned PIXI objects.",
+        "testStrategy": "Unit test deletion and bulk operations. Memory profiling test to confirm no leaks after deletions. Integration test to verify objects are removed across clients.",
+        "priority": "medium",
+        "dependencies": [
+          "7"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Single and Bulk Object Deletion Logic",
+            "description": "Develop the core logic for deleting individual objects and handling bulk deletions, ensuring proper cleanup of PIXI objects and removal from maps.",
+            "dependencies": [],
+            "details": "In the deleteObject function, use obj.destroy with options to destroy children but preserve shared textures. Remove the object from both objects and selectedObjects maps. For bulk delete, process an array of IDs, perform deletions, and broadcast the deletions once to avoid multiple broadcasts. Ensure no orphaned PIXI objects remain in the scene graph.",
+            "status": "done",
+            "testStrategy": "Unit tests for deleteObject and bulkDelete functions to verify objects are removed from maps and destroyed correctly. Integration tests to confirm broadcasts are sent properly for bulk operations.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement Memory Leak Verification for Object Deletion",
+            "description": "Add mechanisms to verify that deleted objects are fully removed from memory and no leaks occur, including texture management checks.",
+            "dependencies": [
+              1
+            ],
+            "details": "After deletion, implement checks to ensure PIXI objects are not retained in memory. Use memory profiling tools or custom checks to confirm textures are managed properly (shared ones kept, others released). Add logging or assertions to detect orphaned objects. Integrate with the deletion logic to run verifications post-deletion.",
+            "status": "done",
+            "testStrategy": "Memory profiling tests using tools like Chrome DevTools to confirm no leaks after deletions. Unit tests for verification functions to ensure they detect potential issues. Integration tests to verify no orphaned objects in the PIXI stage after bulk deletions.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Break into deletion logic, bulk operations, and memory leak verification."
+      },
+      {
+        "id": 9,
+        "title": "Add Rate Limiting and Input Validation",
+        "description": "Protect against abuse with rate limiting and validate input to prevent invalid data.",
+        "details": "On backend, create rate-limiter struct with message count and window. Implement check-rate-limit to allow max 100 messages/sec, resetting window. Add validate-object-update and validate-canvas-state for bounds checking. Reject invalid data with errors.",
+        "testStrategy": "Unit test rate limiter and validation functions. Load test to attempt DoS and verify limits are enforced. Integration test invalid inputs are rejected with error messages.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Rate Limiter Struct and Logic",
+            "description": "Create a rate-limiter struct with message count and window, and implement check-rate-limit to allow max 100 messages/sec, resetting the window as needed.",
+            "dependencies": [],
+            "details": "On the backend, define a rate-limiter struct that tracks message counts within a time window. Implement the check-rate-limit function to enforce a maximum of 100 messages per second, automatically resetting the window when the time period expires. Ensure thread-safety for concurrent access.",
+            "status": "done",
+            "testStrategy": "Unit test the rate limiter to verify it correctly allows up to 100 messages per second and resets the window appropriately.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Add Input Validation Functions",
+            "description": "Implement validate-object-update and validate-canvas-state functions to perform bounds checking on input data.",
+            "dependencies": [],
+            "details": "Add validation functions on the backend to check bounds for object updates and canvas states. These functions should verify that provided values are within acceptable ranges, such as position coordinates, sizes, and other properties, to prevent invalid data from being processed.",
+            "status": "done",
+            "testStrategy": "Unit test the validation functions to ensure they correctly identify and flag invalid inputs based on defined bounds.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Conduct Abuse and DoS Testing",
+            "description": "Perform load testing to simulate abuse scenarios, including attempts at DoS attacks, and verify that rate limits are enforced.",
+            "dependencies": [
+              1
+            ],
+            "details": "Set up load tests that attempt to exceed the rate limits by sending high volumes of messages. Monitor the system to ensure the rate limiter blocks excessive requests and prevents DoS conditions. Use tools to simulate concurrent high-traffic scenarios.",
+            "status": "done",
+            "testStrategy": "Load test to attempt DoS and verify that limits are enforced, preventing system overload.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Implement Error Handling for Invalid Data",
+            "description": "Add error handling mechanisms to reject invalid data and return appropriate error messages to clients.",
+            "dependencies": [
+              2
+            ],
+            "details": "Integrate error responses into the validation functions so that when invalid data is detected, the system rejects it and sends back clear error messages indicating what was wrong (e.g., out-of-bounds values). Ensure errors are logged and communicated properly without exposing sensitive information.",
+            "status": "done",
+            "testStrategy": "Integration test to verify that invalid inputs are rejected with appropriate error messages.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Divide into rate limiter implementation, validation functions, abuse testing, and error handling."
+      },
+      {
+        "id": 10,
+        "title": "Optimize Database Access with Pooling and Indexing",
+        "description": "Implement connection pooling and add indexes to improve query performance.",
+        "details": "Create db-pool struct with 10 connections and thread-safe access using bt:make-lock. Implement with-db-connection macro for reusing connections. Add SQL indexes on canvas_id, session_id, user_id, email. Optimize save-canvas-state-optimized with transactions and INSERT OR REPLACE.",
+        "testStrategy": "Unit test connection pooling for reuse and thread-safety. Performance test query execution times to ensure <10ms. Load test database operations to confirm no contention or leaks.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Database Connection Pooling",
+            "description": "Set up a connection pool to manage database connections efficiently with thread-safe access.",
+            "dependencies": [],
+            "details": "Create a db-pool struct with 10 connections and ensure thread-safe access using bt:make-lock. Implement the with-db-connection macro to allow reusing connections from the pool, preventing connection exhaustion and improving concurrency.",
+            "status": "done",
+            "testStrategy": "Unit test connection pooling for reuse and thread-safety, verifying that connections are properly acquired and released without leaks.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:24:32.583Z"
+          },
+          {
+            "id": 2,
+            "title": "Add SQL Indexes on Key Columns",
+            "description": "Create indexes on frequently queried columns to speed up database lookups.",
+            "dependencies": [],
+            "details": "Add SQL indexes on canvas_id, session_id, user_id, and email columns in the relevant database tables. This will reduce query execution time by allowing faster searches and joins on these fields.",
+            "status": "done",
+            "testStrategy": "Performance test query execution times after indexing to ensure they remain under 10ms, comparing before and after metrics.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:24:33.878Z"
+          },
+          {
+            "id": 3,
+            "title": "Optimize Canvas State Saving with Transactions",
+            "description": "Enhance the save-canvas-state-optimized function using transactions and efficient insert operations.",
+            "dependencies": [],
+            "details": "Modify save-canvas-state-optimized to use database transactions for atomic operations and employ INSERT OR REPLACE statements to handle updates and inserts efficiently, minimizing overhead and ensuring data consistency.",
+            "status": "done",
+            "testStrategy": "Unit test the transaction logic to verify atomicity and correctness of INSERT OR REPLACE operations under various scenarios.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:24:35.189Z"
+          },
+          {
+            "id": 4,
+            "title": "Perform Performance and Load Testing",
+            "description": "Conduct comprehensive testing to validate database performance under load and ensure no issues.",
+            "dependencies": [],
+            "details": "Execute load tests on database operations to confirm there is no contention, connection leaks, or performance degradation. Monitor query times to maintain sub-10ms performance even under high concurrency.",
+            "status": "done",
+            "testStrategy": "Load test database operations to confirm no contention or leaks, and performance test query execution times to ensure they stay under 10ms with simulated high-load conditions.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:24:36.586Z"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Split into pooling setup, indexing, transaction optimization, and performance/load testing.",
+        "updatedAt": "2025-10-14T16:24:36.586Z"
+      },
+      {
+        "id": 11,
+        "title": "Implement Performance Monitoring for Latency",
+        "description": "Track message latency and provide stats for optimization.",
+        "details": "Create LatencyMonitor class to track round-trip latency for messages using performance.now() and messageId. Record latencies in history, warn on >100ms. Provide getStats for percentiles (p50, p95, p99).",
+        "testStrategy": "Unit test latency tracking. Integration test with message sending to verify stats accuracy. Performance profiling to ensure monitoring adds minimal overhead.",
+        "priority": "medium",
+        "dependencies": [
+          "1",
+          "2",
+          "3"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define LatencyMonitor Class Structure",
+            "description": "Create the basic LatencyMonitor class with constructor, properties for storing latency history, and initial setup.",
+            "dependencies": [],
+            "details": "Initialize the class with a Map or array to store message IDs and their start times. Include a history array to record completed latencies. Set up any necessary imports for performance.now().",
+            "status": "done",
+            "testStrategy": "Unit test the class instantiation and basic properties.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:29:30.329Z"
+          },
+          {
+            "id": 2,
+            "title": "Implement Latency Start Tracking",
+            "description": "Add a method to start tracking latency for a message using performance.now() and messageId.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a startLatency(messageId) method that records the current performance.now() timestamp associated with the messageId in the tracking map.",
+            "status": "done",
+            "testStrategy": "Unit test the startLatency method to verify timestamps are recorded correctly.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:29:31.795Z"
+          },
+          {
+            "id": 3,
+            "title": "Implement Latency End Tracking and Recording",
+            "description": "Add a method to stop tracking and calculate round-trip latency, then record it in history.",
+            "dependencies": [
+              2
+            ],
+            "details": "Create an endLatency(messageId) method that calculates the latency by subtracting the start time from current performance.now(), removes the entry from tracking map, and pushes the latency to the history array.",
+            "status": "done",
+            "testStrategy": "Unit test the endLatency method to ensure accurate latency calculation and recording.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:29:33.524Z"
+          },
+          {
+            "id": 4,
+            "title": "Add Warning for High Latency",
+            "description": "Implement logic to warn when recorded latency exceeds 100ms.",
+            "dependencies": [
+              3
+            ],
+            "details": "In the endLatency method or a separate check, compare the calculated latency against 100ms and log a warning if exceeded. Use console.warn or a custom logging mechanism.",
+            "status": "done",
+            "testStrategy": "Unit test the warning logic by simulating latencies above and below 100ms.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:29:35.440Z"
+          },
+          {
+            "id": 5,
+            "title": "Implement getStats Method for Percentiles",
+            "description": "Create a getStats method that computes and returns p50, p95, and p99 percentiles from the latency history.",
+            "dependencies": [
+              4
+            ],
+            "details": "Implement getStats() to sort the history array, calculate the percentiles using appropriate formulas (e.g., for p50, median; for p95, 95th percentile), and return an object with p50, p95, p99 values.",
+            "status": "done",
+            "testStrategy": "Unit test getStats with sample latency data to verify correct percentile calculations.",
+            "parentId": "undefined",
+            "updatedAt": "2025-10-14T16:29:36.829Z"
+          }
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "",
+        "updatedAt": "2025-10-14T16:29:36.829Z"
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2025-10-14T16:29:36.830Z",
+      "taskCount": 11,
+      "completedCount": 10,
+      "tags": [
+        "perf"
+      ],
+      "created": "2025-10-14T16:32:33.526Z",
+      "description": "Tasks for perf context",
+      "updated": "2025-10-14T16:32:33.527Z"
     }
   }
 }

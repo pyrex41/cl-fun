@@ -112,7 +112,11 @@
   ;; Initialize database
   (format t "Initializing database...~%")
   (handler-case
-      (init-database)
+      (progn
+        (init-database)
+        ;; Initialize connection pool
+        (format t "Initializing connection pool (~A connections)...~%" *database-pool-size*)
+        (init-database-pool))
     (error (e)
       (format t "Database initialization error: ~A~%" e)
       (return-from start-server nil)))
@@ -180,7 +184,11 @@
       (error (e)
         (format t "Error stopping server: ~A~%" e))))
 
-  ;; Disconnect database
+  ;; Close connection pool
+  (format t "Closing database connection pool...~%")
+  (close-database-pool)
+
+  ;; Disconnect database (legacy compatibility)
   (disconnect-database)
 
   (format t "Server stopped.~%"))

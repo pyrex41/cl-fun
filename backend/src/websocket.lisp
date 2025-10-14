@@ -9,19 +9,42 @@
 (defparameter *rooms-lock* (bt:make-lock "rooms-lock")
   "Lock for room operations")
 
+(defstruct priority-queue
+  "Priority queue with three levels for message processing"
+  (high-priority nil :type list)    ; Cursors and presence updates
+  (normal-priority nil :type list)  ; Object updates
+  (low-priority nil :type list))    ; Other messages
+
+(defstruct rate-limiter
+  "Rate limiter to prevent abuse"
+  (message-count 0 :type integer)   ; Messages in current window
+  (window-start 0 :type integer)    ; Start time of current window (universal time)
+  (window-size 1 :type integer)     ; Window size in seconds
+  (max-messages 100 :type integer)) ; Max messages per window
+
+(defstruct message-queue
+  "Queue for batching messages with priority support"
+  (cursor-batch nil :type list)     ; List of (user-id username color x y) for cursors
+  (object-batch nil :type list)     ; List of object updates
+  (priority-queue (make-priority-queue) :type priority-queue)) ; Priority queue for other messages
+
 (defclass canvas-room ()
   ((id :initarg :id :reader room-id)
-   (clients :initform (make-hash-table :test 'eq) :accessor room-clients)
-   (lock :initform (bt:make-lock "room-lock") :reader room-lock))
-  (:documentation "A canvas room containing connected clients"))
+    (clients :initform (make-hash-table :test 'eq) :accessor room-clients)
+    (lock :initform (bt:make-lock "room-lock") :reader room-lock)
+    (message-queue :initform (make-message-queue) :accessor room-message-queue)
+    (flush-timer :initform nil :accessor room-flush-timer)
+    (process-timer :initform nil :accessor room-process-timer))
+   (:documentation "A canvas room containing connected clients"))
 
 (defclass canvas-client ()
   ((websocket :initarg :websocket :reader client-websocket)
-   (user-id :initarg :user-id :accessor client-user-id)
-   (username :initarg :username :accessor client-username)
-   (canvas-id :initarg :canvas-id :reader client-canvas-id)
-   (color :initarg :color :accessor client-color))
-  (:documentation "A connected WebSocket client"))
+    (user-id :initarg :user-id :accessor client-user-id)
+    (username :initarg :username :accessor client-username)
+    (canvas-id :initarg :canvas-id :reader client-canvas-id)
+    (color :initarg :color :accessor client-color)
+    (rate-limiter :initform (make-rate-limiter) :accessor client-rate-limiter))
+   (:documentation "A connected WebSocket client"))
 
 (defclass canvas-websocket-resource (hunchensocket:websocket-resource)
   ((canvas-id :initarg :canvas-id :reader resource-canvas-id))
@@ -32,8 +55,16 @@
   "Get or create a room for a canvas"
   (bt:with-lock-held (*rooms-lock*)
     (or (gethash canvas-id *canvas-rooms*)
-        (setf (gethash canvas-id *canvas-rooms*)
-              (make-instance 'canvas-room :id canvas-id)))))
+        (let ((room (make-instance 'canvas-room :id canvas-id)))
+          ;; Start flush timer for cursor batching (50ms interval = 20/sec)
+          (setf (room-flush-timer room)
+                (bt:make-timer (lambda () (flush-cursor-batch room))))
+           (bt:schedule-timer (room-flush-timer room) 0.05 :repeat-interval 0.05)
+           ;; Start message processing timer (30ms interval for priority queue)
+           (setf (room-process-timer room)
+                 (bt:make-timer (lambda () (process-message-queue room))))
+           (bt:schedule-timer (room-process-timer room) 0.03 :repeat-interval 0.03)
+           (setf (gethash canvas-id *canvas-rooms*) room)))))
 
 (defun add-client-to-room (room client)
   "Add a client to a room"
@@ -45,6 +76,43 @@
   (bt:with-lock-held ((room-lock room))
     (remhash websocket (room-clients room))))
 
+(defun get-room-client-count (room)
+  "Get the number of clients in a room"
+  (bt:with-lock-held ((room-lock room))
+    (hash-table-count (room-clients room))))
+
+(defun cleanup-empty-room (canvas-id)
+  "Clean up resources for an empty room"
+  (bt:with-lock-held (*rooms-lock*)
+    (let ((room (gethash canvas-id *canvas-rooms*)))
+      (when room
+        (when (= (get-room-client-count room) 0)
+          (format t "~%=== Cleaning up empty room: ~A ===~%" canvas-id)
+
+          ;; Cancel timers
+          (when (room-flush-timer room)
+            (bt:unschedule-timer (room-flush-timer room))
+            (format t "Cancelled flush timer~%"))
+
+          (when (room-process-timer room)
+            (bt:unschedule-timer (room-process-timer room))
+            (format t "Cancelled process timer~%"))
+
+          ;; Clear message queues
+          (let ((msg-queue (room-message-queue room)))
+            (setf (message-queue-cursor-batch msg-queue) nil)
+            (setf (message-queue-object-batch msg-queue) nil)
+            (let ((pq (message-queue-priority-queue msg-queue)))
+              (setf (priority-queue-high-priority pq) nil)
+              (setf (priority-queue-normal-priority pq) nil)
+              (setf (priority-queue-low-priority pq) nil)))
+
+          ;; Remove room from global hash
+          (remhash canvas-id *canvas-rooms*)
+          (format t "Room removed from global hash table~%")
+          (format t "=== Room cleanup complete ===~%~%")
+          t)))))
+
 (defun get-room-client-list (room)
   "Get list of clients in a room"
   (bt:with-lock-held ((room-lock room))
@@ -52,6 +120,123 @@
           collect `((:user-id . ,(client-user-id client))
                    (:username . ,(client-username client))
                    (:color . ,(client-color client))))))
+
+(defun queue-cursor-update (room user-id username color x y)
+  "Add a cursor update to the batch"
+  (bt:with-lock-held ((room-lock room))
+    (push (list (cons :user-id user-id)
+                (cons :username username)
+                (cons :color color)
+                (cons :x x)
+                (cons :y y))
+          (message-queue-cursor-batch (room-message-queue room)))))
+
+(defun flush-cursor-batch (room)
+   "Send batched cursor updates every 50ms"
+   (bt:with-lock-held ((room-lock room))
+     (let ((batch (message-queue-cursor-batch (room-message-queue room))))
+       (when batch
+         (let ((message `((:type . "cursor-batch")
+                          (:cursors . ,batch))))
+           (broadcast-to-all room message)
+           (setf (message-queue-cursor-batch (room-message-queue room)) nil))))))
+
+;;; Priority queue functions
+(defun queue-message-by-priority (room message)
+  "Add message to appropriate priority queue"
+  (bt:with-lock-held ((room-lock room))
+    (let* ((queue (message-queue-priority-queue (room-message-queue room)))
+           (msg-type (cdr (assoc :type message))))
+      (cond
+        ;; High priority: cursors and presence updates
+        ((or (string= msg-type "cursor")
+             (string= msg-type "cursor-batch")
+             (string= msg-type "user-connected")
+             (string= msg-type "user-disconnected")
+             (string= msg-type "presence"))
+         (push message (priority-queue-high-priority queue)))
+
+        ;; Normal priority: object updates
+        ((or (string= msg-type "object-update")
+             (string= msg-type "object-create")
+             (string= msg-type "object-delete"))
+         (push message (priority-queue-normal-priority queue)))
+
+        ;; Low priority: everything else
+        (t
+         (push message (priority-queue-low-priority queue)))))))
+
+(defun process-message-queue (room)
+  "Process messages from priority queue, high priority first"
+  (bt:with-lock-held ((room-lock room))
+    (let ((queue (message-queue-priority-queue (room-message-queue room)))
+          (processed-high 0)
+          (processed-normal 0)
+          (processed-low 0))
+
+      ;; Process high priority messages first (all of them)
+      (let ((high-msgs (priority-queue-high-priority queue)))
+        (when high-msgs
+          (dolist (msg high-msgs)
+            (broadcast-to-all room msg)
+            (incf processed-high))
+          (setf (priority-queue-high-priority queue) nil)))
+
+      ;; Process normal priority messages (limit to prevent blocking)
+      (let ((normal-msgs (priority-queue-normal-priority queue)))
+        (when normal-msgs
+          ;; Process up to 10 normal priority messages at once
+          (let ((to-process (subseq normal-msgs 0 (min 10 (length normal-msgs)))))
+            (dolist (msg to-process)
+              (broadcast-to-all room msg)
+              (incf processed-normal))
+            ;; Remove processed messages
+            (setf (priority-queue-normal-priority queue)
+                  (nthcdr (length to-process) normal-msgs)))))
+
+      ;; Process low priority messages (only 1 at a time to not block)
+      (when (priority-queue-low-priority queue)
+        (let ((msg (car (priority-queue-low-priority queue))))
+          (broadcast-to-all room msg)
+          (incf processed-low)
+          (setf (priority-queue-low-priority queue)
+                (cdr (priority-queue-low-priority queue)))))
+
+      ;; Log processing stats under high load
+      (when (or (> processed-high 5) (> processed-normal 5) (> processed-low 1))
+        (format t "Priority queue processed: ~A high, ~A normal, ~A low messages~%"
+                processed-high processed-normal processed-low)))))
+
+;;; Load testing functions for priority queue
+(defun simulate-priority-load-test (room &optional (num-messages 100))
+  "Simulate load testing by queuing many messages of different priorities"
+  (format t "~%=== Starting Priority Queue Load Test (~A messages) ===~%" num-messages)
+
+  (dotimes (i num-messages)
+    (let ((msg-type (cond
+                      ((< i (* num-messages 0.1)) "cursor")        ; 10% high priority
+                      ((< i (* num-messages 0.6)) "object-update") ; 50% normal priority
+                      (t "user-status")))                          ; 40% low priority
+          (message `((:type . ,msg-type)
+                     (:test-id . ,i)
+                     (:timestamp . ,(get-universal-time)))))
+      (queue-message-by-priority room message)))
+
+  (let ((queue (message-queue-priority-queue (room-message-queue room))))
+    (format t "Queued messages - High: ~A, Normal: ~A, Low: ~A~%"
+            (length (priority-queue-high-priority queue))
+            (length (priority-queue-normal-priority queue))
+            (length (priority-queue-low-priority queue))))
+
+  (format t "Load test setup complete. Monitor processing logs for priority handling.~%"))
+
+(defun get-priority-queue-stats (room)
+  "Get current priority queue statistics"
+  (bt:with-lock-held ((room-lock room))
+    (let ((queue (message-queue-priority-queue (room-message-queue room))))
+      `((:high-priority . ,(length (priority-queue-high-priority queue)))
+        (:normal-priority . ,(length (priority-queue-normal-priority queue)))
+        (:low-priority . ,(length (priority-queue-low-priority queue)))))))
 
 (defun broadcast-to-room (room message &optional exclude-websocket)
   "Broadcast a message to all clients in a room except the sender"
@@ -74,6 +259,170 @@
   "Broadcast a message to all clients in a room"
   (broadcast-to-room room message nil))
 
+;;; Delta compression for object updates
+(defun create-object-delta (old-object new-object)
+  "Compare old and new object alists and return only changed properties"
+  (let ((delta '()))
+    ;; Check each property in new-object
+    (dolist (new-pair new-object)
+      (let* ((key (car new-pair))
+             (new-value (cdr new-pair))
+             (old-pair (assoc key old-object)))
+        ;; Include in delta if property is new or has changed
+        (when (or (null old-pair)
+                  (not (equal (cdr old-pair) new-value)))
+          (push new-pair delta))))
+    ;; Return delta in reverse order to maintain original order
+    (nreverse delta)))
+
+;;; Rate limiting functions
+(defun check-rate-limit (client)
+  "Check if client has exceeded rate limit. Returns T if allowed, NIL if blocked."
+  (let* ((limiter (client-rate-limiter client))
+         (current-time (get-universal-time))
+         (window-start (rate-limiter-window-start limiter))
+         (window-size (rate-limiter-window-size limiter)))
+
+    ;; Reset window if expired
+    (when (> (- current-time window-start) window-size)
+      (setf (rate-limiter-window-start limiter) current-time)
+      (setf (rate-limiter-message-count limiter) 0))
+
+    ;; Check if under limit
+    (if (< (rate-limiter-message-count limiter) (rate-limiter-max-messages limiter))
+        (progn
+          (incf (rate-limiter-message-count limiter))
+          t)  ; Allow message
+        nil))) ; Block message
+
+(defun reset-rate-limiter (client)
+  "Reset the client's rate limiter"
+  (let ((limiter (client-rate-limiter client)))
+    (setf (rate-limiter-message-count limiter) 0)
+    (setf (rate-limiter-window-start limiter) (get-universal-time))))
+
+;;; Input validation functions
+(defun validate-object-update (updates)
+  "Validate object update data. Returns (values valid-p error-message)"
+  (handler-case
+      (progn
+        ;; Check position coordinates (allow reasonable canvas sizes)
+        (when-let ((x (cdr (assoc :x updates))))
+          (unless (and (numberp x) (>= x -10000) (<= x 10000))
+            (return-from validate-object-update
+              (values nil "X coordinate out of bounds"))))
+
+        (when-let ((y (cdr (assoc :y updates))))
+          (unless (and (numberp y) (>= y -10000) (<= y 10000))
+            (return-from validate-object-update
+              (values nil "Y coordinate out of bounds"))))
+
+        ;; Check dimensions (reasonable size limits)
+        (when-let ((width (cdr (assoc :width updates))))
+          (unless (and (numberp width) (> width 0) (<= width 10000))
+            (return-from validate-object-update
+              (values nil "Width must be positive and reasonable"))))
+
+        (when-let ((height (cdr (assoc :height updates))))
+          (unless (and (numberp height) (> height 0) (<= height 10000))
+            (return-from validate-object-update
+              (values nil "Height must be positive and reasonable"))))
+
+        ;; Check rotation (0-360 degrees)
+        (when-let ((rotation (cdr (assoc :rotation updates))))
+          (unless (and (numberp rotation) (>= rotation 0) (<= rotation 360))
+            (return-from validate-object-update
+              (values nil "Rotation must be between 0 and 360 degrees"))))
+
+        ;; Check color (basic hex color validation)
+        (when-let ((color (cdr (assoc :color updates))))
+          (unless (and (stringp color)
+                       (or (and (= (length color) 7) (char= (char color 0) #\#))
+                           (and (= (length color) 4) (char= (char color 0) #\#))))
+            (return-from validate-object-update
+              (values nil "Color must be valid hex format (#RGB or #RRGGBB)"))))
+
+        ;; All validations passed
+        (values t nil))
+
+    (error (e)
+      (values nil (format nil "Validation error: ~A" e)))))
+
+(defun validate-canvas-state (objects)
+  "Validate canvas state data. Returns (values valid-p error-message)"
+  (handler-case
+      (progn
+        ;; Check that objects is a list
+        (unless (listp objects)
+          (return-from validate-canvas-state
+            (values nil "Canvas state must be a list of objects")))
+
+        ;; Check reasonable object count limit
+        (when (> (length objects) 10000)
+          (return-from validate-canvas-state
+            (values nil "Too many objects in canvas state")))
+
+        ;; Validate each object has required fields
+        (dolist (obj objects)
+          (unless (and (listp obj) (assoc :id obj))
+            (return-from validate-canvas-state
+              (values nil "Each object must have an ID")))
+
+          ;; Validate object properties
+          (multiple-value-bind (valid error-msg)
+              (validate-object-update obj)
+            (unless valid
+              (return-from validate-canvas-state
+                (values nil (format nil "Object ~A: ~A" (cdr (assoc :id obj)) error-msg))))))
+
+        ;; All validations passed
+        (values t nil))
+
+    (error (e)
+      (values nil (format nil "Canvas validation error: ~A" e)))))
+
+;;; Load testing functions for rate limiting and validation
+(defun simulate-rate-limit-attack (client num-messages &optional (delay-seconds 0.01))
+  "Simulate a rate limit attack by sending many messages quickly"
+  (format t "~%=== Simulating Rate Limit Attack (~A messages) ===~%" num-messages)
+  (let ((blocked-count 0)
+        (allowed-count 0))
+    (dotimes (i num-messages)
+      (if (check-rate-limit client)
+          (incf allowed-count)
+          (incf blocked-count))
+      ;; Small delay between messages
+      (when (> delay-seconds 0)
+        (sleep delay-seconds)))
+    (format t "Rate limit test results: ~A allowed, ~A blocked~%" allowed-count blocked-count)
+    (values allowed-count blocked-count)))
+
+(defun test-validation-with-invalid-data ()
+  "Test validation functions with various invalid inputs"
+  (format t "~%=== Testing Input Validation ===~%")
+
+  ;; Test invalid coordinates
+  (multiple-value-bind (valid error-msg)
+      (validate-object-update '((:x . 20000) (:y . 100)))
+    (format t "Invalid X coordinate: ~A - ~A~%" valid error-msg))
+
+  ;; Test invalid dimensions
+  (multiple-value-bind (valid error-msg)
+      (validate-object-update '((:width . -10) (:height . 100)))
+    (format t "Invalid width: ~A - ~A~%" valid error-msg))
+
+  ;; Test invalid color
+  (multiple-value-bind (valid error-msg)
+      (validate-object-update '((:color . "invalid")))
+    (format t "Invalid color: ~A - ~A~%" valid error-msg))
+
+  ;; Test valid data
+  (multiple-value-bind (valid error-msg)
+      (validate-object-update '((:x . 100) (:y . 200) (:width . 50) (:height . 50) (:color . "#FF0000")))
+    (format t "Valid object: ~A - ~A~%" valid error-msg))
+
+  (format t "Validation testing complete~%"))
+
 ;;; Color generation for users
 (defparameter *user-colors*
   '("#FF6B6B" "#4ECDC4" "#45B7D1" "#96CEB4" "#FECA57"
@@ -92,7 +441,7 @@
   nil)
 
 (defmethod hunchensocket:client-disconnected ((resource canvas-websocket-resource) websocket)
-  "Handle WebSocket disconnection"
+  "Handle WebSocket disconnection with memory cleanup"
   (let* ((canvas-id (resource-canvas-id resource))
          (room (gethash canvas-id *canvas-rooms*)))
     (when room
@@ -100,22 +449,37 @@
         (when client
           (format t "Client ~A disconnected from canvas ~A~%"
                   (client-username client) canvas-id)
-          ;; Notify others of disconnection
-          (broadcast-to-room room
-                           `((:type . "user-disconnected")
-                             (:user-id . ,(client-user-id client))
-                             (:username . ,(client-username client)))
-                           websocket)
+
+          ;; Notify others of disconnection (high priority)
+          (queue-message-by-priority room
+                                   `((:type . "user-disconnected")
+                                     (:user-id . ,(client-user-id client))
+                                     (:username . ,(client-username client))))
+
           ;; Remove from room
-          (remove-client-from-room room websocket))))))
+          (remove-client-from-room room websocket)
+
+          ;; Clean up empty room (timers, queues, etc.)
+          (cleanup-empty-room canvas-id))))))
 
 (defmethod hunchensocket:text-message-received ((resource canvas-websocket-resource) websocket message)
   "Handle incoming WebSocket message"
   (handler-case
-      (let* ((data (parse-json message))
-             (msg-type (cdr (assoc :type data)))
-             (canvas-id (resource-canvas-id resource))
-             (room (get-or-create-room canvas-id)))
+       (let* ((data (parse-json message))
+              (msg-type (cdr (assoc :type data)))
+              (canvas-id (resource-canvas-id resource))
+              (room (get-or-create-room canvas-id))
+              (client (gethash websocket (room-clients room))))
+
+         ;; Check rate limit for authenticated clients (skip auth messages)
+         (when (and client (not (string= msg-type "auth")))
+           (unless (check-rate-limit client)
+             (format t "Rate limit exceeded for user ~A~%" (client-username client))
+             (hunchensocket:send-text-message
+              websocket
+              (to-json-string `((:type . "error")
+                               (:message . "Rate limit exceeded. Please slow down."))))
+             (return-from hunchensocket:text-message-received nil)))
 
         (cond
           ;; Authentication message
@@ -134,11 +498,15 @@
           ((string= msg-type "object-update")
            (handle-object-update resource websocket data room))
 
-          ;; Object deletion
-          ((string= msg-type "object-delete")
-           (handle-object-delete resource websocket data room))
+           ;; Object deletion
+           ((string= msg-type "object-delete")
+            (handle-object-delete resource websocket data room))
 
-          ;; Unknown message type
+           ;; Bulk object deletion
+           ((string= msg-type "objects-delete")
+            (handle-objects-delete resource websocket data room))
+
+           ;; Unknown message type
           (t
            (format t "Unknown message type: ~A~%" msg-type))))
 
@@ -181,19 +549,17 @@
                            (:color . ,color)
                            (:canvas-state . ,canvas-state)))))
 
-        ;; Notify others of new user
-        (broadcast-to-room room
-                         `((:type . "user-connected")
-                           (:user-id . ,user-id)
-                           (:username . ,username)
-                           (:color . ,color))
-                         websocket)
+         ;; Notify others of new user (high priority)
+         (queue-message-by-priority room
+                                  `((:type . "user-connected")
+                                    (:user-id . ,user-id)
+                                    (:username . ,username)
+                                    (:color . ,color)))
 
-        ;; Send current presence list
-        (hunchensocket:send-text-message
-         websocket
-         (to-json-string `((:type . "presence")
-                          (:users . ,(get-room-client-list room)))))
+         ;; Send current presence list (high priority)
+         (queue-message-by-priority room
+                                  `((:type . "presence")
+                                    (:users . ,(get-room-client-list room))))
 
         (format t "User ~A authenticated for canvas ~A~%" username canvas-id))
 
@@ -204,20 +570,17 @@
                         (:message . "Invalid or expired session")))))))
 
 (defun handle-cursor-update (resource websocket data room)
-  "Handle cursor position update"
+  "Handle cursor position update by queuing it"
   (let ((client (gethash websocket (room-clients room))))
     (when client
       (let ((x (cdr (assoc :x data)))
             (y (cdr (assoc :y data))))
-        ;; Broadcast cursor position to others
-        (broadcast-to-room room
-                         `((:type . "cursor")
-                           (:user-id . ,(client-user-id client))
-                           (:username . ,(client-username client))
-                           (:color . ,(client-color client))
-                           (:x . ,x)
-                           (:y . ,y))
-                         websocket)))))
+        ;; Queue the update instead of broadcasting immediately
+        (queue-cursor-update room
+                            (client-user-id client)
+                            (client-username client)
+                            (client-color client)
+                            x y)))))
 
 (defun handle-object-create (resource websocket data room)
   "Handle object creation"
@@ -227,21 +590,31 @@
              (object-id (cdr (assoc :id object-data)))
              (canvas-id (resource-canvas-id resource)))
 
-        (format t "Object created: ~A in canvas ~A by ~A~%"
-                object-id canvas-id (client-username client))
-        (format t "Object data received: ~A~%" (to-json-string object-data))
+         ;; Validate object data
+         (multiple-value-bind (valid error-msg)
+             (validate-object-update object-data)
+           (unless valid
+             (format t "Object create validation failed: ~A~%" error-msg)
+             (hunchensocket:send-text-message
+              websocket
+              (to-json-string `((:type . "error")
+                               (:message . ,error-msg))))
+             (return-from handle-object-create nil)))
 
-        ;; Update canvas state
-        (update-canvas-object canvas-id object-id object-data
-                            (client-user-id client))
+         (format t "Object created: ~A in canvas ~A by ~A~%"
+                 object-id canvas-id (client-username client))
+         (format t "Object data received: ~A~%" (to-json-string object-data))
 
-        ;; Broadcast to all other clients
-        (broadcast-to-room room
-                         `((:type . "object-create")
-                           (:object . ,object-data)
-                           (:user-id . ,(client-user-id client))
-                           (:username . ,(client-username client)))
-                         websocket)))))
+         ;; Update canvas state
+         (update-canvas-object canvas-id object-id object-data
+                             (client-user-id client))
+
+         ;; Queue for priority processing
+         (queue-message-by-priority room
+                                  `((:type . "object-create")
+                                    (:object . ,object-data)
+                                    (:user-id . ,(client-user-id client))
+                                    (:username . ,(client-username client)))))))
 
 (defun handle-object-update (resource websocket data room)
   "Handle object update"
@@ -256,32 +629,53 @@
         (format t "Object ID: ~A (type: ~A)~%" object-id (type-of object-id))
         (format t "Updates: ~A~%" (to-json-string updates))
 
-        ;; Get current object and apply updates
-        (let ((current-object (get-canvas-object canvas-id object-id)))
-          (format t "Current object found: ~A~%" (if current-object "YES" "NO"))
-          (when current-object
-            (format t "Current object data: ~A~%" (to-json-string current-object))
-            ;; Merge updates into current object - properly handle duplicate keys
-            (let* ((update-keys (mapcar #'car updates))
-                   (filtered-current (remove-if (lambda (pair)
-                                                  (member (car pair) update-keys))
-                                                current-object))
-                   (updated-object (append updates filtered-current)))
-              (format t "Updated object data: ~A~%" (to-json-string updated-object))
-              ;; Update canvas state
-              (update-canvas-object canvas-id object-id updated-object
-                                  (client-user-id client))
-              (format t "Object updated in canvas state~%")
+         ;; Validate input data first
+         (multiple-value-bind (valid error-msg)
+             (validate-object-update updates)
+           (unless valid
+             (format t "Object update validation failed: ~A~%" error-msg)
+             (hunchensocket:send-text-message
+              websocket
+              (to-json-string `((:type . "error")
+                               (:message . ,error-msg))))
+             (return-from handle-object-update nil)))
 
-              ;; Broadcast to all other clients
-              (broadcast-to-room room
-                               `((:type . "object-update")
-                                 (:object-id . ,object-id)
-                                 (:updates . ,updates)
-                                 (:user-id . ,(client-user-id client))
-                                 (:username . ,(client-username client)))
-                               websocket)
-              (format t "Broadcast to room complete~%")))
+         ;; Get current object and apply updates
+         (let ((current-object (get-canvas-object canvas-id object-id)))
+           (format t "Current object found: ~A~%" (if current-object "YES" "NO"))
+           (when current-object
+             (format t "Current object data: ~A~%" (to-json-string current-object))
+             ;; Merge updates into current object - properly handle duplicate keys
+             (let* ((update-keys (mapcar #'car updates))
+                    (filtered-current (remove-if (lambda (pair)
+                                                   (member (car pair) update-keys))
+                                                 current-object))
+                    (updated-object (append updates filtered-current)))
+               (format t "Updated object data: ~A~%" (to-json-string updated-object))
+               ;; Calculate delta for bandwidth optimization
+               (let ((delta (create-object-delta current-object updated-object)))
+                 ;; Log bandwidth savings
+                 (let ((full-update-size (length (to-json-string updates)))
+                       (delta-size (length (to-json-string delta))))
+                   (format t "Bandwidth optimization: Full update ~A chars, Delta ~A chars (~A% reduction)~%"
+                           full-update-size delta-size
+                           (if (> full-update-size 0)
+                               (round (* 100 (- 1 (/ delta-size full-update-size))))
+                               0)))
+                 (format t "Delta calculated: ~A~%" (to-json-string delta))
+                 ;; Update canvas state
+                 (update-canvas-object canvas-id object-id updated-object
+                                     (client-user-id client))
+                 (format t "Object updated in canvas state~%")
+
+                 ;; Queue delta update for priority processing
+                 (queue-message-by-priority room
+                                          `((:type . "object-update")
+                                            (:object-id . ,object-id)
+                                            (:delta . ,delta)
+                                            (:user-id . ,(client-user-id client))
+                                            (:username . ,(client-username client))))
+                 (format t "Delta broadcast to room complete~%"))))
           (unless current-object
             (format t "WARNING: Object ~A not found in canvas ~A~%" object-id canvas-id))
           (format t "=== END OBJECT UPDATE ===~%~%"))))))
@@ -301,14 +695,39 @@
                                             (client-user-id client))))
           (if deleted
               (progn
-                (format t "Object ~A deleted successfully from canvas ~A~%"
-                        object-id canvas-id)
-                ;; Broadcast to all other clients
-                (broadcast-to-room room
-                                 `((:type . "object-delete")
-                                   (:object-id . ,object-id)
-                                   (:user-id . ,(client-user-id client))
-                                   (:username . ,(client-username client)))
-                                 websocket))
-              (format t "WARNING: Object ~A not found in canvas ~A~%"
-                      object-id canvas-id)))))))
+               (format t "Object ~A deleted successfully from canvas ~A~%"
+                       object-id canvas-id)
+                 ;; Queue for priority processing
+                 (queue-message-by-priority room
+                                          `((:type . "object-delete")
+                                            (:object-id . ,object-id)
+                                            (:user-id . ,(client-user-id client))
+                                            (:username . ,(client-username client)))))
+               (format t "WARNING: Object ~A not found in canvas ~A~%"
+                       object-id canvas-id)))))))
+
+(defun handle-objects-delete (resource websocket data room)
+  "Handle bulk object deletion"
+  (let ((client (gethash websocket (room-clients room))))
+    (when client
+      (let* ((object-ids (cdr (assoc :object-ids data)))
+             (canvas-id (resource-canvas-id resource)))
+
+        (format t "Bulk object deletion requested: ~A objects in canvas ~A by ~A~%"
+                (length object-ids) canvas-id (client-username client))
+
+        ;; Delete each object from canvas state
+        (let ((deleted-count 0))
+          (dolist (object-id object-ids)
+            (when (delete-canvas-object canvas-id object-id (client-user-id client))
+              (incf deleted-count)))
+
+          (format t "Bulk deleted ~A/~A objects successfully from canvas ~A~%"
+                  deleted-count (length object-ids) canvas-id)
+
+          ;; Queue bulk deletion for priority processing
+          (queue-message-by-priority room
+                                   `((:type . "objects-delete")
+                                     (:object-ids . ,object-ids)
+                                     (:user-id . ,(client-user-id client))
+                                     (:username . ,(client-username client)))))))))
