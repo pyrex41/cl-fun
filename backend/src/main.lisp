@@ -89,32 +89,6 @@
   ()
   (:documentation "Custom acceptor that combines WebSocket and Easy acceptor"))
 
-;; List of headers to strip that cause issues with Hunchensocket on Fly.io
-(defparameter *headers-to-strip*
-  '("x-request-start" "x-request-id" "fly-forwarded-port"
-    "fly-client-ip" "fly-forwarded-proto" "fly-forwarded-ssl")
-  "Headers added by Fly.io proxy that cause issues with Hunchensocket")
-
-(defmethod hunchentoot:acceptor-make-request ((acceptor canvas-acceptor) socket &rest args
-                                               &key headers-in &allow-other-keys)
-  "Override request creation to filter out problematic Fly.io proxy headers."
-  ;; Filter headers-in to remove Fly.io proxy headers that cause issues
-  (let ((filtered-headers
-          (remove-if (lambda (header-pair)
-                      (member (car header-pair) *headers-to-strip*
-                              :test #'string-equal))
-                    headers-in)))
-    ;; Call the parent method with filtered headers
-    (apply #'call-next-method acceptor socket
-           :headers-in filtered-headers
-           (remove-from-plist args :headers-in))))
-
-(defun remove-from-plist (plist key)
-  "Remove a key-value pair from a plist"
-  (loop for (k v) on plist by #'cddr
-        unless (eq k key)
-        collect k and collect v))
-
 (defun setup-websocket-dispatch ()
   "Setup WebSocket dispatch table"
   (pushnew 'dispatch-websocket-request

@@ -36,9 +36,11 @@ COPY backend/ ./backend/
 WORKDIR /app/backend
 RUN ros -e '(ql:quickload :quicklisp-slime-helper)' -q
 
-# Link project to Roswell
+# Link project to Roswell and pre-compile all code
 RUN ln -s /app/backend ~/.roswell/local-projects/collabcanvas && \
-    ros -e '(ql:register-local-projects)' -q
+    ros -e '(ql:register-local-projects)' -q && \
+    ros -e '(ql:quickload :collabcanvas)' -q && \
+    echo "Code pre-compiled successfully"
 
 # Copy frontend files
 WORKDIR /app
@@ -71,11 +73,12 @@ else\n\
   echo "Database already exists, skipping initialization."\n\
 fi\n\
 \n\
-# Start the server\n\
+# Start the server (code already pre-compiled, should be fast)\n\
+echo "Starting CollabCanvas server..."\n\
 cd /app/backend\n\
-ros run -e "(ql:quickload :collabcanvas :silent t)" \\\n\
-        -e "(collabcanvas:start-server)" \\\n\
-        -e "(loop (sleep 1))" -q' > /app/start.sh && \
+exec ros run -e "(ql:quickload :collabcanvas :silent t)" \\\n\
+         -e "(collabcanvas:start-server)" \\\n\
+         -e "(loop (sleep 1))"' > /app/start.sh && \
     chmod +x /app/start.sh
 
 # Start the application
