@@ -352,8 +352,8 @@ export class CanvasManager {
         dragData.dragging = false;
 
         // Notify about position change
-        if (this.onObjectMoved) {
-          this.onObjectMoved(id, obj.x, obj.y);
+        if (this.onObjectUpdated) {
+          this.onObjectUpdated(id, { x: obj.x, y: obj.y });
         }
 
         dragData = null;
