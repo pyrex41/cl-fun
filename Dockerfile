@@ -1,8 +1,9 @@
-# Dockerfile for CollabCanvas
+# Multi-stage Dockerfile for CollabCanvas
+# Stage 1: Build and compile everything, create standalone binary
 
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim AS builder
 
-# Install system dependencies
+# Install system dependencies for building
 RUN apt-get update && apt-get install -y \
     curl \
     git \
@@ -20,35 +21,59 @@ RUN curl -L https://github.com/roswell/roswell/releases/download/v21.10.14.111/r
     dpkg -i roswell.deb && \
     rm roswell.deb
 
-# Setup Roswell
-RUN ros setup
-
-# Install SBCL via Roswell
-RUN ros install sbcl-bin
+# Setup Roswell and install SBCL
+RUN ros setup && ros install sbcl-bin
 
 # Set working directory
 WORKDIR /app
 
-# Copy backend files
+# Copy and compile backend
 COPY backend/ ./backend/
-
-# Setup backend
 WORKDIR /app/backend
-RUN ros -e '(ql:quickload :quicklisp-slime-helper)' -q
 
-# Link project to Roswell and pre-compile all code
+# Link project to Roswell and compile all dependencies
 RUN ln -s /app/backend ~/.roswell/local-projects/collabcanvas && \
     ros -e '(ql:register-local-projects)' -q && \
     ros -e '(ql:quickload :collabcanvas)' -q && \
-    echo "Code pre-compiled successfully"
+    echo "Dependencies compiled successfully"
 
-# Copy frontend files
-WORKDIR /app
-COPY frontend/ ./frontend/
+# Create standalone binary with embedded Lisp runtime
+RUN ros -e '(ql:quickload :collabcanvas :silent t)' \
+        -e '(sb-ext:save-lisp-and-die "collabcanvas-server" \
+              :toplevel (function collabcanvas:main) \
+              :executable t \
+              :compression t \
+              :save-runtime-options t)' && \
+    echo "Standalone binary created successfully"
 
 # Build frontend
 WORKDIR /app/frontend
-RUN npm install && npm run build
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Minimal runtime image with just the binary and assets
+
+FROM debian:bookworm-slim
+
+# Install only runtime dependencies (SQLite for database)
+RUN apt-get update && apt-get install -y \
+    sqlite3 \
+    libssl3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy standalone binary from builder
+COPY --from=builder /app/backend/collabcanvas-server /app/collabcanvas-server
+
+# Copy frontend build from builder
+COPY --from=builder /app/frontend/dist /app/frontend/dist
+
+# Copy database schema
+COPY --from=builder /app/backend/db /app/backend/db
 
 # Create data directory for volume mount
 RUN mkdir -p /data
@@ -56,29 +81,22 @@ RUN mkdir -p /data
 # Expose port
 EXPOSE 8080
 
-# Set working directory
-WORKDIR /app
-
-# Create startup script with conditional DB initialization
+# Create startup script - just initialize DB and run binary
 RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
 # Check if database exists, if not initialize it\n\
 if [ ! -f /data/canvas.db ]; then\n\
   echo "Initializing database..."\n\
-  cd /app/backend\n\
-  sqlite3 /data/canvas.db < db/schema.sql\n\
+  sqlite3 /data/canvas.db < /app/backend/db/schema.sql\n\
   echo "Database initialized."\n\
 else\n\
   echo "Database already exists, skipping initialization."\n\
 fi\n\
 \n\
-# Start the server (code already pre-compiled, should be fast)\n\
+# Start the server (binary already compiled, should start in <5 seconds)\n\
 echo "Starting CollabCanvas server..."\n\
-cd /app/backend\n\
-exec ros run -e "(ql:quickload :collabcanvas :silent t)" \\\n\
-         -e "(collabcanvas:start-server)" \\\n\
-         -e "(loop (sleep 1))"' > /app/start.sh && \
+exec /app/collabcanvas-server' > /app/start.sh && \
     chmod +x /app/start.sh
 
 # Start the application

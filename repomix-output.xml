@@ -1,0 +1,6121 @@
+This file is a merged representation of a subset of the codebase, containing files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching these patterns are excluded: **/*/assets/*, .taskmaster, .cursor, frontend/dist/assets/*, **/*.md
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    fly-deploy.yml
+.zed/
+  settings.json
+backend/
+  db/
+    schema.sql
+  src/
+    auth.lisp
+    canvas-state.lisp
+    config.lisp
+    database.lisp
+    main.lisp
+    package.lisp
+    utils.lisp
+    websocket-auth-fix.lisp
+    websocket-update-fix.lisp
+    websocket.lisp
+    websocket.lisp.tmp
+  build.lisp
+  collabcanvas.asd
+  start.sh
+frontend/
+  dist/
+    index.html
+  src/
+    auth.js
+    canvas.js
+    main.js
+    styles.css
+    websocket.js
+  index.html
+  package.json
+  vite.config.js
+mermaid/
+  data_flow.mermaid
+  schema.mermaid
+  system_architecture.mermaid
+  websocket_lifecycle.mermaid
+.env.example
+.gitignore
+.mcp.json
+.rules
+backend-main.lisp
+Dockerfile
+fly.toml
+frontend-canvas.js
+opencode.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/fly-deploy.yml">
+# See https://fly.io/docs/app-guides/continuous-deployment-with-github-actions/
+
+name: Fly Deploy
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    name: Deploy app
+    runs-on: ubuntu-latest
+    concurrency: deploy-group    # optional: ensure only one action runs at a time
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+</file>
+
+<file path=".zed/settings.json">
+{
+	"context_servers": {
+		"task-master-ai": {
+			"command": "npx",
+			"args": [
+				"-y",
+				"task-master-ai"
+			],
+			"env": {
+				"ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY_HERE",
+				"PERPLEXITY_API_KEY": "YOUR_PERPLEXITY_API_KEY_HERE",
+				"OPENAI_API_KEY": "YOUR_OPENAI_KEY_HERE",
+				"GOOGLE_API_KEY": "YOUR_GOOGLE_KEY_HERE",
+				"XAI_API_KEY": "YOUR_XAI_KEY_HERE",
+				"OPENROUTER_API_KEY": "YOUR_OPENROUTER_KEY_HERE",
+				"MISTRAL_API_KEY": "YOUR_MISTRAL_KEY_HERE",
+				"AZURE_OPENAI_API_KEY": "YOUR_AZURE_KEY_HERE",
+				"OLLAMA_API_KEY": "YOUR_OLLAMA_API_KEY_HERE"
+			},
+			"source": "custom"
+		}
+	}
+}
+</file>
+
+<file path="backend/db/schema.sql">
+-- CollabCanvas Database Schema
+
+-- Enable foreign key constraints
+PRAGMA foreign_keys = ON;
+
+-- Users table
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Create indexes for users
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+
+-- Sessions table
+CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    session_id TEXT UNIQUE NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    expires_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Create indexes for sessions
+CREATE INDEX IF NOT EXISTS idx_sessions_session_id ON sessions(session_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+
+-- Canvas states table
+CREATE TABLE IF NOT EXISTS canvas_states (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    canvas_id TEXT NOT NULL,
+    state_json TEXT NOT NULL,
+    version INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+-- Create indexes for canvas_states
+CREATE INDEX IF NOT EXISTS idx_canvas_states_canvas_id ON canvas_states(canvas_id);
+CREATE INDEX IF NOT EXISTS idx_canvas_states_updated_at ON canvas_states(updated_at);
+
+-- Canvas history table (for undo/redo and version control)
+CREATE TABLE IF NOT EXISTS canvas_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    canvas_id TEXT NOT NULL,
+    user_id INTEGER,
+    action_type TEXT NOT NULL, -- 'create', 'update', 'delete'
+    object_data TEXT NOT NULL, -- JSON data of the change
+    timestamp TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- Create indexes for canvas_history
+CREATE INDEX IF NOT EXISTS idx_canvas_history_canvas_id ON canvas_history(canvas_id);
+CREATE INDEX IF NOT EXISTS idx_canvas_history_timestamp ON canvas_history(timestamp);
+
+-- Collaborators table (track who has access to which canvas)
+CREATE TABLE IF NOT EXISTS collaborators (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    canvas_id TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
+    role TEXT DEFAULT 'editor', -- 'owner', 'editor', 'viewer'
+    joined_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(canvas_id, user_id)
+);
+
+-- Create indexes for collaborators
+CREATE INDEX IF NOT EXISTS idx_collaborators_canvas_id ON collaborators(canvas_id);
+CREATE INDEX IF NOT EXISTS idx_collaborators_user_id ON collaborators(user_id);
+</file>
+
+<file path="backend/src/auth.lisp">
+;;;; auth.lisp - Authentication logic for CollabCanvas
+
+(in-package #:collabcanvas)
+
+;;; Password hashing
+(defun hash-password (password)
+  "Hash a password using SHA-256"
+  (ironclad:byte-array-to-hex-string
+   (ironclad:digest-sequence
+    :sha256
+    (ironclad:ascii-string-to-byte-array password))))
+
+(defun verify-password (password hash)
+  "Verify a password against its hash"
+  (string= (hash-password password) hash))
+
+;;; User registration
+(defun register-user (email username password)
+  "Register a new user"
+  ;; Validate input
+  (unless (valid-email-p email)
+    (error "Invalid email format"))
+  (unless (valid-username-p username)
+    (error "Invalid username format"))
+  (unless (valid-password-p password)
+    (error "Password must be at least 8 characters"))
+
+  ;; Check if user already exists
+  (when (get-user-by-email email)
+    (error "Email already registered"))
+  (when (get-user-by-username username)
+    (error "Username already taken"))
+
+  ;; Create user
+  (let ((password-hash (hash-password password)))
+    (handler-case
+        (let ((user-id (create-user email username password-hash)))
+          `((:success . t)
+            (:user-id . ,user-id)
+            (:username . ,username)
+            (:email . ,email)))
+      (error (e)
+        (error (format nil "Registration failed: ~A" e))))))
+
+;;; User login
+(defun login-user (email-or-username password)
+  "Login a user with email or username"
+  (let ((user (or (get-user-by-email email-or-username)
+                  (get-user-by-username email-or-username))))
+    (unless user
+      (error "Invalid credentials"))
+
+    (unless (verify-password password (cdr (assoc :password-hash user)))
+      (error "Invalid credentials"))
+
+    ;; Create session
+    (let* ((session-id (generate-session-id))
+           (expires-at (local-time:format-timestring
+                       nil
+                       (local-time:timestamp+ (local-time:now)
+                                              *session-timeout*
+                                              :sec))))
+      (create-session (cdr (assoc :id user)) session-id expires-at)
+      `((:success . t)
+        (:session-id . ,session-id)
+        (:user-id . ,(cdr (assoc :id user)))
+        (:username . ,(cdr (assoc :username user)))
+        (:email . ,(cdr (assoc :email user)))
+        (:expires-at . ,expires-at)))))
+
+;;; Session validation
+(defun validate-session (session-id)
+  "Validate a session and return user info"
+  (when session-id
+    (cleanup-expired-sessions) ; Clean up expired sessions periodically
+    (let ((session (get-session session-id)))
+      (when (and session
+                 (not (expired-p (cdr (assoc :expires-at session)))))
+        `((:valid . t)
+          (:user-id . ,(cdr (assoc :user-id session)))
+          (:username . ,(cdr (assoc :username session)))
+          (:email . ,(cdr (assoc :email session))))))))
+
+;;; Logout
+(defun logout-user (session-id)
+  "Logout a user by deleting their session"
+  (delete-session session-id)
+  '((:success . t)))
+
+;;; HTTP Handlers for authentication
+(defun handle-register ()
+  "Handle user registration endpoint"
+  (set-cors-headers)
+  (let ((data (get-json-body)))
+    (unless data
+      (return-from handle-register (error-response "Invalid request body")))
+
+    (let ((email (cdr (assoc :email data)))
+          (username (cdr (assoc :username data)))
+          (password (cdr (assoc :password data))))
+
+      (unless (and email username password)
+        (return-from handle-register
+          (error-response "Email, username, and password are required")))
+
+      (handler-case
+          (let ((result (register-user email username password)))
+            (success-response result))
+        (error (e)
+          (error-response (format nil "~A" e)))))))
+
+(defun handle-login ()
+  "Handle user login endpoint"
+  (set-cors-headers)
+  (let ((data (get-json-body)))
+    (unless data
+      (return-from handle-login (error-response "Invalid request body")))
+
+    (let ((email-or-username (or (cdr (assoc :email data))
+                                 (cdr (assoc :username data))))
+          (password (cdr (assoc :password data))))
+
+      (unless (and email-or-username password)
+        (return-from handle-login
+          (error-response "Email/username and password are required")))
+
+      (handler-case
+          (let ((result (login-user email-or-username password)))
+            ;; Set session cookie
+            (hunchentoot:set-cookie *session-cookie-name*
+                                   :value (cdr (assoc :session-id result))
+                                   :path "/"
+                                   :http-only t
+                                   :secure nil ; Set to t in production with HTTPS
+                                   :max-age *session-timeout*)
+            (success-response result))
+        (error (e)
+          (error-response (format nil "~A" e)))))))
+
+(defun handle-logout ()
+  "Handle user logout endpoint"
+  (set-cors-headers)
+  (let ((session-id (or (hunchentoot:cookie-in *session-cookie-name*)
+                        (hunchentoot:header-in* :authorization))))
+    (if session-id
+        (progn
+          (logout-user session-id)
+          ;; Clear session cookie
+          (hunchentoot:set-cookie *session-cookie-name*
+                                 :value ""
+                                 :path "/"
+                                 :max-age 0)
+          (success-response '((:message . "Logged out successfully"))))
+        (error-response "No active session" :status 401))))
+
+(defun handle-session-check ()
+  "Check if current session is valid"
+  (set-cors-headers)
+  (let ((session-id (or (hunchentoot:cookie-in *session-cookie-name*)
+                        (hunchentoot:header-in* :authorization))))
+    (if-let ((session (validate-session session-id)))
+      (success-response session)
+      (error-response "Invalid or expired session" :status 401))))
+
+;;; Middleware for protected routes
+(defun require-auth ()
+  "Middleware to require authentication"
+  (let ((session-id (or (hunchentoot:cookie-in *session-cookie-name*)
+                        (hunchentoot:header-in* :authorization))))
+    (unless (validate-session session-id)
+      (setf (hunchentoot:return-code*) 401)
+      (hunchentoot:abort-request-handler
+       (error-response "Authentication required" :status 401)))))
+</file>
+
+<file path="backend/src/package.lisp">
+;;;; package.lisp - Package definition for CollabCanvas
+
+(defpackage #:collabcanvas
+  (:use #:cl)
+  (:import-from #:hunchentoot
+                #:*acceptor*
+                #:*request*
+                #:start
+                #:stop)
+  (:import-from #:hunchensocket
+                #:websocket-acceptor
+                #:websocket-resource
+                #:websocket-client
+                #:text-message-received
+                #:client-connected
+                #:client-disconnected
+                #:send-text-message)
+  (:import-from #:jonathan
+                #:parse
+                #:to-json)
+  (:import-from #:ironclad
+                #:digest-sequence
+                #:byte-array-to-hex-string
+                #:ascii-string-to-byte-array)
+  (:import-from #:bordeaux-threads
+                #:make-lock
+                #:with-lock-held)
+  (:import-from #:alexandria
+                #:hash-table-keys
+                #:hash-table-values
+                #:when-let
+                #:if-let)
+  (:export
+   ;; Server management
+   #:start-server
+   #:stop-server
+   #:restart-server
+   #:*server*
+
+   ;; Configuration
+   #:*port*
+   #:*host*
+   #:*database-path*
+   #:*session-timeout*
+
+   ;; Database
+   #:init-database
+   #:with-database
+   #:execute-query
+   #:execute-non-query
+
+   ;; Authentication
+   #:register-user
+   #:login-user
+   #:logout-user
+   #:validate-session
+   #:hash-password
+
+   ;; Canvas operations
+   #:save-canvas-state
+   #:load-canvas-state
+   #:get-canvas-history
+
+   ;; WebSocket
+   #:broadcast-to-room
+   #:handle-canvas-message
+   #:get-room-users))
+</file>
+
+<file path="backend/src/websocket-auth-fix.lisp">
+;;;; Temporary fix for handle-websocket-auth function
+
+(in-package #:collabcanvas)
+
+(defun handle-websocket-auth (resource websocket data room)
+  "Handle authentication message - simplified version"
+  (let ((session-id (cdr (assoc :session-id data)))
+        (canvas-id (resource-canvas-id resource)))
+
+    (when-let ((session (validate-session session-id)))
+      (let* ((user-id (cdr (assoc :user-id session)))
+             (username (cdr (assoc :username session)))
+             (color (get-user-color user-id))
+             (client (make-instance 'canvas-client
+                                    :websocket websocket
+                                    :user-id user-id
+                                    :username username
+                                    :canvas-id canvas-id
+                                    :color color)))
+
+        ;; Add client to room
+        (add-client-to-room room client)
+
+        ;; Send success response
+        (hunchensocket:send-text-message
+         websocket
+         (to-json-string `((:type . "auth-success")
+                           (:user-id . ,user-id)
+                           (:username . ,username)
+                           (:color . ,color))))
+
+        ;; Notify others
+        (broadcast-to-room room
+                           `((:type . "user-connected")
+                             (:user-id . ,user-id)
+                             (:username . ,username)
+                             (:color . ,color))
+                           websocket)
+
+        (format t "User ~A authenticated for canvas ~A~%" username canvas-id)))))
+</file>
+
+<file path="backend/src/websocket-update-fix.lisp">
+(defun handle-object-update (resource websocket data room)
+  "Handle object update"
+  (let ((client (gethash websocket (room-clients room))))
+    (when client
+      (let* ((object-id (cdr (assoc :object-id data)))
+             (updates (cdr (assoc :updates data)))
+             (canvas-id (resource-canvas-id resource)))
+
+        (format t "~%=== OBJECT UPDATE RECEIVED ===~%")
+        (format t "Canvas ID: ~A~%" canvas-id)
+        (format t "Object ID: ~A (type: ~A)~%" object-id (type-of object-id))
+        (format t "Updates: ~A~%" (to-json-string updates))
+
+        ;; Get current object and apply updates
+        (let ((current-object (get-canvas-object canvas-id object-id)))
+          (format t "Current object found: ~A~%" (if current-object "YES" "NO"))
+          (when current-object
+            (format t "Current object data: ~A~%" (to-json-string current-object))
+            ;; Merge updates into current object
+            (let ((updated-object (append updates current-object)))
+              (format t "Updated object data: ~A~%" (to-json-string updated-object))
+              ;; Update canvas state
+              (update-canvas-object canvas-id object-id updated-object
+                                  (client-user-id client))
+              (format t "Object updated in canvas state~%")
+
+              ;; Broadcast to all other clients
+              (broadcast-to-room room
+                               `((:type . "object-update")
+                                 (:object-id . ,object-id)
+                                 (:updates . ,updates)
+                                 (:user-id . ,(client-user-id client))
+                                 (:username . ,(client-username client)))
+                               websocket)
+              (format t "Broadcast to room complete~%")))
+          (unless current-object
+            (format t "WARNING: Object ~A not found in canvas ~A~%" object-id canvas-id))
+          (format t "=== END OBJECT UPDATE ===~%~%"))))))
+</file>
+
+<file path="backend/src/websocket.lisp.tmp">
+|#
+</file>
+
+<file path="backend/build.lisp">
+;;;; build.lisp - Build standalone executable
+
+;; Load the system with all dependencies (Quicklisp already loaded by ros)
+(format t "~%Loading CollabCanvas with dependencies...~%")
+(ql:quickload :collabcanvas :silent t)
+
+;; Build standalone executable
+(format t "Building standalone executable...~%")
+#+sbcl
+(progn
+  (sb-ext:save-lisp-and-die
+   "collabcanvas-server"
+   :toplevel #'collabcanvas:main
+   :executable t
+   :compression t
+   :save-runtime-options t)
+  (format t "Build complete!~%"))
+
+#+ccl
+(progn
+  (ccl:save-application
+   "collabcanvas-server"
+   :toplevel-function #'collabcanvas:main
+   :prepend-kernel t)
+  (format t "Build complete!~%"))
+
+#-(or sbcl ccl)
+(error "Unsupported Lisp implementation")
+</file>
+
+<file path="backend/start.sh">
+#!/bin/bash
+
+# Start script for CollabCanvas backend
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${GREEN}=== CollabCanvas Backend Startup ===${NC}"
+
+# Check if Roswell is installed
+if ! command -v ros &> /dev/null; then
+    echo -e "${RED}Error: Roswell is not installed${NC}"
+    echo "Please install Roswell first: https://github.com/roswell/roswell"
+    exit 1
+fi
+
+# Create data directory if it doesn't exist
+mkdir -p data
+
+# Initialize database if it doesn't exist
+if [ ! -f data/canvas.db ]; then
+    echo -e "${YELLOW}Initializing database...${NC}"
+    sqlite3 data/canvas.db < db/schema.sql
+    echo -e "${GREEN}Database initialized${NC}"
+fi
+
+# Link project to Roswell if not already linked
+if [ ! -L ~/.roswell/local-projects/collabcanvas ]; then
+    echo -e "${YELLOW}Linking project to Roswell...${NC}"
+    ln -s "$(pwd)" ~/.roswell/local-projects/collabcanvas
+    ros -e '(ql:register-local-projects)' -q
+fi
+
+# Start the server
+echo -e "${GREEN}Starting CollabCanvas server...${NC}"
+ros run -e '(ql:quickload :collabcanvas :silent t)' \
+        -e '(collabcanvas:start-server)' \
+        -e '(loop (sleep 1))' \
+        -q
+</file>
+
+<file path="frontend/dist/index.html">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CollabCanvas - Real-time Collaborative Design</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            overflow: hidden;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #app {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+
+        /* Toolbar */
+        #toolbar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(40, 40, 40, 0.95);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .tool-btn {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #444;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 18px;
+        }
+
+        .tool-btn:hover {
+            background: #3a3a3a;
+            border-color: #666;
+        }
+
+        .tool-btn.active {
+            background: #4a7c8e;
+            border-color: #5a9cb0;
+        }
+
+        .tool-separator {
+            width: 1px;
+            background: #444;
+            margin: 0 5px;
+        }
+
+        #color-picker {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Presence List */
+        #presence-list {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(40, 40, 40, 0.95);
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 200px;
+            max-width: 300px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        #presence-list h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 5px 0;
+            font-size: 14px;
+        }
+
+        .user-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        /* Status Bar */
+        #status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(30, 30, 30, 0.95);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #999;
+            z-index: 100;
+        }
+
+        .status-section {
+            display: flex;
+            gap: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-label {
+            color: #666;
+        }
+
+        /* Auth Modal */
+        #auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        #auth-modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 30px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #444;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.2s;
+            font-size: 16px;
+        }
+
+        .tab-btn.active {
+            color: #e0e0e0;
+            border-bottom: 2px solid #5a9cb0;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #5a9cb0;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4a7c8e;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            background: #5a9cb0;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        #loading-screen.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top-color: #5a9cb0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+  <script type="module" crossorigin src="/assets/index-CqSaLBiy.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/pixi-DokiZb80.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-BS7BhgPj.css">
+  <script type="module">import.meta.url;import("_").catch(()=>1);(async function*(){})().next();if(location.protocol!="file:"){window.__vite_is_modern_browser=true}</script>
+  <script type="module">!function(){if(window.__vite_is_modern_browser)return;console.warn("vite: loading legacy chunks, syntax error above and the same error below should be ignored");var e=document.getElementById("vite-legacy-polyfill"),n=document.createElement("script");n.src=e.src,n.onload=function(){System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))},document.body.appendChild(n)}();</script>
+</head>
+<body>
+    <div id="app">
+        <div id="canvas-container"></div>
+
+        <!-- Toolbar -->
+        <div id="toolbar">
+            <button class="tool-btn active" data-tool="select" title="Select (V)">
+                <span>↖</span>
+            </button>
+            <button class="tool-btn" data-tool="rectangle" title="Rectangle (R)">
+                <span>□</span>
+            </button>
+            <button class="tool-btn" data-tool="circle" title="Circle (C)">
+                <span>○</span>
+            </button>
+            <div class="tool-separator"></div>
+            <input type="color" id="color-picker" value="#5a9cb0" title="Color">
+        </div>
+
+        <!-- Presence List -->
+        <div id="presence-list">
+            <h3>Online Users</h3>
+            <div id="users-container"></div>
+        </div>
+
+        <!-- Status Bar -->
+        <div id="status-bar">
+            <div class="status-section">
+                <div class="status-item">
+                    <span class="status-label">Tool:</span>
+                    <span id="current-tool">Select</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Position:</span>
+                    <span id="mouse-position">0, 0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Zoom:</span>
+                    <span id="zoom-level">100%</span>
+                </div>
+            </div>
+            <div class="status-section">
+                <div class="status-item">
+                    <span class="status-label">Objects:</span>
+                    <span id="object-count">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Canvas:</span>
+                    <span id="canvas-id">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Auth Modal -->
+        <div id="auth-modal" class="hidden">
+            <div class="modal-content">
+                <div class="modal-tabs">
+                    <button class="tab-btn active" data-tab="login">Login</button>
+                    <button class="tab-btn" data-tab="register">Register</button>
+                </div>
+
+                <form class="auth-form active" id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Login</button>
+                    <div class="error-message" id="login-error"></div>
+                </form>
+
+                <form class="auth-form" id="register-form">
+                    <div class="form-group">
+                        <label for="register-username">Username</label>
+                        <input type="text" id="register-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input type="email" id="register-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Register</button>
+                    <div class="error-message" id="register-error"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+  <script nomodule>!function(){var e=document,t=e.createElement("script");if(!("noModule"in t)&&"onbeforeload"in t){var n=!1;e.addEventListener("beforeload",(function(e){if(e.target===t)n=!0;else if(!e.target.hasAttribute("nomodule")||!n)return;e.preventDefault()}),!0),t.type="module",t.src=".",e.head.appendChild(t),t.remove()}}();</script>
+  <script nomodule crossorigin id="vite-legacy-polyfill" src="/assets/polyfills-legacy-1NTguBDw.js"></script>
+  <script nomodule crossorigin id="vite-legacy-entry" data-src="/assets/index-legacy-D3NQiwmV.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
+</body>
+</html>
+</file>
+
+<file path="frontend/src/styles.css">
+/* styles.css - Additional styles for CollabCanvas */
+
+/* Remote cursors */
+.remote-cursor {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1000;
+    transition: left 0.1s ease-out, top 0.1s ease-out;
+}
+
+.remote-cursor-pointer {
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 20px solid;
+    transform: rotate(-45deg);
+    transform-origin: center top;
+}
+
+.remote-cursor-label {
+    position: absolute;
+    top: 20px;
+    left: 10px;
+    padding: 2px 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    font-size: 12px;
+    border-radius: 4px;
+    white-space: nowrap;
+    user-select: none;
+}
+
+/* Selection box */
+.selection-box {
+    position: absolute;
+    border: 2px dashed #5a9cb0;
+    background: rgba(90, 156, 176, 0.1);
+    pointer-events: none;
+    z-index: 999;
+}
+
+/* Object handles */
+.resize-handle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: white;
+    border: 2px solid #5a9cb0;
+    border-radius: 2px;
+}
+
+.resize-handle.nw { cursor: nw-resize; top: -5px; left: -5px; }
+.resize-handle.ne { cursor: ne-resize; top: -5px; right: -5px; }
+.resize-handle.sw { cursor: sw-resize; bottom: -5px; left: -5px; }
+.resize-handle.se { cursor: se-resize; bottom: -5px; right: -5px; }
+.resize-handle.n { cursor: n-resize; top: -5px; left: 50%; transform: translateX(-50%); }
+.resize-handle.s { cursor: s-resize; bottom: -5px; left: 50%; transform: translateX(-50%); }
+.resize-handle.w { cursor: w-resize; left: -5px; top: 50%; transform: translateY(-50%); }
+.resize-handle.e { cursor: e-resize; right: -5px; top: 50%; transform: translateY(-50%); }
+
+/* Notifications */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 4px;
+    color: white;
+    font-size: 14px;
+    z-index: 10000;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.notification.info {
+    background: #4a7c8e;
+}
+
+.notification.success {
+    background: #4caf50;
+}
+
+.notification.warning {
+    background: #ff9800;
+}
+
+.notification.error {
+    background: #f44336;
+}
+
+/* Loading states */
+.loading-spinner {
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 3px solid white;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #toolbar {
+        top: 10px;
+        left: 10px;
+        padding: 5px;
+    }
+
+    .tool-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+
+    #presence-list {
+        top: 10px;
+        right: 10px;
+        min-width: 150px;
+    }
+
+    #status-bar {
+        font-size: 11px;
+        padding: 6px 15px;
+    }
+}
+
+/* Print styles */
+@media print {
+    #toolbar,
+    #presence-list,
+    #status-bar,
+    #auth-modal {
+        display: none !important;
+    }
+}
+</file>
+
+<file path="frontend/package.json">
+{
+  "name": "collabcanvas-frontend",
+  "version": "0.1.0",
+  "description": "Real-time collaborative design tool frontend",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf dist node_modules"
+  },
+  "dependencies": {
+    "pixi.js": "^7.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-legacy": "^5.0.0",
+    "vite": "^5.0.0"
+  }
+}
+</file>
+
+<file path="mermaid/data_flow.mermaid">
+flowchart TD
+    A[User Action (e.g., Create Object)] --> B[CanvasManager: Local Update]
+    B --> C[Callback: onObjectCreated]
+    C --> D[WebSocketClient: send('object-create')]
+    D --> E[Server: Receive & Broadcast]
+    E --> F[Database: Debounced Save (CanvasStateModule)]
+    E --> G[Other Clients: WebSocketClient.onMessage]
+    G --> H[CanvasManager: Remote Update]
+    subgraph Frontend1 [User's Frontend]
+        A --> B --> C --> D
+    end
+    subgraph Backend
+        E --> F
+    end
+    subgraph Frontend2 [Other Users' Frontend]
+        G --> H
+    end
+    D --> E
+    E --> G
+</file>
+
+<file path="mermaid/schema.mermaid">
+erDiagram
+    USERS {
+        int id PK
+        text email UK
+        text password_hash
+        text username UK
+        datetime created_at
+    }
+    SESSIONS {
+        text id PK
+        int user_id FK
+        datetime created_at
+        datetime expires_at
+    }
+    CANVAS_STATES {
+        int id PK
+        text canvas_id UK
+        text state
+        datetime updated_at
+    }
+    USERS ||--o{ SESSIONS : "has"
+</file>
+
+<file path="mermaid/system_architecture.mermaid">
+classDiagram
+    class Backend {
+        +start() : void
+        +stop() : void
+        +restart() : void
+    }
+    class Frontend {
+        +init() : void
+        +initCanvas() : void
+        +connectWebSocket() : void
+    }
+    class ConfigModule {
+        +PORT : int
+        +DB_PATH : string
+        +SESSION_TIMEOUT : int
+        +CORS_ORIGIN : string
+    }
+    class Database {
+        +connect() : connection
+        +executeQuery(sql) : result
+        +initDb() : void
+    }
+    class WebSocketServer {
+        +acceptConnection(client) : void
+        +broadcast(message) : void
+        +dispatch(request) : room
+    }
+    class CanvasRoom {
+        -canvasId : string
+        -clients : list
+        -clientsLock : lock
+        +addClient(client) : void
+        +removeClient(client) : void
+        +handleMessage(message) : void
+        +broadcastToAll(message) : void
+        +broadcastToOthers(sender, message) : void
+        +broadcastPresence() : void
+    }
+    class AuthModule {
+        +hashPassword(password) : string
+        +verifyPassword(password, hash) : bool
+        +registerUser(email, password, username) : result
+        +loginUser(email, password) : sessionResult
+        +verifySession(sessionId) : bool
+        +logoutUser(sessionId) : void
+    }
+    class CanvasStateModule {
+        +saveState(canvasId, state) : void
+        +loadState(canvasId) : json
+    }
+    class AIAgentModule {
+        +processCommand(command, state) : operations
+        <<Phase 3>>
+    }
+    class CanvasManager {
+        -app : PIXI.Application
+        -viewport : PIXI.Container
+        -objects : Map
+        -remoteCursors : Map
+        -currentTool : string
+        +screenToWorld(x, y) : coords
+        +worldToScreen(x, y) : coords
+        +pan(event) : void
+        +zoom(event) : void
+        +setTool(tool) : void
+        +createRectangle(id, x, y, w, h, color) : object
+        +createCircle(id, x, y, radius, color) : object
+        +createText(id, text, x, y, fontSize, color) : object
+        +updateObject(id, updates) : void
+        +deleteObject(id) : void
+        +updateRemoteCursor(userId, username, x, y) : void
+        +makeDraggable(obj, id) : void
+        +makeSelectable(obj, id) : void
+        +onObjectCreated : callback
+        +onObjectMoved : callback
+        +onObjectDeleted : callback
+    }
+    class WebSocketClient {
+        -ws : WebSocket
+        -canvas : CanvasManager
+        +connect(url) : void
+        +send(message) : void
+        +handleMessage(data) : void
+        +updateRemoteCursor(userId, username, x, y) : void
+        +createObjectFromData(objData) : void
+        +screenToCanvas(x, y) : coords
+        +attemptReconnect() : void
+    }
+    class AuthManager {
+        +showAuthUI() : void
+        +handleLogin(email, password) : sessionId
+        +handleRegister(email, password, username) : result
+        +isAuthenticated() : bool
+        +getSessionId() : string
+        +getUsername() : string
+    }
+    class PixiJS {
+        <<external library>>
+        +Application
+        +Container
+        +Graphics
+        +Text
+    }
+
+    Backend --> ConfigModule : uses
+    Backend --> Database : uses
+    Backend --> WebSocketServer : hosts
+    Backend --> AuthModule : includes
+    Backend --> CanvasStateModule : includes
+    Backend --> AIAgentModule : includes (Phase 3)
+    WebSocketServer --> CanvasRoom : manages
+    Frontend --> CanvasManager : core
+    Frontend --> WebSocketClient : communicates
+    Frontend --> AuthManager : handles auth
+    CanvasManager --> PixiJS : uses
+    CanvasManager <--> WebSocketClient : callbacks for sync
+    WebSocketClient <--> WebSocketServer : WebSocket protocol
+    Database <--> CanvasStateModule : stores/loads
+    Database <--> AuthModule : stores users/sessions
+</file>
+
+<file path="mermaid/websocket_lifecycle.mermaid">
+sequenceDiagram
+    participant Client1 as Client 1
+    participant Server
+    participant Client2 as Client 2
+
+    Client1->>Server: Connect ws://host/ws/{canvas-id}
+    Server->>Client1: Accept Connection, Add to Room
+    Client1->>Server: Send {type: 'auth', sessionId, username, canvasId}
+    Server->>Client1: {type: 'auth-success', userId, username}
+    Server->>Client1: Send Initial Canvas State
+    Server->>Client1: Send Presence Update
+    Server->>Client2: Broadcast Presence Update (User Joined)
+
+    Client1->>Server: Send {type: 'cursor', x, y} (throttled)
+    Server->>Client2: Broadcast {type: 'cursor', userId, username, x, y}
+
+    Client1->>Server: Send {type: 'object-create', object}
+    Server->>Client1: Broadcast {type: 'object-create', object}
+    Server->>Client2: Broadcast {type: 'object-create', object}
+    Server->>Database: Debounce Save State
+
+    Client1->>Server: Close Connection
+    Server->>Server: Remove from Room
+    Server->>Client2: Broadcast Presence Update (User Left)
+</file>
+
+<file path=".env.example">
+# API Keys (Required to enable respective provider)
+ANTHROPIC_API_KEY="your_anthropic_api_key_here"       # Required: Format: sk-ant-api03-...
+PERPLEXITY_API_KEY="your_perplexity_api_key_here"     # Optional: Format: pplx-...
+OPENAI_API_KEY="your_openai_api_key_here"             # Optional, for OpenAI models. Format: sk-proj-...
+GOOGLE_API_KEY="your_google_api_key_here"             # Optional, for Google Gemini models.
+MISTRAL_API_KEY="your_mistral_key_here"               # Optional, for Mistral AI models.
+XAI_API_KEY="YOUR_XAI_KEY_HERE"                       # Optional, for xAI AI models.
+GROQ_API_KEY="YOUR_GROQ_KEY_HERE"                     # Optional, for Groq models.
+OPENROUTER_API_KEY="YOUR_OPENROUTER_KEY_HERE"         # Optional, for OpenRouter models.
+AZURE_OPENAI_API_KEY="your_azure_key_here"            # Optional, for Azure OpenAI models (requires endpoint in .taskmaster/config.json).
+OLLAMA_API_KEY="your_ollama_api_key_here"             # Optional: For remote Ollama servers that require authentication.
+GITHUB_API_KEY="your_github_api_key_here"             # Optional: For GitHub import/export features. Format: ghp_... or github_pat_...
+</file>
+
+<file path=".gitignore">
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dev-debug.log
+
+# Dependency directories
+node_modules/
+
+# Environment variables
+.env
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS specific
+.DS_Store
+</file>
+
+<file path=".mcp.json">
+{
+	"mcpServers": {
+		"task-master-ai": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"-y",
+				"task-master-ai"
+			],
+			"env": {
+				"ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY_HERE",
+				"PERPLEXITY_API_KEY": "YOUR_PERPLEXITY_API_KEY_HERE",
+				"OPENAI_API_KEY": "YOUR_OPENAI_KEY_HERE",
+				"GOOGLE_API_KEY": "YOUR_GOOGLE_KEY_HERE",
+				"XAI_API_KEY": "YOUR_XAI_KEY_HERE",
+				"OPENROUTER_API_KEY": "YOUR_OPENROUTER_KEY_HERE",
+				"MISTRAL_API_KEY": "YOUR_MISTRAL_KEY_HERE",
+				"AZURE_OPENAI_API_KEY": "YOUR_AZURE_KEY_HERE",
+				"OLLAMA_API_KEY": "YOUR_OLLAMA_API_KEY_HERE"
+			}
+		}
+	}
+}
+</file>
+
+<file path=".rules">
+# Task Master AI - Agent Integration Guide
+
+## Essential Commands
+
+### Core Workflow Commands
+
+```bash
+# Project Setup
+task-master init                                    # Initialize Task Master in current project
+task-master parse-prd .taskmaster/docs/prd.txt      # Generate tasks from PRD document
+task-master models --setup                        # Configure AI models interactively
+
+# Daily Development Workflow
+task-master list                                   # Show all tasks with status
+task-master next                                   # Get next available task to work on
+task-master show <id>                             # View detailed task information (e.g., task-master show 1.2)
+task-master set-status --id=<id> --status=done    # Mark task complete
+
+# Task Management
+task-master add-task --prompt="description" --research        # Add new task with AI assistance
+task-master expand --id=<id> --research --force              # Break task into subtasks
+task-master update-task --id=<id> --prompt="changes"         # Update specific task
+task-master update --from=<id> --prompt="changes"            # Update multiple tasks from ID onwards
+task-master update-subtask --id=<id> --prompt="notes"        # Add implementation notes to subtask
+
+# Analysis & Planning
+task-master analyze-complexity --research          # Analyze task complexity
+task-master complexity-report                      # View complexity analysis
+task-master expand --all --research               # Expand all eligible tasks
+
+# Dependencies & Organization
+task-master add-dependency --id=<id> --depends-on=<id>       # Add task dependency
+task-master move --from=<id> --to=<id>                       # Reorganize task hierarchy
+task-master validate-dependencies                            # Check for dependency issues
+task-master generate                                         # Update task markdown files (usually auto-called)
+```
+
+## Key Files & Project Structure
+
+### Core Files
+
+- `.taskmaster/tasks/tasks.json` - Main task data file (auto-managed)
+- `.taskmaster/config.json` - AI model configuration (use `task-master models` to modify)
+- `.taskmaster/docs/prd.txt` - Product Requirements Document for parsing
+- `.taskmaster/tasks/*.txt` - Individual task files (auto-generated from tasks.json)
+- `.env` - API keys for CLI usage
+
+### Claude Code Integration Files
+
+- `CLAUDE.md` - Auto-loaded context for Claude Code (this file)
+- `.claude/settings.json` - Claude Code tool allowlist and preferences
+- `.claude/commands/` - Custom slash commands for repeated workflows
+- `.mcp.json` - MCP server configuration (project-specific)
+
+### Directory Structure
+
+```
+project/
+├── .taskmaster/
+│   ├── tasks/              # Task files directory
+│   │   ├── tasks.json      # Main task database
+│   │   ├── task-1.md      # Individual task files
+│   │   └── task-2.md
+│   ├── docs/              # Documentation directory
+│   │   ├── prd.txt        # Product requirements
+│   ├── reports/           # Analysis reports directory
+│   │   └── task-complexity-report.json
+│   ├── templates/         # Template files
+│   │   └── example_prd.txt  # Example PRD template
+│   └── config.json        # AI models & settings
+├── .claude/
+│   ├── settings.json      # Claude Code configuration
+│   └── commands/         # Custom slash commands
+├── .env                  # API keys
+├── .mcp.json            # MCP configuration
+└── CLAUDE.md            # This file - auto-loaded by Claude Code
+```
+
+## MCP Integration
+
+Task Master provides an MCP server that Claude Code can connect to. Configure in `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "task-master-ai": {
+      "command": "npx",
+      "args": ["-y", "task-master-ai"],
+      "env": {
+        "ANTHROPIC_API_KEY": "your_key_here",
+        "PERPLEXITY_API_KEY": "your_key_here",
+        "OPENAI_API_KEY": "OPENAI_API_KEY_HERE",
+        "GOOGLE_API_KEY": "GOOGLE_API_KEY_HERE",
+        "XAI_API_KEY": "XAI_API_KEY_HERE",
+        "OPENROUTER_API_KEY": "OPENROUTER_API_KEY_HERE",
+        "MISTRAL_API_KEY": "MISTRAL_API_KEY_HERE",
+        "AZURE_OPENAI_API_KEY": "AZURE_OPENAI_API_KEY_HERE",
+        "OLLAMA_API_KEY": "OLLAMA_API_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+### Essential MCP Tools
+
+```javascript
+help; // = shows available taskmaster commands
+// Project setup
+initialize_project; // = task-master init
+parse_prd; // = task-master parse-prd
+
+// Daily workflow
+get_tasks; // = task-master list
+next_task; // = task-master next
+get_task; // = task-master show <id>
+set_task_status; // = task-master set-status
+
+// Task management
+add_task; // = task-master add-task
+expand_task; // = task-master expand
+update_task; // = task-master update-task
+update_subtask; // = task-master update-subtask
+update; // = task-master update
+
+// Analysis
+analyze_project_complexity; // = task-master analyze-complexity
+complexity_report; // = task-master complexity-report
+```
+
+## Claude Code Workflow Integration
+
+### Standard Development Workflow
+
+#### 1. Project Initialization
+
+```bash
+# Initialize Task Master
+task-master init
+
+# Create or obtain PRD, then parse it
+task-master parse-prd .taskmaster/docs/prd.txt
+
+# Analyze complexity and expand tasks
+task-master analyze-complexity --research
+task-master expand --all --research
+```
+
+If tasks already exist, another PRD can be parsed (with new information only!) using parse-prd with --append flag. This will add the generated tasks to the existing list of tasks..
+
+#### 2. Daily Development Loop
+
+```bash
+# Start each session
+task-master next                           # Find next available task
+task-master show <id>                     # Review task details
+
+# During implementation, check in code context into the tasks and subtasks
+task-master update-subtask --id=<id> --prompt="implementation notes..."
+
+# Complete tasks
+task-master set-status --id=<id> --status=done
+```
+
+#### 3. Multi-Claude Workflows
+
+For complex projects, use multiple Claude Code sessions:
+
+```bash
+# Terminal 1: Main implementation
+cd project && claude
+
+# Terminal 2: Testing and validation
+cd project-test-worktree && claude
+
+# Terminal 3: Documentation updates
+cd project-docs-worktree && claude
+```
+
+### Custom Slash Commands
+
+Create `.claude/commands/taskmaster-next.md`:
+
+```markdown
+Find the next available Task Master task and show its details.
+
+Steps:
+
+1. Run `task-master next` to get the next task
+2. If a task is available, run `task-master show <id>` for full details
+3. Provide a summary of what needs to be implemented
+4. Suggest the first implementation step
+```
+
+Create `.claude/commands/taskmaster-complete.md`:
+
+```markdown
+Complete a Task Master task: $ARGUMENTS
+
+Steps:
+
+1. Review the current task with `task-master show $ARGUMENTS`
+2. Verify all implementation is complete
+3. Run any tests related to this task
+4. Mark as complete: `task-master set-status --id=$ARGUMENTS --status=done`
+5. Show the next available task with `task-master next`
+```
+
+## Tool Allowlist Recommendations
+
+Add to `.claude/settings.json`:
+
+```json
+{
+  "allowedTools": [
+    "Edit",
+    "Bash(task-master *)",
+    "Bash(git commit:*)",
+    "Bash(git add:*)",
+    "Bash(npm run *)",
+    "mcp__task_master_ai__*"
+  ]
+}
+```
+
+## Configuration & Setup
+
+### API Keys Required
+
+At least **one** of these API keys must be configured:
+
+- `ANTHROPIC_API_KEY` (Claude models) - **Recommended**
+- `PERPLEXITY_API_KEY` (Research features) - **Highly recommended**
+- `OPENAI_API_KEY` (GPT models)
+- `GOOGLE_API_KEY` (Gemini models)
+- `MISTRAL_API_KEY` (Mistral models)
+- `OPENROUTER_API_KEY` (Multiple models)
+- `XAI_API_KEY` (Grok models)
+
+An API key is required for any provider used across any of the 3 roles defined in the `models` command.
+
+### Model Configuration
+
+```bash
+# Interactive setup (recommended)
+task-master models --setup
+
+# Set specific models
+task-master models --set-main claude-3-5-sonnet-20241022
+task-master models --set-research perplexity-llama-3.1-sonar-large-128k-online
+task-master models --set-fallback gpt-4o-mini
+```
+
+## Task Structure & IDs
+
+### Task ID Format
+
+- Main tasks: `1`, `2`, `3`, etc.
+- Subtasks: `1.1`, `1.2`, `2.1`, etc.
+- Sub-subtasks: `1.1.1`, `1.1.2`, etc.
+
+### Task Status Values
+
+- `pending` - Ready to work on
+- `in-progress` - Currently being worked on
+- `done` - Completed and verified
+- `deferred` - Postponed
+- `cancelled` - No longer needed
+- `blocked` - Waiting on external factors
+
+### Task Fields
+
+```json
+{
+  "id": "1.2",
+  "title": "Implement user authentication",
+  "description": "Set up JWT-based auth system",
+  "status": "pending",
+  "priority": "high",
+  "dependencies": ["1.1"],
+  "details": "Use bcrypt for hashing, JWT for tokens...",
+  "testStrategy": "Unit tests for auth functions, integration tests for login flow",
+  "subtasks": []
+}
+```
+
+## Claude Code Best Practices with Task Master
+
+### Context Management
+
+- Use `/clear` between different tasks to maintain focus
+- This CLAUDE.md file is automatically loaded for context
+- Use `task-master show <id>` to pull specific task context when needed
+
+### Iterative Implementation
+
+1. `task-master show <subtask-id>` - Understand requirements
+2. Explore codebase and plan implementation
+3. `task-master update-subtask --id=<id> --prompt="detailed plan"` - Log plan
+4. `task-master set-status --id=<id> --status=in-progress` - Start work
+5. Implement code following logged plan
+6. `task-master update-subtask --id=<id> --prompt="what worked/didn't work"` - Log progress
+7. `task-master set-status --id=<id> --status=done` - Complete task
+
+### Complex Workflows with Checklists
+
+For large migrations or multi-step processes:
+
+1. Create a markdown PRD file describing the new changes: `touch task-migration-checklist.md` (prds can be .txt or .md)
+2. Use Taskmaster to parse the new prd with `task-master parse-prd --append` (also available in MCP)
+3. Use Taskmaster to expand the newly generated tasks into subtasks. Consdier using `analyze-complexity` with the correct --to and --from IDs (the new ids) to identify the ideal subtask amounts for each task. Then expand them.
+4. Work through items systematically, checking them off as completed
+5. Use `task-master update-subtask` to log progress on each task/subtask and/or updating/researching them before/during implementation if getting stuck
+
+### Git Integration
+
+Task Master works well with `gh` CLI:
+
+```bash
+# Create PR for completed task
+gh pr create --title "Complete task 1.2: User authentication" --body "Implements JWT auth system as specified in task 1.2"
+
+# Reference task in commits
+git commit -m "feat: implement JWT auth (task 1.2)"
+```
+
+### Parallel Development with Git Worktrees
+
+```bash
+# Create worktrees for parallel task development
+git worktree add ../project-auth feature/auth-system
+git worktree add ../project-api feature/api-refactor
+
+# Run Claude Code in each worktree
+cd ../project-auth && claude    # Terminal 1: Auth work
+cd ../project-api && claude     # Terminal 2: API work
+```
+
+## Troubleshooting
+
+### AI Commands Failing
+
+```bash
+# Check API keys are configured
+cat .env                           # For CLI usage
+
+# Verify model configuration
+task-master models
+
+# Test with different model
+task-master models --set-fallback gpt-4o-mini
+```
+
+### MCP Connection Issues
+
+- Check `.mcp.json` configuration
+- Verify Node.js installation
+- Use `--mcp-debug` flag when starting Claude Code
+- Use CLI as fallback if MCP unavailable
+
+### Task File Sync Issues
+
+```bash
+# Regenerate task files from tasks.json
+task-master generate
+
+# Fix dependency issues
+task-master fix-dependencies
+```
+
+DO NOT RE-INITIALIZE. That will not do anything beyond re-adding the same Taskmaster core files.
+
+## Important Notes
+
+### AI-Powered Operations
+
+These commands make AI calls and may take up to a minute:
+
+- `parse_prd` / `task-master parse-prd`
+- `analyze_project_complexity` / `task-master analyze-complexity`
+- `expand_task` / `task-master expand`
+- `expand_all` / `task-master expand --all`
+- `add_task` / `task-master add-task`
+- `update` / `task-master update`
+- `update_task` / `task-master update-task`
+- `update_subtask` / `task-master update-subtask`
+
+### File Management
+
+- Never manually edit `tasks.json` - use commands instead
+- Never manually edit `.taskmaster/config.json` - use `task-master models`
+- Task markdown files in `tasks/` are auto-generated
+- Run `task-master generate` after manual changes to tasks.json
+
+### Claude Code Session Management
+
+- Use `/clear` frequently to maintain focused context
+- Create custom slash commands for repeated Task Master workflows
+- Configure tool allowlist to streamline permissions
+- Use headless mode for automation: `claude -p "task-master next"`
+
+### Multi-Task Updates
+
+- Use `update --from=<id>` to update multiple future tasks
+- Use `update-task --id=<id>` for single task updates
+- Use `update-subtask --id=<id>` for implementation logging
+
+### Research Mode
+
+- Add `--research` flag for research-based AI enhancement
+- Requires a research model API key like Perplexity (`PERPLEXITY_API_KEY`) in environment
+- Provides more informed task creation and updates
+- Recommended for complex technical tasks
+
+---
+
+_This guide ensures Claude Code has immediate access to Task Master's essential functionality for agentic development workflows._
+</file>
+
+<file path="backend-main.lisp">
+;; src/main.lisp
+;; Complete working implementation for CollabCanvas backend
+(in-package #:collabcanvas)
+
+(defvar *server* nil "HTTP server instance")
+(defvar *websocket-acceptor* nil "WebSocket acceptor instance")
+
+;;; CORS Middleware
+(defun add-cors-headers ()
+  "Add CORS headers to response"
+  (setf (hunchentoot:header-out :access-control-allow-origin) 
+        collabcanvas.config:*cors-origin*)
+  (setf (hunchentoot:header-out :access-control-allow-methods) 
+        "GET, POST, PUT, DELETE, OPTIONS")
+  (setf (hunchentoot:header-out :access-control-allow-headers) 
+        "Content-Type, Authorization, X-Session-ID")
+  (setf (hunchentoot:header-out :access-control-allow-credentials) "true"))
+
+;;; HTTP API Endpoints
+
+(hunchentoot:define-easy-handler (health :uri "/health") ()
+  (setf (hunchentoot:content-type*) "application/json")
+  (jonathan:to-json '(:|status| "ok" :|service| "collabcanvas")))
+
+(hunchentoot:define-easy-handler (api-register :uri "/api/register") ()
+  (add-cors-headers)
+  (setf (hunchentoot:content-type*) "application/json")
+  (handler-case
+      (let* ((body (hunchentoot:raw-post-data :force-text t))
+             (data (jonathan:parse body :as :hash-table))
+             (email (gethash "email" data))
+             (password (gethash "password" data))
+             (username (gethash "username" data)))
+        (if (and email password username)
+            (let ((result (collabcanvas.auth:register-user email password username)))
+              (jonathan:to-json result :from :alist))
+            (jonathan:to-json '((:|success| . nil) 
+                               (:|message| . "Missing required fields")))))
+    (error (e)
+      (jonathan:to-json `((:|success| . nil) 
+                         (:|message| . ,(format nil "Error: ~A" e)))))))
+
+(hunchentoot:define-easy-handler (api-login :uri "/api/login") ()
+  (add-cors-headers)
+  (setf (hunchentoot:content-type*) "application/json")
+  (handler-case
+      (let* ((body (hunchentoot:raw-post-data :force-text t))
+             (data (jonathan:parse body :as :hash-table))
+             (email (gethash "email" data))
+             (password (gethash "password" data)))
+        (if (and email password)
+            (let ((result (collabcanvas.auth:login-user email password)))
+              (jonathan:to-json result :from :alist))
+            (jonathan:to-json '((:|success| . nil) 
+                               (:|message| . "Missing email or password")))))
+    (error (e)
+      (jonathan:to-json `((:|success| . nil) 
+                         (:|message| . ,(format nil "Error: ~A" e)))))))
+
+(hunchentoot:define-easy-handler (api-logout :uri "/api/logout") ()
+  (add-cors-headers)
+  (setf (hunchentoot:content-type*) "application/json")
+  (handler-case
+      (let* ((body (hunchentoot:raw-post-data :force-text t))
+             (data (jonathan:parse body :as :hash-table))
+             (session-id (gethash "sessionId" data)))
+        (if session-id
+            (let ((result (collabcanvas.auth:logout-user session-id)))
+              (jonathan:to-json result :from :alist))
+            (jonathan:to-json '((:|success| . nil) 
+                               (:|message| . "Missing sessionId")))))
+    (error (e)
+      (jonathan:to-json `((:|success| . nil) 
+                         (:|message| . ,(format nil "Error: ~A" e)))))))
+
+(hunchentoot:define-easy-handler (api-canvas-state :uri "/api/canvas/state") (canvasId)
+  (add-cors-headers)
+  (setf (hunchentoot:content-type*) "application/json")
+  (handler-case
+      (if canvasId
+          (let ((state (collabcanvas.database:load-canvas-state canvasId)))
+            (if state
+                state  ; Already JSON string
+                (jonathan:to-json '((:|objects| . #())))))
+          (jonathan:to-json '((:|error| . "Missing canvasId"))))
+    (error (e)
+      (jonathan:to-json `((:|error| . ,(format nil "Error: ~A" e)))))))
+
+;;; OPTIONS handler for CORS preflight
+(hunchentoot:define-easy-handler (options-handler :uri "/api/*") ()
+  (add-cors-headers)
+  (setf (hunchentoot:return-code*) 200)
+  "")
+
+;;; WebSocket Dispatch
+(defun websocket-dispatch (request)
+  "Dispatch WebSocket requests to appropriate canvas rooms"
+  (let ((uri (hunchentoot:request-uri request)))
+    (when (cl-ppcre:scan "^/ws/" uri)
+      (let ((canvas-id (second (cl-ppcre:split "/" uri))))
+        (when canvas-id
+          (format t "Creating/joining room for canvas: ~A~%" canvas-id)
+          (collabcanvas.websocket:get-or-create-room canvas-id))))))
+
+;;; Server Lifecycle
+
+(defun ensure-data-directory ()
+  "Ensure data directory exists"
+  (ensure-directories-exist 
+   (merge-pathnames "data/" 
+                   (asdf:system-source-directory :collabcanvas))))
+
+(defun start (&key (port collabcanvas.config:*port*))
+  "Start the CollabCanvas server"
+  (format t "~%=== Starting CollabCanvas ===~%")
+  
+  ;; Ensure data directory exists
+  (ensure-data-directory)
+  
+  ;; Initialize database
+  (format t "Initializing database...~%")
+  (collabcanvas.database:init-db)
+  
+  ;; Start HTTP server
+  (format t "Starting HTTP server on port ~A...~%" port)
+  (setf *server* (make-instance 'hunchentoot:easy-acceptor
+                               :port port
+                               :access-log-destination nil
+                               :message-log-destination t))
+  (hunchentoot:start *server*)
+  
+  ;; Start WebSocket server  
+  (format t "Starting WebSocket server...~%")
+  (setf *websocket-acceptor* 
+        (make-instance 'hunchensocket:websocket-acceptor
+                      :port port))
+  
+  ;; Set WebSocket dispatch
+  (push (lambda (request)
+          (websocket-dispatch request))
+        (hunchensocket:websocket-dispatch-table *websocket-acceptor*))
+  
+  (hunchentoot:start *websocket-acceptor*)
+  
+  (format t "~%✓ CollabCanvas server running!~%")
+  (format t "  HTTP API: http://localhost:~A~%" port)
+  (format t "  WebSocket: ws://localhost:~A/ws/<canvas-id>~%" port)
+  (format t "  Health check: http://localhost:~A/health~%" port)
+  (format t "~%Press Ctrl+C to stop~%~%"))
+
+(defun stop ()
+  "Stop the CollabCanvas server"
+  (format t "~%Stopping CollabCanvas server...~%")
+  
+  (when *server*
+    (hunchentoot:stop *server*)
+    (setf *server* nil))
+  
+  (when *websocket-acceptor*
+    (hunchentoot:stop *websocket-acceptor*)
+    (setf *websocket-acceptor* nil))
+  
+  (collabcanvas.database:close-db)
+  
+  (format t "Server stopped.~%"))
+
+(defun restart ()
+  "Restart the server"
+  (stop)
+  (sleep 1)
+  (start))
+
+(defun main ()
+  "Main entry point for standalone binary"
+  (handler-case
+      (progn
+        (start)
+        ;; Keep running
+        (loop (sleep 1)))
+    ;; Handle Ctrl+C gracefully
+    (#+sbcl sb-sys:interactive-interrupt
+     #+ccl ccl:interrupt-signal-condition
+     #+clisp system::simple-interrupt-condition
+     #+ecl ext:interactive-interrupt
+     ()
+      (format t "~%Received interrupt, shutting down...~%")
+      (stop)
+      (quit))))
+
+;; Export main for use in scripts
+(export 'main)
+</file>
+
+<file path="fly.toml">
+# fly.toml app configuration file generated for cl-fun on 2025-10-13T21:53:21-05:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'cl-fun'
+primary_region = 'ord'
+
+[build]
+
+[env]
+  DATABASE_PATH = "/data/canvas.db"
+  FRONTEND_PATH = "/app/frontend/dist/"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'suspend'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+
+[mounts]
+  source = "canvas_data"
+  destination = "/data"
+</file>
+
+<file path="frontend-canvas.js">
+// src/canvas.js
+// Complete PixiJS Canvas Manager for CollabCanvas
+import * as PIXI from 'pixi.js';
+
+export class CanvasManager {
+  constructor(app) {
+    this.app = app;
+    this.viewport = new PIXI.Container();
+    this.objects = new Map(); // objectId -> PIXI Graphics
+    this.selectedObjects = new Set();
+    this.remoteCursors = new Map(); // userId -> cursor container
+    
+    // State
+    this.isPanning = false;
+    this.panStart = { x: 0, y: 0 };
+    this.currentTool = 'select'; // 'select', 'rectangle', 'circle', 'text'
+    this.currentColor = 0x3498db; // Default blue
+    
+    // Viewport setup
+    this.app.stage.addChild(this.viewport);
+    this.viewport.sortableChildren = true;
+    
+    // Grid background (optional visual aid)
+    this.drawGrid();
+    
+    // Setup interaction
+    this.setupPanZoom();
+    this.setupKeyboardShortcuts();
+    this.setupToolHandlers();
+    
+    console.log('Canvas initialized');
+  }
+  
+  // ==================== Grid ====================
+  
+  drawGrid() {
+    const grid = new PIXI.Graphics();
+    grid.lineStyle(1, 0x333333, 0.3);
+    
+    const gridSize = 50;
+    const gridExtent = 5000;
+    
+    // Vertical lines
+    for (let x = -gridExtent; x <= gridExtent; x += gridSize) {
+      grid.moveTo(x, -gridExtent);
+      grid.lineTo(x, gridExtent);
+    }
+    
+    // Horizontal lines
+    for (let y = -gridExtent; y <= gridExtent; y += gridSize) {
+      grid.moveTo(-gridExtent, y);
+      grid.lineTo(gridExtent, y);
+    }
+    
+    grid.zIndex = -1;
+    this.viewport.addChild(grid);
+  }
+  
+  // ==================== Pan & Zoom ====================
+  
+  setupPanZoom() {
+    const canvas = this.app.view;
+    
+    // Pan with middle mouse or Alt+drag
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.button === 1 || (e.button === 0 && e.altKey)) {
+        this.isPanning = true;
+        this.panStart = { x: e.clientX, y: e.clientY };
+        canvas.style.cursor = 'grabbing';
+        e.preventDefault();
+      }
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+      if (this.isPanning) {
+        const dx = e.clientX - this.panStart.x;
+        const dy = e.clientY - this.panStart.y;
+        
+        this.viewport.x += dx;
+        this.viewport.y += dy;
+        
+        this.panStart = { x: e.clientX, y: e.clientY };
+      }
+    });
+    
+    canvas.addEventListener('mouseup', () => {
+      if (this.isPanning) {
+        this.isPanning = false;
+        canvas.style.cursor = 'default';
+      }
+    });
+    
+    // Zoom with mouse wheel
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      
+      // Get position before zoom
+      const worldPosBefore = this.screenToWorld(mouseX, mouseY);
+      
+      // Apply zoom
+      const newScale = this.viewport.scale.x * zoomFactor;
+      if (newScale >= 0.1 && newScale <= 10) {
+        this.viewport.scale.set(newScale);
+        
+        // Adjust position to keep mouse over same world point
+        const worldPosAfter = this.screenToWorld(mouseX, mouseY);
+        this.viewport.x += (worldPosAfter.x - worldPosBefore.x) * this.viewport.scale.x;
+        this.viewport.y += (worldPosAfter.y - worldPosBefore.y) * this.viewport.scale.y;
+      }
+    }, { passive: false });
+  }
+  
+  screenToWorld(screenX, screenY) {
+    return {
+      x: (screenX - this.viewport.x) / this.viewport.scale.x,
+      y: (screenY - this.viewport.y) / this.viewport.scale.y
+    };
+  }
+  
+  worldToScreen(worldX, worldY) {
+    return {
+      x: worldX * this.viewport.scale.x + this.viewport.x,
+      y: worldY * this.viewport.scale.y + this.viewport.y
+    };
+  }
+  
+  // ==================== Keyboard Shortcuts ====================
+  
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Tool shortcuts
+      if (e.key === 'r' || e.key === 'R') {
+        this.setTool('rectangle');
+      } else if (e.key === 'c' || e.key === 'C') {
+        this.setTool('circle');
+      } else if (e.key === 't' || e.key === 'T') {
+        this.setTool('text');
+      } else if (e.key === 'v' || e.key === 'V' || e.key === 'Escape') {
+        this.setTool('select');
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        this.deleteSelected();
+      }
+    });
+  }
+  
+  setTool(tool) {
+    this.currentTool = tool;
+    console.log('Tool:', tool);
+    // Update UI indicator if you have one
+  }
+  
+  // ==================== Tool Handlers ====================
+  
+  setupToolHandlers() {
+    const canvas = this.app.view;
+    let drawStart = null;
+    let previewShape = null;
+    
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.button !== 0 || e.altKey) return; // Left click only, not panning
+      
+      const worldPos = this.screenToWorld(e.clientX, e.clientY);
+      
+      if (this.currentTool === 'rectangle' || this.currentTool === 'circle') {
+        drawStart = worldPos;
+        
+        // Create preview shape
+        previewShape = new PIXI.Graphics();
+        previewShape.alpha = 0.5;
+        this.viewport.addChild(previewShape);
+      }
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+      if (drawStart && previewShape) {
+        const worldPos = this.screenToWorld(e.clientX, e.clientY);
+        const width = worldPos.x - drawStart.x;
+        const height = worldPos.y - drawStart.y;
+        
+        previewShape.clear();
+        previewShape.beginFill(this.currentColor);
+        
+        if (this.currentTool === 'rectangle') {
+          previewShape.drawRect(drawStart.x, drawStart.y, width, height);
+        } else if (this.currentTool === 'circle') {
+          const radius = Math.sqrt(width * width + height * height);
+          previewShape.drawCircle(drawStart.x, drawStart.y, radius);
+        }
+        
+        previewShape.endFill();
+      }
+    });
+    
+    canvas.addEventListener('mouseup', (e) => {
+      if (drawStart && previewShape) {
+        const worldPos = this.screenToWorld(e.clientX, e.clientY);
+        
+        // Create actual object
+        const objData = this.createToolObject(drawStart, worldPos);
+        
+        // Clean up preview
+        this.viewport.removeChild(previewShape);
+        previewShape = null;
+        drawStart = null;
+        
+        // Notify about new object (callback to WebSocket)
+        if (this.onObjectCreated) {
+          this.onObjectCreated(objData);
+        }
+      }
+    });
+  }
+  
+  createToolObject(start, end) {
+    const id = this.generateId();
+    
+    if (this.currentTool === 'rectangle') {
+      const width = Math.abs(end.x - start.x);
+      const height = Math.abs(end.y - start.y);
+      const x = Math.min(start.x, end.x);
+      const y = Math.min(start.y, end.y);
+      
+      this.createRectangle(id, x, y, width, height, this.currentColor);
+      
+      return {
+        id,
+        type: 'rectangle',
+        x, y, width, height,
+        color: this.currentColor
+      };
+    } else if (this.currentTool === 'circle') {
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
+      const radius = Math.sqrt(dx * dx + dy * dy);
+      
+      this.createCircle(id, start.x, start.y, radius, this.currentColor);
+      
+      return {
+        id,
+        type: 'circle',
+        x: start.x,
+        y: start.y,
+        radius,
+        color: this.currentColor
+      };
+    }
+  }
+  
+  // ==================== Object Creation ====================
+  
+  createRectangle(id, x, y, width, height, color) {
+    const rect = new PIXI.Graphics();
+    rect.beginFill(color);
+    rect.drawRect(0, 0, width, height);
+    rect.endFill();
+    rect.x = x;
+    rect.y = y;
+    rect.interactive = true;
+    rect.buttonMode = true;
+    
+    this.makeDraggable(rect, id);
+    this.makeSelectable(rect, id);
+    
+    this.objects.set(id, rect);
+    this.viewport.addChild(rect);
+    
+    return rect;
+  }
+  
+  createCircle(id, x, y, radius, color) {
+    const circle = new PIXI.Graphics();
+    circle.beginFill(color);
+    circle.drawCircle(0, 0, radius);
+    circle.endFill();
+    circle.x = x;
+    circle.y = y;
+    circle.interactive = true;
+    circle.buttonMode = true;
+    
+    this.makeDraggable(circle, id);
+    this.makeSelectable(circle, id);
+    
+    this.objects.set(id, circle);
+    this.viewport.addChild(circle);
+    
+    return circle;
+  }
+  
+  createText(id, text, x, y, fontSize, color) {
+    const textObj = new PIXI.Text(text, {
+      fontSize,
+      fill: color,
+      fontFamily: 'Arial'
+    });
+    textObj.x = x;
+    textObj.y = y;
+    textObj.interactive = true;
+    textObj.buttonMode = true;
+    
+    this.makeDraggable(textObj, id);
+    this.makeSelectable(textObj, id);
+    
+    this.objects.set(id, textObj);
+    this.viewport.addChild(textObj);
+    
+    return textObj;
+  }
+  
+  // ==================== Interaction ====================
+  
+  makeDraggable(obj, id) {
+    let dragData = null;
+    
+    obj.on('pointerdown', (event) => {
+      if (this.currentTool !== 'select') return;
+      
+      dragData = event.data;
+      obj.alpha = 0.7;
+      dragData.dragging = true;
+      event.stopPropagation();
+    });
+    
+    obj.on('pointerup', () => {
+      if (dragData && dragData.dragging) {
+        obj.alpha = 1;
+        dragData.dragging = false;
+        
+        // Notify about position change
+        if (this.onObjectMoved) {
+          this.onObjectMoved(id, obj.x, obj.y);
+        }
+        
+        dragData = null;
+      }
+    });
+    
+    obj.on('pointermove', () => {
+      if (dragData && dragData.dragging) {
+        const newPosition = dragData.getLocalPosition(obj.parent);
+        obj.x = newPosition.x;
+        obj.y = newPosition.y;
+      }
+    });
+  }
+  
+  makeSelectable(obj, id) {
+    obj.on('click', (event) => {
+      if (this.currentTool === 'select') {
+        if (event.data.originalEvent.shiftKey) {
+          // Multi-select
+          if (this.selectedObjects.has(id)) {
+            this.deselectObject(id);
+          } else {
+            this.selectObject(id);
+          }
+        } else {
+          // Single select
+          this.clearSelection();
+          this.selectObject(id);
+        }
+        event.stopPropagation();
+      }
+    });
+  }
+  
+  selectObject(id) {
+    const obj = this.objects.get(id);
+    if (!obj) return;
+    
+    this.selectedObjects.add(id);
+    
+    // Visual selection indicator
+    if (obj instanceof PIXI.Graphics) {
+      obj.lineStyle(2, 0x00FF00);
+      obj.drawRect(-2, -2, obj.width + 4, obj.height + 4);
+    }
+  }
+  
+  deselectObject(id) {
+    const obj = this.objects.get(id);
+    if (!obj) return;
+    
+    this.selectedObjects.delete(id);
+    
+    // Remove selection indicator
+    if (obj instanceof PIXI.Graphics) {
+      obj.lineStyle(0);
+    }
+  }
+  
+  clearSelection() {
+    this.selectedObjects.forEach(id => this.deselectObject(id));
+    this.selectedObjects.clear();
+  }
+  
+  deleteSelected() {
+    this.selectedObjects.forEach(id => {
+      this.deleteObject(id);
+      if (this.onObjectDeleted) {
+        this.onObjectDeleted(id);
+      }
+    });
+    this.selectedObjects.clear();
+  }
+  
+  // ==================== Object Management ====================
+  
+  updateObject(id, updates) {
+    const obj = this.objects.get(id);
+    if (!obj) return;
+    
+    if (updates.x !== undefined) obj.x = updates.x;
+    if (updates.y !== undefined) obj.y = updates.y;
+    
+    // For Graphics objects, need to redraw if dimensions change
+    if (obj instanceof PIXI.Graphics) {
+      if (updates.width !== undefined || updates.height !== undefined) {
+        // Recreate the shape - this is simplistic, you might want a better approach
+        console.log('Dimension updates for Graphics require recreation');
+      }
+    }
+  }
+  
+  deleteObject(id) {
+    const obj = this.objects.get(id);
+    if (obj) {
+      this.viewport.removeChild(obj);
+      this.objects.delete(id);
+      obj.destroy();
+    }
+  }
+  
+  getObject(id) {
+    return this.objects.get(id);
+  }
+  
+  getAllObjects() {
+    return Array.from(this.objects.entries()).map(([id, obj]) => ({
+      id,
+      type: obj.constructor.name,
+      x: obj.x,
+      y: obj.y
+    }));
+  }
+  
+  // ==================== Remote Cursors ====================
+  
+  updateRemoteCursor(userId, username, x, y) {
+    let cursor = this.remoteCursors.get(userId);
+    
+    if (!cursor) {
+      // Create new cursor
+      cursor = new PIXI.Container();
+      
+      // Cursor pointer (triangle)
+      const pointer = new PIXI.Graphics();
+      pointer.beginFill(0xFF6B6B);
+      pointer.moveTo(0, 0);
+      pointer.lineTo(12, 18);
+      pointer.lineTo(6, 18);
+      pointer.lineTo(0, 24);
+      pointer.endFill();
+      
+      // Username label
+      const label = new PIXI.Text(username, {
+        fontSize: 12,
+        fill: 0xFFFFFF,
+        backgroundColor: 0xFF6B6B,
+        padding: 4
+      });
+      label.x = 15;
+      label.y = 0;
+      
+      cursor.addChild(pointer);
+      cursor.addChild(label);
+      cursor.zIndex = 1000;
+      
+      this.remoteCursors.set(userId, cursor);
+      this.viewport.addChild(cursor);
+    }
+    
+    cursor.x = x;
+    cursor.y = y;
+  }
+  
+  removeRemoteCursor(userId) {
+    const cursor = this.remoteCursors.get(userId);
+    if (cursor) {
+      this.viewport.removeChild(cursor);
+      cursor.destroy();
+      this.remoteCursors.delete(userId);
+    }
+  }
+  
+  // ==================== Utilities ====================
+  
+  generateId() {
+    return 'obj-' + Math.random().toString(36).substr(2, 9);
+  }
+  
+  setColor(color) {
+    this.currentColor = color;
+  }
+  
+  getCanvasState() {
+    const objects = [];
+    this.objects.forEach((obj, id) => {
+      // Serialize object data
+      objects.push({
+        id,
+        type: obj.constructor.name,
+        x: obj.x,
+        y: obj.y,
+        // Add more properties as needed
+      });
+    });
+    return { objects };
+  }
+  
+  // Callbacks - set these from outside
+  onObjectCreated = null;
+  onObjectMoved = null;
+  onObjectDeleted = null;
+  onCursorMoved = null;
+}
+</file>
+
+<file path="opencode.json">
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "task-master-ai": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "task-master-ai"
+      ],
+      "enabled": true,
+      "environment": {
+        "ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY_HERE",
+        "PERPLEXITY_API_KEY": "YOUR_PERPLEXITY_API_KEY_HERE",
+        "OPENAI_API_KEY": "YOUR_OPENAI_KEY_HERE",
+        "GOOGLE_API_KEY": "YOUR_GOOGLE_KEY_HERE",
+        "XAI_API_KEY": "YOUR_XAI_KEY_HERE",
+        "OPENROUTER_API_KEY": "YOUR_OPENROUTER_KEY_HERE",
+        "MISTRAL_API_KEY": "YOUR_MISTRAL_KEY_HERE",
+        "AZURE_OPENAI_API_KEY": "YOUR_AZURE_KEY_HERE",
+        "OLLAMA_API_KEY": "YOUR_OLLAMA_API_KEY_HERE"
+      }
+    }
+  }
+}
+</file>
+
+<file path="backend/src/database.lisp">
+;;;; database.lisp - Database operations for CollabCanvas
+
+(in-package #:collabcanvas)
+
+;;; Database connection management
+(defparameter *database-connection* nil
+  "Global database connection")
+
+(defun ensure-database-directory ()
+  "Ensure the database directory exists"
+  (let ((db-dir (directory-namestring (merge-pathnames *database-path*))))
+    (ensure-directories-exist db-dir)))
+
+(defun connect-database ()
+  "Connect to the SQLite database"
+  (ensure-database-directory)
+  (setf *database-connection*
+        (sqlite:connect (merge-pathnames *database-path*))))
+
+(defun disconnect-database ()
+  "Disconnect from the database"
+  (when *database-connection*
+    (sqlite:disconnect *database-connection*)
+    (setf *database-connection* nil)))
+
+(defmacro with-database (&body body)
+  "Execute body with database connection"
+  `(bt:with-lock-held (*database-lock*)
+     (unless *database-connection*
+       (connect-database))
+     ,@body))
+
+;;; Database initialization
+(defun init-database ()
+  "Initialize the database with schema"
+  (ensure-database-directory)
+  (with-database
+    (let ((schema-file (merge-pathnames "db/schema.sql"
+                                        (asdf:system-source-directory :collabcanvas))))
+      (when (probe-file schema-file)
+        (let ((schema (alexandria:read-file-into-string schema-file)))
+          ;; Split schema into individual statements
+          (dolist (statement (cl-ppcre:split ";\\s*" schema))
+            (let ((trimmed (string-trim '(#\Space #\Tab #\Newline) statement)))
+              (when (and trimmed (> (length trimmed) 0))
+                (handler-case
+                    (sqlite:execute-non-query *database-connection*
+                                             (concatenate 'string trimmed ";"))
+                  (sqlite:sqlite-error (e)
+                    (format t "Warning: ~A~%" e))))))))))
+  (format t "Database initialized successfully~%"))
+
+;;; Query execution utilities
+(defun execute-query (query &rest params)
+  "Execute a SELECT query and return results"
+  (with-database
+    (apply #'sqlite:execute-to-list *database-connection* query params)))
+
+(defun execute-non-query (query &rest params)
+  "Execute a non-SELECT query (INSERT, UPDATE, DELETE)"
+  (with-database
+    (apply #'sqlite:execute-non-query *database-connection* query params)
+    (sqlite:last-insert-rowid *database-connection*)))
+
+(defun execute-single (query &rest params)
+  "Execute a query and return single row"
+  (with-database
+    (let ((rows (apply #'sqlite:execute-to-list *database-connection* query params)))
+      (first rows))))
+
+;;; User operations
+(defun create-user (email username password-hash)
+  "Create a new user"
+  (execute-non-query
+   "INSERT INTO users (email, username, password_hash) VALUES (?, ?, ?)"
+   email username password-hash))
+
+(defun get-user-by-email (email)
+  "Get user by email"
+  (let ((row (execute-single
+              "SELECT id, email, username, password_hash, created_at
+               FROM users WHERE email = ?"
+              email)))
+    (when row
+      `((:id . ,(first row))
+        (:email . ,(second row))
+        (:username . ,(third row))
+        (:password-hash . ,(fourth row))
+        (:created-at . ,(fifth row))))))
+
+(defun get-user-by-username (username)
+  "Get user by username"
+  (let ((row (execute-single
+              "SELECT id, email, username, password_hash, created_at
+               FROM users WHERE username = ?"
+              username)))
+    (when row
+      `((:id . ,(first row))
+        (:email . ,(second row))
+        (:username . ,(third row))
+        (:password-hash . ,(fourth row))
+        (:created-at . ,(fifth row))))))
+
+(defun get-user-by-id (user-id)
+  "Get user by ID"
+  (let ((row (execute-single
+              "SELECT id, email, username, created_at
+               FROM users WHERE id = ?"
+              user-id)))
+    (when row
+      `((:id . ,(first row))
+        (:email . ,(second row))
+        (:username . ,(third row))
+        (:created-at . ,(fourth row))))))
+
+;;; Session operations
+(defun create-session (user-id session-id expires-at)
+  "Create a new session"
+  (execute-non-query
+   "INSERT INTO sessions (user_id, session_id, expires_at) VALUES (?, ?, ?)"
+   user-id session-id expires-at))
+
+(defun get-session (session-id)
+  "Get session by ID"
+  (let ((row (execute-single
+              "SELECT s.id, s.user_id, s.session_id, s.expires_at,
+                      u.email, u.username
+               FROM sessions s
+               JOIN users u ON s.user_id = u.id
+               WHERE s.session_id = ?"
+              session-id)))
+    (when row
+      `((:id . ,(first row))
+        (:user-id . ,(second row))
+        (:session-id . ,(third row))
+        (:expires-at . ,(fourth row))
+        (:email . ,(fifth row))
+        (:username . ,(sixth row))))))
+
+(defun delete-session (session-id)
+  "Delete a session"
+  (execute-non-query
+   "DELETE FROM sessions WHERE session_id = ?"
+   session-id))
+
+(defun cleanup-expired-sessions ()
+  "Delete expired sessions"
+  (execute-non-query
+   "DELETE FROM sessions WHERE datetime(expires_at) < datetime('now')"))
+
+;;; Canvas state operations
+(defun save-canvas-state (canvas-id state-json)
+  "Save or update canvas state"
+  (let ((existing (execute-single
+                   "SELECT id FROM canvas_states WHERE canvas_id = ?"
+                   canvas-id)))
+    (if existing
+        (execute-non-query
+         "UPDATE canvas_states
+          SET state_json = ?, version = version + 1, updated_at = datetime('now')
+          WHERE canvas_id = ?"
+         state-json canvas-id)
+        (execute-non-query
+         "INSERT INTO canvas_states (canvas_id, state_json) VALUES (?, ?)"
+         canvas-id state-json))))
+
+(defun load-canvas-state (canvas-id)
+  "Load canvas state"
+  (let ((row (execute-single
+              "SELECT state_json, version, updated_at
+               FROM canvas_states WHERE canvas_id = ?"
+              canvas-id)))
+    (when row
+      `((:state . ,(first row))
+        (:version . ,(second row))
+        (:updated-at . ,(third row))))))
+
+;;; Canvas history operations
+(defun add-canvas-history (canvas-id user-id action-type object-data)
+  "Add an entry to canvas history"
+  (execute-non-query
+   "INSERT INTO canvas_history (canvas_id, user_id, action_type, object_data)
+    VALUES (?, ?, ?, ?)"
+   canvas-id user-id action-type object-data))
+
+(defun get-canvas-history (canvas-id &key (limit 100))
+  "Get canvas history"
+  (let ((rows (execute-query
+               "SELECT user_id, action_type, object_data, timestamp
+                FROM canvas_history
+                WHERE canvas_id = ?
+                ORDER BY timestamp DESC
+                LIMIT ?"
+               canvas-id limit)))
+    (mapcar (lambda (row)
+              `((:user-id . ,(first row))
+                (:action-type . ,(second row))
+                (:object-data . ,(third row))
+                (:timestamp . ,(fourth row))))
+            rows)))
+
+;;; Collaborator operations
+(defun add-collaborator (canvas-id user-id &optional (role "editor"))
+  "Add a collaborator to a canvas"
+  (execute-non-query
+   "INSERT OR REPLACE INTO collaborators (canvas_id, user_id, role)
+    VALUES (?, ?, ?)"
+   canvas-id user-id role))
+
+(defun get-canvas-collaborators (canvas-id)
+  "Get all collaborators for a canvas"
+  (let ((rows (execute-query
+               "SELECT c.user_id, c.role, u.username, u.email
+                FROM collaborators c
+                JOIN users u ON c.user_id = u.id
+                WHERE c.canvas_id = ?"
+               canvas-id)))
+    (mapcar (lambda (row)
+              `((:user-id . ,(first row))
+                (:role . ,(second row))
+                (:username . ,(third row))
+                (:email . ,(fourth row))))
+            rows)))
+</file>
+
+<file path="backend/collabcanvas.asd">
+;;;; collabcanvas.asd - ASDF system definition for CollabCanvas
+
+(defsystem "collabcanvas"
+  :description "Real-time collaborative design tool with WebSocket synchronization"
+  :author "CollabCanvas Team"
+  :license "MIT"
+  :version "0.1.0"
+  :serial t
+  :depends-on (:hunchentoot
+               :hunchensocket
+               :jonathan
+               :ironclad
+               :bordeaux-threads
+               :sqlite
+               :alexandria
+               :cl-ppcre
+               :local-time)
+  :components ((:module "src"
+                :components
+                ((:file "package")
+                 (:file "config" :depends-on ("package"))
+                 (:file "utils" :depends-on ("package" "config"))
+                 (:file "database" :depends-on ("package" "config" "utils"))
+                 (:file "auth" :depends-on ("package" "database" "utils"))
+                 (:file "canvas-state" :depends-on ("package" "database"))
+                 (:file "websocket" :depends-on ("package" "auth" "canvas-state"))
+                 (:file "main" :depends-on ("package" "config" "database" "auth" "websocket" "canvas-state")))))
+  :in-order-to ((test-op (test-op "collabcanvas/tests"))))
+
+(defsystem "collabcanvas/tests"
+  :description "Test suite for CollabCanvas"
+  :author "CollabCanvas Team"
+  :license "MIT"
+  :depends-on (:collabcanvas
+               :rove)
+  :components ((:module "tests"
+                :components
+                ((:file "test-auth")
+                 (:file "test-database")
+                 (:file "test-websocket"))))
+  :perform (test-op (op c) (symbol-call :rove :run c)))
+</file>
+
+<file path="frontend/src/auth.js">
+// auth.js - Authentication UI and logic for CollabCanvas
+
+export class AuthManager {
+    constructor() {
+        this.modal = document.getElementById('auth-modal')
+        this.loginForm = document.getElementById('login-form')
+        this.registerForm = document.getElementById('register-form')
+        this.setupEventListeners()
+    }
+
+    setupEventListeners() {
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab
+                this.switchTab(tab)
+            })
+        })
+
+        // Form submissions
+        this.loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault()
+            await this.handleLogin()
+        })
+
+        this.registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault()
+            await this.handleRegister()
+        })
+    }
+
+    switchTab(tab) {
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab)
+        })
+
+        // Update forms
+        document.querySelectorAll('.auth-form').forEach(form => {
+            form.classList.toggle('active', form.id === `${tab}-form`)
+        })
+
+        // Clear errors
+        document.querySelectorAll('.error-message').forEach(err => {
+            err.textContent = ''
+        })
+    }
+
+    showModal() {
+        return new Promise((resolve) => {
+            this.modal.classList.remove('hidden')
+            this.resolveAuth = resolve
+        })
+    }
+
+    hideModal() {
+        this.modal.classList.add('hidden')
+    }
+
+    async handleLogin() {
+        const email = document.getElementById('login-email').value
+        const password = document.getElementById('login-password').value
+        const errorEl = document.getElementById('login-error')
+
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            })
+
+            const data = await response.json()
+
+            if (data.success && data.data) {
+                this.hideModal()
+                this.resolveAuth({
+                    sessionId: data.data['session-id'],
+                    userId: data.data['user-id'],
+                    username: data.data.username
+                })
+            } else {
+                errorEl.textContent = data.error || 'Login failed'
+            }
+        } catch (error) {
+            console.error('Login error:', error)
+            errorEl.textContent = 'Connection error. Please try again.'
+        }
+    }
+
+    async handleRegister() {
+        const username = document.getElementById('register-username').value
+        const email = document.getElementById('register-email').value
+        const password = document.getElementById('register-password').value
+        const errorEl = document.getElementById('register-error')
+
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, email, password })
+            })
+
+            const data = await response.json()
+
+            if (data.success) {
+                // Auto-login after registration
+                await this.loginAfterRegister(email, password)
+            } else {
+                errorEl.textContent = data.error || 'Registration failed'
+            }
+        } catch (error) {
+            console.error('Registration error:', error)
+            errorEl.textContent = 'Connection error. Please try again.'
+        }
+    }
+
+    async loginAfterRegister(email, password) {
+        // Switch to login tab
+        this.switchTab('login')
+
+        // Fill in credentials
+        document.getElementById('login-email').value = email
+        document.getElementById('login-password').value = password
+
+        // Auto-submit
+        await this.handleLogin()
+    }
+}
+</file>
+
+<file path="frontend/index.html">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CollabCanvas - Real-time Collaborative Design</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            overflow: hidden;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #app {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+
+        /* Toolbar */
+        #toolbar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(40, 40, 40, 0.95);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .tool-btn {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #444;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 18px;
+        }
+
+        .tool-btn:hover {
+            background: #3a3a3a;
+            border-color: #666;
+        }
+
+        .tool-btn.active {
+            background: #4a7c8e;
+            border-color: #5a9cb0;
+        }
+
+        .tool-separator {
+            width: 1px;
+            background: #444;
+            margin: 0 5px;
+        }
+
+        #color-picker {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Presence List */
+        #presence-list {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(40, 40, 40, 0.95);
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 200px;
+            max-width: 300px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        #presence-list h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 5px 0;
+            font-size: 14px;
+        }
+
+        .user-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        /* Status Bar */
+        #status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(30, 30, 30, 0.95);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #999;
+            z-index: 100;
+        }
+
+        .status-section {
+            display: flex;
+            gap: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-label {
+            color: #666;
+        }
+
+        /* Auth Modal */
+        #auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        #auth-modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 30px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #444;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.2s;
+            font-size: 16px;
+        }
+
+        .tab-btn.active {
+            color: #e0e0e0;
+            border-bottom: 2px solid #5a9cb0;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #5a9cb0;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4a7c8e;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            background: #5a9cb0;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        #loading-screen.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top-color: #5a9cb0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="canvas-container"></div>
+
+        <!-- Toolbar -->
+        <div id="toolbar">
+            <button class="tool-btn active" data-tool="select" title="Select (V)">
+                <span>↖</span>
+            </button>
+            <button class="tool-btn" data-tool="rectangle" title="Rectangle (R)">
+                <span>□</span>
+            </button>
+            <button class="tool-btn" data-tool="circle" title="Circle (C)">
+                <span>○</span>
+            </button>
+            <div class="tool-separator"></div>
+            <input type="color" id="color-picker" value="#5a9cb0" title="Color">
+        </div>
+
+        <!-- Presence List -->
+        <div id="presence-list">
+            <h3>Online Users</h3>
+            <div id="users-container"></div>
+        </div>
+
+        <!-- Status Bar -->
+        <div id="status-bar">
+            <div class="status-section">
+                <div class="status-item">
+                    <span class="status-label">Tool:</span>
+                    <span id="current-tool">Select</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Position:</span>
+                    <span id="mouse-position">0, 0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Zoom:</span>
+                    <span id="zoom-level">100%</span>
+                </div>
+            </div>
+            <div class="status-section">
+                <div class="status-item">
+                    <span class="status-label">Objects:</span>
+                    <span id="object-count">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Canvas:</span>
+                    <span id="canvas-id">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Auth Modal -->
+        <div id="auth-modal" class="hidden">
+            <div class="modal-content">
+                <div class="modal-tabs">
+                    <button class="tab-btn active" data-tab="login">Login</button>
+                    <button class="tab-btn" data-tab="register">Register</button>
+                </div>
+
+                <form class="auth-form active" id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Login</button>
+                    <div class="error-message" id="login-error"></div>
+                </form>
+
+                <form class="auth-form" id="register-form">
+                    <div class="form-group">
+                        <label for="register-username">Username</label>
+                        <input type="text" id="register-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input type="email" id="register-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Register</button>
+                    <div class="error-message" id="register-error"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
+</file>
+
+<file path="frontend/vite.config.js">
+import { defineConfig } from 'vite'
+import legacy from '@vitejs/plugin-legacy'
+
+export default defineConfig({
+  plugins: [
+    legacy({
+      targets: ['defaults', 'not IE 11']
+    })
+  ],
+  server: {
+    port: 6465,
+    host: true,
+    cors: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/ws': {
+        target: 'ws://localhost:8080',
+        ws: true,
+        changeOrigin: true
+      }
+    }
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'pixi': ['pixi.js']
+        }
+      }
+    }
+  }
+})
+</file>
+
+<file path="backend/src/canvas-state.lisp">
+;;;; canvas-state.lisp - Canvas state management for CollabCanvas
+
+(in-package #:collabcanvas)
+
+;;; Canvas state cache
+(defparameter *canvas-states* (make-hash-table :test 'equal)
+  "In-memory cache of canvas states")
+
+(defparameter *canvas-locks* (make-hash-table :test 'equal)
+  "Locks for each canvas to ensure thread-safe updates")
+
+(defparameter *save-timers* (make-hash-table :test 'equal)
+  "Debounce timers for saving canvas states")
+
+;;; Canvas state structure
+(defstruct canvas-state
+  id
+  objects
+  version
+  last-updated
+  dirty-p)
+
+(defun get-or-create-canvas-lock (canvas-id)
+  "Get or create a lock for a canvas"
+  (or (gethash canvas-id *canvas-locks*)
+      (setf (gethash canvas-id *canvas-locks*)
+            (bt:make-lock (format nil "canvas-~A" canvas-id)))))
+
+(defun get-or-load-canvas-state (canvas-id)
+  "Get canvas state from cache or load from database"
+  (or (gethash canvas-id *canvas-states*)
+      (let ((db-state (load-canvas-state canvas-id)))
+        (if db-state
+            (let* ((json-state (cdr (assoc :state db-state)))
+                   (parsed-state (parse-json json-state))
+                   (objects-hash (make-hash-table :test 'equal)))
+              ;; Convert alist to hash table
+              (when parsed-state
+                (cond
+                  ;; If it's an alist (list of pairs)
+                  ((and (listp parsed-state) (consp (first parsed-state)))
+                   (dolist (pair parsed-state)
+                     (when (consp pair)
+                       ;; Convert keyword keys to strings for consistency
+                       (let ((key (car pair)))
+                         (when (keywordp key)
+                           (setq key (string-downcase (symbol-name key))))
+                         (setf (gethash key objects-hash) (cdr pair))))))
+                  ;; If it's a hash table already
+                  ((hash-table-p parsed-state)
+                   (maphash (lambda (k v)
+                             (setf (gethash k objects-hash) v))
+                            parsed-state))))
+              (let ((state (make-canvas-state
+                           :id canvas-id
+                           :objects objects-hash
+                           :version (cdr (assoc :version db-state))
+                           :last-updated (cdr (assoc :updated-at db-state))
+                           :dirty-p nil)))
+                (setf (gethash canvas-id *canvas-states*) state)))
+            ;; Create new canvas state
+            (let ((state (make-canvas-state
+                         :id canvas-id
+                         :objects (make-hash-table :test 'equal)
+                         :version 1
+                         :last-updated (current-timestamp)
+                         :dirty-p nil)))
+              (setf (gethash canvas-id *canvas-states*) state))))))
+
+(defun mark-canvas-dirty (canvas-id)
+  "Mark canvas as dirty and schedule save"
+  (let ((state (gethash canvas-id *canvas-states*)))
+    (when state
+      (setf (canvas-state-dirty-p state) t)
+      (schedule-canvas-save canvas-id))))
+
+(defun schedule-canvas-save (canvas-id)
+  "Schedule a debounced save for canvas state"
+  ;; Cancel existing timer if any
+  (when-let ((timer (gethash canvas-id *save-timers*)))
+    (bt:destroy-thread timer))
+
+  ;; Create new timer
+  (setf (gethash canvas-id *save-timers*)
+        (bt:make-thread
+         (lambda ()
+           (sleep *state-save-debounce*)
+           (persist-canvas-state canvas-id)
+           (remhash canvas-id *save-timers*))
+         :name (format nil "save-timer-~A" canvas-id))))
+
+(defun persist-canvas-state (canvas-id)
+  "Persist canvas state to database"
+  (let ((state (gethash canvas-id *canvas-states*)))
+    (when (and state (canvas-state-dirty-p state))
+      (let ((lock (get-or-create-canvas-lock canvas-id)))
+        (bt:with-lock-held (lock)
+          (save-canvas-state canvas-id
+                            (to-json-string (canvas-state-objects state)))
+          (setf (canvas-state-dirty-p state) nil)
+          (incf (canvas-state-version state))
+          (setf (canvas-state-last-updated state) (current-timestamp)))))))
+
+;;; Canvas operations
+(defun update-canvas-object (canvas-id object-id object-data &optional user-id)
+  "Update or create an object in the canvas"
+  (let* ((lock (get-or-create-canvas-lock canvas-id))
+         (state (get-or-load-canvas-state canvas-id)))
+    (bt:with-lock-held (lock)
+      (let ((objects (canvas-state-objects state)))
+        ;; Determine if this is create or update
+        (let ((action-type (if (gethash object-id objects) "update" "create")))
+          ;; Update object
+          (setf (gethash object-id objects) object-data)
+          ;; Add to history if user-id provided
+          (when user-id
+            (add-canvas-history canvas-id user-id action-type
+                               (to-json-string object-data)))
+          ;; Mark as dirty
+          (mark-canvas-dirty canvas-id)
+          ;; Return the action type
+          action-type)))))
+
+(defun delete-canvas-object (canvas-id object-id &optional user-id)
+  "Delete an object from the canvas"
+  (let* ((lock (get-or-create-canvas-lock canvas-id))
+         (state (get-or-load-canvas-state canvas-id)))
+    (bt:with-lock-held (lock)
+      (let ((objects (canvas-state-objects state)))
+        (format t "DEBUG: Trying to delete object ~A~%" object-id)
+        (format t "DEBUG: Object ID type: ~A~%" (type-of object-id))
+        (format t "DEBUG: Current objects in hash: ~A~%"
+                (hash-table-count objects))
+        (format t "DEBUG: All keys in hash: ~{~A ~}~%"
+                (loop for key being the hash-keys of objects collect key))
+        (when-let ((object-data (gethash object-id objects)))
+          ;; Remove object
+          (remhash object-id objects)
+          ;; Add to history if user-id provided
+          (when user-id
+            (add-canvas-history canvas-id user-id "delete"
+                               (to-json-string object-data)))
+          ;; Mark as dirty
+          (mark-canvas-dirty canvas-id)
+          t)))))
+
+(defun get-canvas-objects (canvas-id)
+  "Get all objects in a canvas as a list"
+  (let ((state (get-or-load-canvas-state canvas-id)))
+    ;; Convert hash table to list of objects for JSON serialization
+    (let ((objects '()))
+      (maphash (lambda (id data)
+                 ;; Ensure the object data includes the id field
+                 ;; If data is an alist, check if :id or :ID exists
+                 (let ((has-id (or (assoc :id data) (assoc :ID data))))
+                   (if has-id
+                       ;; ID already in data, just push it
+                       (push data objects)
+                       ;; ID not in data, add it
+                       (push (cons (cons :id id) data) objects))))
+               (canvas-state-objects state))
+      objects)))
+
+(defun get-canvas-object (canvas-id object-id)
+  "Get a specific object from canvas"
+  (let ((state (get-or-load-canvas-state canvas-id)))
+    (gethash object-id (canvas-state-objects state))))
+
+;;; HTTP Handlers for canvas state
+(defun handle-get-canvas-state ()
+  "Handle GET request for canvas state"
+  (set-cors-headers)
+  (require-auth)
+
+  (let ((canvas-id (hunchentoot:get-parameter "canvas_id")))
+    (unless canvas-id
+      (return-from handle-get-canvas-state
+        (error-response "Canvas ID required")))
+
+    (let ((state (get-or-load-canvas-state canvas-id)))
+      (success-response
+       `((:canvas-id . ,canvas-id)
+         (:objects . ,(canvas-state-objects state))
+         (:version . ,(canvas-state-version state))
+         (:last-updated . ,(canvas-state-last-updated state)))))))
+
+(defun handle-save-canvas-state ()
+  "Handle POST request to save canvas state"
+  (set-cors-headers)
+  (require-auth)
+
+  (let ((data (get-json-body)))
+    (unless data
+      (return-from handle-save-canvas-state
+        (error-response "Invalid request body")))
+
+    (let ((canvas-id (cdr (assoc :canvas-id data)))
+          (objects (cdr (assoc :objects data))))
+
+      (unless (and canvas-id objects)
+        (return-from handle-save-canvas-state
+          (error-response "Canvas ID and objects required")))
+
+      ;; Update entire canvas state
+      (let* ((lock (get-or-create-canvas-lock canvas-id))
+             (state (get-or-load-canvas-state canvas-id)))
+        (bt:with-lock-held (lock)
+          (setf (canvas-state-objects state) objects)
+          (mark-canvas-dirty canvas-id)))
+
+      (success-response
+       '((:message . "Canvas state saved successfully"))))))
+</file>
+
+<file path="backend/src/config.lisp">
+;;;; config.lisp - Configuration settings for CollabCanvas
+
+(in-package #:collabcanvas)
+
+;;; Server Configuration
+(defparameter *port* 8080
+  "HTTP server port")
+
+(defparameter *host* "0.0.0.0"
+  "Host to bind the server to")
+
+(defparameter *websocket-port* 8080
+  "WebSocket server port (same as HTTP for simplicity)")
+
+;;; Database Configuration
+(defparameter *database-path*
+  (or (uiop:getenv "DATABASE_PATH")
+      "data/canvas.db")
+  "Path to SQLite database file")
+
+(defparameter *database-lock* (bt:make-lock "database-lock")
+  "Lock for database operations")
+
+;;; Frontend Configuration
+(defparameter *frontend-path*
+  (or (uiop:getenv "FRONTEND_PATH")
+      (merge-pathnames "../frontend/dist/" (uiop:getcwd)))
+  "Path to frontend static files")
+
+;;; Session Configuration
+(defparameter *session-timeout* (* 24 60 60)
+  "Session timeout in seconds (24 hours)")
+
+(defparameter *session-cookie-name* "collabcanvas-session"
+  "Name of the session cookie")
+
+;;; Canvas Configuration
+(defparameter *max-canvas-size* (* 10000 10000)
+  "Maximum canvas dimensions in pixels")
+
+(defparameter *default-canvas-width* 1920
+  "Default canvas width")
+
+(defparameter *default-canvas-height* 1080
+  "Default canvas height")
+
+(defparameter *max-objects-per-canvas* 10000
+  "Maximum number of objects per canvas")
+
+;;; WebSocket Configuration
+(defparameter *websocket-ping-interval* 30
+  "WebSocket ping interval in seconds")
+
+(defparameter *max-message-size* (* 1024 1024)
+  "Maximum WebSocket message size in bytes (1MB)")
+
+(defparameter *cursor-update-throttle* (/ 1.0 30)
+  "Minimum time between cursor updates in seconds (30 FPS)")
+
+;;; Performance Configuration
+(defparameter *state-save-debounce* 0.5
+  "Debounce time for saving canvas state in seconds")
+
+(defparameter *max-concurrent-users* 100
+  "Maximum concurrent users per canvas")
+
+;;; Development Configuration
+(defparameter *debug-mode* t
+  "Enable debug logging and development features")
+
+(defparameter *cors-enabled* t
+  "Enable CORS for development")
+
+(defparameter *allowed-origins*
+  '("http://localhost:6465"
+    "http://localhost:5173"
+    "http://localhost:3000"
+    "https://cl-fun.fly.dev")
+  "List of allowed CORS origins")
+</file>
+
+<file path="frontend/src/websocket.js">
+// websocket.js - WebSocket client for real-time synchronization
+
+export class WebSocketClient {
+    constructor(url, sessionId, canvasId) {
+        this.url = url
+        this.sessionId = sessionId
+        this.canvasId = canvasId
+        this.ws = null
+        this.isConnected = false
+        this.reconnectAttempts = 0
+        this.maxReconnectAttempts = 5
+        this.reconnectDelay = 1000
+
+        // Improved cursor throttling
+        this.lastCursorSend = 0
+        this.cursorSendInterval = 16 // ~60 FPS
+        this.pendingCursor = null
+        this.cursorAnimationFrame = null
+
+        // Callbacks
+        this.onAuthSuccess = () => {}
+        this.onAuthFailed = () => {}
+        this.onUserConnected = () => {}
+        this.onUserDisconnected = () => {}
+        this.onPresenceUpdate = () => {}
+        this.onCursorUpdate = () => {}
+        this.onObjectCreated = () => {}
+        this.onObjectUpdated = () => {}
+        this.onObjectDeleted = () => {}
+        this.onError = () => {}
+        this.onReconnecting = () => {}
+        this.onReconnected = () => {}
+    }
+
+    connect() {
+        console.log(`Connecting to WebSocket: ${this.url}`)
+
+        try {
+            this.ws = new WebSocket(this.url)
+            this.setupEventHandlers()
+        } catch (error) {
+            console.error('WebSocket connection error:', error)
+            this.onError(error)
+            this.scheduleReconnect()
+        }
+    }
+
+    setupEventHandlers() {
+        this.ws.onopen = () => {
+            console.log('WebSocket connected')
+            this.isConnected = true
+            this.reconnectAttempts = 0
+
+            // Send authentication message
+            this.send({
+                type: 'auth',
+                sessionId: this.sessionId,
+                canvasId: this.canvasId
+            })
+
+            if (this.reconnectAttempts > 0) {
+                this.onReconnected()
+            }
+        }
+
+        this.ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data)
+                this.handleMessage(data)
+            } catch (error) {
+                console.error('Error parsing WebSocket message:', error)
+                this.onError(error)
+            }
+        }
+
+        this.ws.onclose = (event) => {
+            console.log('WebSocket disconnected:', event.code, event.reason)
+            this.isConnected = false
+
+            if (!event.wasClean) {
+                this.scheduleReconnect()
+            }
+        }
+
+        this.ws.onerror = (error) => {
+            console.error('WebSocket error:', error)
+            this.onError(error)
+        }
+    }
+
+    handleMessage(data) {
+        switch (data.type) {
+            case 'auth-success':
+                this.onAuthSuccess(data)
+                break
+
+            case 'auth-failed':
+                this.onAuthFailed(data)
+                break
+
+            case 'user-connected':
+                this.onUserConnected(data)
+                break
+
+            case 'user-disconnected':
+                this.onUserDisconnected(data)
+                break
+
+            case 'presence':
+                this.onPresenceUpdate(data.users)
+                break
+
+            case 'cursor':
+                this.onCursorUpdate(data)
+                break
+
+            case 'object-create':
+                this.onObjectCreated(data)
+                break
+
+            case 'object-update':
+                this.onObjectUpdated(data)
+                break
+
+            case 'object-delete':
+                this.onObjectDeleted(data)
+                break
+
+            case 'error':
+                console.error('Server error:', data.message)
+                this.onError(new Error(data.message))
+                break
+
+            default:
+                console.warn('Unknown message type:', data.type)
+        }
+    }
+
+    send(data) {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify(data))
+        } else {
+            console.warn('WebSocket not connected, message not sent:', data)
+        }
+    }
+
+    sendCursorUpdate(x, y) {
+        // Store pending cursor position
+        this.pendingCursor = { x, y }
+
+        // If we haven't scheduled a send, schedule one
+        if (!this.cursorAnimationFrame) {
+            this.cursorAnimationFrame = requestAnimationFrame(() => {
+                this.processCursorUpdate()
+            })
+        }
+    }
+
+    processCursorUpdate() {
+        const now = performance.now()
+
+        // Check if enough time has passed since last send
+        if (now - this.lastCursorSend >= this.cursorSendInterval && this.pendingCursor) {
+            this.send({
+                type: 'cursor',
+                x: this.pendingCursor.x,
+                y: this.pendingCursor.y
+            })
+            this.lastCursorSend = now
+            this.pendingCursor = null
+            this.cursorAnimationFrame = null
+        } else if (this.pendingCursor) {
+            // Schedule another check
+            this.cursorAnimationFrame = requestAnimationFrame(() => {
+                this.processCursorUpdate()
+            })
+        } else {
+            this.cursorAnimationFrame = null
+        }
+    }
+
+    sendObjectCreate(object) {
+        this.send({
+            type: 'object-create',
+            object: object
+        })
+    }
+
+    sendObjectUpdate(objectId, updates) {
+        this.send({
+            type: 'object-update',
+            'object-id': objectId,
+            updates: updates
+        })
+    }
+
+    sendObjectDelete(objectId) {
+        this.send({
+            type: 'object-delete',
+            'object-id': objectId
+        })
+    }
+
+    scheduleReconnect() {
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.error('Max reconnection attempts reached')
+            this.onError(new Error('Unable to reconnect to server'))
+            return
+        }
+
+        this.reconnectAttempts++
+        const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1)
+
+        console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
+        this.onReconnecting()
+
+        setTimeout(() => {
+            this.connect()
+        }, delay)
+    }
+
+    disconnect() {
+        if (this.ws) {
+            this.ws.close(1000, 'User disconnect')
+            this.ws = null
+            this.isConnected = false
+        }
+    }
+}
+</file>
+
+<file path="Dockerfile">
+# Dockerfile for CollabCanvas
+
+FROM debian:bookworm-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    build-essential \
+    libssl-dev \
+    sqlite3 \
+    libsqlite3-dev \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Roswell
+RUN curl -L https://github.com/roswell/roswell/releases/download/v21.10.14.111/roswell_21.10.14.111-1_amd64.deb \
+    -o roswell.deb && \
+    dpkg -i roswell.deb && \
+    rm roswell.deb
+
+# Setup Roswell
+RUN ros setup
+
+# Install SBCL via Roswell
+RUN ros install sbcl-bin
+
+# Set working directory
+WORKDIR /app
+
+# Copy backend files
+COPY backend/ ./backend/
+
+# Setup backend
+WORKDIR /app/backend
+RUN ros -e '(ql:quickload :quicklisp-slime-helper)' -q
+
+# Link project to Roswell and pre-compile all code
+RUN ln -s /app/backend ~/.roswell/local-projects/collabcanvas && \
+    ros -e '(ql:register-local-projects)' -q && \
+    ros -e '(ql:quickload :collabcanvas)' -q && \
+    echo "Code pre-compiled successfully"
+
+# Copy frontend files
+WORKDIR /app
+COPY frontend/ ./frontend/
+
+# Build frontend
+WORKDIR /app/frontend
+RUN npm install && npm run build
+
+# Create data directory for volume mount
+RUN mkdir -p /data
+
+# Expose port
+EXPOSE 8080
+
+# Set working directory
+WORKDIR /app
+
+# Create startup script with conditional DB initialization
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+# Check if database exists, if not initialize it\n\
+if [ ! -f /data/canvas.db ]; then\n\
+  echo "Initializing database..."\n\
+  cd /app/backend\n\
+  sqlite3 /data/canvas.db < db/schema.sql\n\
+  echo "Database initialized."\n\
+else\n\
+  echo "Database already exists, skipping initialization."\n\
+fi\n\
+\n\
+# Start the server (code already pre-compiled, should be fast)\n\
+echo "Starting CollabCanvas server..."\n\
+cd /app/backend\n\
+exec ros run -e "(ql:quickload :collabcanvas :silent t)" \\\n\
+         -e "(collabcanvas:start-server)" \\\n\
+         -e "(loop (sleep 1))"' > /app/start.sh && \
+    chmod +x /app/start.sh
+
+# Start the application
+CMD ["/app/start.sh"]
+</file>
+
+<file path="backend/src/websocket.lisp">
+;;;; websocket.lisp - WebSocket handlers for real-time collaboration
+
+(in-package #:collabcanvas)
+
+;;; Room management
+(defparameter *canvas-rooms* (make-hash-table :test 'equal)
+  "Hash table of canvas-id -> canvas-room")
+
+(defparameter *rooms-lock* (bt:make-lock "rooms-lock")
+  "Lock for room operations")
+
+(defclass canvas-room ()
+  ((id :initarg :id :reader room-id)
+   (clients :initform (make-hash-table :test 'eq) :accessor room-clients)
+   (lock :initform (bt:make-lock "room-lock") :reader room-lock))
+  (:documentation "A canvas room containing connected clients"))
+
+(defclass canvas-client ()
+  ((websocket :initarg :websocket :reader client-websocket)
+   (user-id :initarg :user-id :accessor client-user-id)
+   (username :initarg :username :accessor client-username)
+   (canvas-id :initarg :canvas-id :reader client-canvas-id)
+   (color :initarg :color :accessor client-color))
+  (:documentation "A connected WebSocket client"))
+
+(defclass canvas-websocket-resource (hunchensocket:websocket-resource)
+  ((canvas-id :initarg :canvas-id :reader resource-canvas-id))
+  (:documentation "WebSocket resource for a specific canvas"))
+
+;;; Room management functions
+(defun get-or-create-room (canvas-id)
+  "Get or create a room for a canvas"
+  (bt:with-lock-held (*rooms-lock*)
+    (or (gethash canvas-id *canvas-rooms*)
+        (setf (gethash canvas-id *canvas-rooms*)
+              (make-instance 'canvas-room :id canvas-id)))))
+
+(defun add-client-to-room (room client)
+  "Add a client to a room"
+  (bt:with-lock-held ((room-lock room))
+    (setf (gethash (client-websocket client) (room-clients room)) client)))
+
+(defun remove-client-from-room (room websocket)
+  "Remove a client from a room"
+  (bt:with-lock-held ((room-lock room))
+    (remhash websocket (room-clients room))))
+
+(defun get-room-client-list (room)
+  "Get list of clients in a room"
+  (bt:with-lock-held ((room-lock room))
+    (loop for client being the hash-values of (room-clients room)
+          collect `((:user-id . ,(client-user-id client))
+                   (:username . ,(client-username client))
+                   (:color . ,(client-color client))))))
+
+(defun broadcast-to-room (room message &optional exclude-websocket)
+  "Broadcast a message to all clients in a room except the sender"
+  ;; Serialize JSON once before acquiring lock (performance optimization)
+  (let ((json-message (to-json-string message))
+        (clients-to-send nil))
+    ;; Collect clients under lock (minimize lock time)
+    (bt:with-lock-held ((room-lock room))
+      (loop for client being the hash-values of (room-clients room)
+            unless (eq (client-websocket client) exclude-websocket)
+            do (push (client-websocket client) clients-to-send)))
+    ;; Send messages outside of lock
+    (dolist (ws clients-to-send)
+      (handler-case
+          (hunchensocket:send-text-message ws json-message)
+        (error (e)
+          (format t "Error sending to client: ~A~%" e))))))
+
+(defun broadcast-to-all (room message)
+  "Broadcast a message to all clients in a room"
+  (broadcast-to-room room message nil))
+
+;;; Color generation for users
+(defparameter *user-colors*
+  '("#FF6B6B" "#4ECDC4" "#45B7D1" "#96CEB4" "#FECA57"
+    "#FF9FF3" "#54A0FF" "#48DBFB" "#FD79A8" "#A29BFE")
+  "Predefined colors for user cursors")
+
+(defun get-user-color (user-id)
+  "Get a consistent color for a user"
+  (nth (mod user-id (length *user-colors*)) *user-colors*))
+
+;;; WebSocket event handlers
+(defmethod hunchensocket:client-connected ((resource canvas-websocket-resource) websocket)
+  "Handle new WebSocket connection"
+  (format t "Client connected to canvas: ~A~%" (resource-canvas-id resource))
+  ;; Client will send auth message to complete connection
+  nil)
+
+(defmethod hunchensocket:client-disconnected ((resource canvas-websocket-resource) websocket)
+  "Handle WebSocket disconnection"
+  (let* ((canvas-id (resource-canvas-id resource))
+         (room (gethash canvas-id *canvas-rooms*)))
+    (when room
+      (let ((client (gethash websocket (room-clients room))))
+        (when client
+          (format t "Client ~A disconnected from canvas ~A~%"
+                  (client-username client) canvas-id)
+          ;; Notify others of disconnection
+          (broadcast-to-room room
+                           `((:type . "user-disconnected")
+                             (:user-id . ,(client-user-id client))
+                             (:username . ,(client-username client)))
+                           websocket)
+          ;; Remove from room
+          (remove-client-from-room room websocket))))))
+
+(defmethod hunchensocket:text-message-received ((resource canvas-websocket-resource) websocket message)
+  "Handle incoming WebSocket message"
+  (handler-case
+      (let* ((data (parse-json message))
+             (msg-type (cdr (assoc :type data)))
+             (canvas-id (resource-canvas-id resource))
+             (room (get-or-create-room canvas-id)))
+
+        (cond
+          ;; Authentication message
+          ((string= msg-type "auth")
+           (handle-websocket-auth resource websocket data room))
+
+          ;; Cursor movement
+          ((string= msg-type "cursor")
+           (handle-cursor-update resource websocket data room))
+
+          ;; Object creation
+          ((string= msg-type "object-create")
+           (handle-object-create resource websocket data room))
+
+          ;; Object update
+          ((string= msg-type "object-update")
+           (handle-object-update resource websocket data room))
+
+          ;; Object deletion
+          ((string= msg-type "object-delete")
+           (handle-object-delete resource websocket data room))
+
+          ;; Unknown message type
+          (t
+           (format t "Unknown message type: ~A~%" msg-type))))
+
+    (error (e)
+      (format t "Error processing WebSocket message: ~A~%" e)
+      (hunchensocket:send-text-message
+       websocket
+       (to-json-string `((:type . "error")
+                        (:message . ,(format nil "~A" e))))))))
+
+;;; Message handlers
+(defun handle-websocket-auth (resource websocket data room)
+  "Handle authentication message"
+  (let ((session-id (cdr (assoc :session-id data)))
+        (canvas-id (resource-canvas-id resource)))
+
+    (if-let ((session (validate-session session-id)))
+      (let* ((user-id (cdr (assoc :user-id session)))
+             (username (cdr (assoc :username session)))
+             (color (get-user-color user-id))
+             (client (make-instance 'canvas-client
+                                  :websocket websocket
+                                  :user-id user-id
+                                  :username username
+                                  :canvas-id canvas-id
+                                  :color color)))
+
+        ;; Add client to room
+        (add-client-to-room room client)
+
+        ;; Send success response with initial state
+        (let ((canvas-state (get-canvas-objects canvas-id)))
+          (format t "Sending canvas state with ~A objects~%"
+                  (length canvas-state))
+          (hunchensocket:send-text-message
+           websocket
+           (to-json-string `((:type . "auth-success")
+                           (:user-id . ,user-id)
+                           (:username . ,username)
+                           (:color . ,color)
+                           (:canvas-state . ,canvas-state)))))
+
+        ;; Notify others of new user
+        (broadcast-to-room room
+                         `((:type . "user-connected")
+                           (:user-id . ,user-id)
+                           (:username . ,username)
+                           (:color . ,color))
+                         websocket)
+
+        ;; Send current presence list
+        (hunchensocket:send-text-message
+         websocket
+         (to-json-string `((:type . "presence")
+                          (:users . ,(get-room-client-list room)))))
+
+        (format t "User ~A authenticated for canvas ~A~%" username canvas-id))
+
+      ;; Authentication failed
+      (hunchensocket:send-text-message
+       websocket
+       (to-json-string '((:type . "auth-failed")
+                        (:message . "Invalid or expired session")))))))
+
+(defun handle-cursor-update (resource websocket data room)
+  "Handle cursor position update"
+  (let ((client (gethash websocket (room-clients room))))
+    (when client
+      (let ((x (cdr (assoc :x data)))
+            (y (cdr (assoc :y data))))
+        ;; Broadcast cursor position to others
+        (broadcast-to-room room
+                         `((:type . "cursor")
+                           (:user-id . ,(client-user-id client))
+                           (:username . ,(client-username client))
+                           (:color . ,(client-color client))
+                           (:x . ,x)
+                           (:y . ,y))
+                         websocket)))))
+
+(defun handle-object-create (resource websocket data room)
+  "Handle object creation"
+  (let ((client (gethash websocket (room-clients room))))
+    (when client
+      (let* ((object-data (cdr (assoc :object data)))
+             (object-id (cdr (assoc :id object-data)))
+             (canvas-id (resource-canvas-id resource)))
+
+        (format t "Object created: ~A in canvas ~A by ~A~%"
+                object-id canvas-id (client-username client))
+        (format t "Object data received: ~A~%" (to-json-string object-data))
+
+        ;; Update canvas state
+        (update-canvas-object canvas-id object-id object-data
+                            (client-user-id client))
+
+        ;; Broadcast to all other clients
+        (broadcast-to-room room
+                         `((:type . "object-create")
+                           (:object . ,object-data)
+                           (:user-id . ,(client-user-id client))
+                           (:username . ,(client-username client)))
+                         websocket)))))
+
+(defun handle-object-update (resource websocket data room)
+  "Handle object update"
+  (let ((client (gethash websocket (room-clients room))))
+    (when client
+      (let* ((object-id (cdr (assoc :object-id data)))
+             (updates (cdr (assoc :updates data)))
+             (canvas-id (resource-canvas-id resource)))
+
+        (format t "~%=== OBJECT UPDATE RECEIVED ===~%")
+        (format t "Canvas ID: ~A~%" canvas-id)
+        (format t "Object ID: ~A (type: ~A)~%" object-id (type-of object-id))
+        (format t "Updates: ~A~%" (to-json-string updates))
+
+        ;; Get current object and apply updates
+        (let ((current-object (get-canvas-object canvas-id object-id)))
+          (format t "Current object found: ~A~%" (if current-object "YES" "NO"))
+          (when current-object
+            (format t "Current object data: ~A~%" (to-json-string current-object))
+            ;; Merge updates into current object - properly handle duplicate keys
+            (let* ((update-keys (mapcar #'car updates))
+                   (filtered-current (remove-if (lambda (pair)
+                                                  (member (car pair) update-keys))
+                                                current-object))
+                   (updated-object (append updates filtered-current)))
+              (format t "Updated object data: ~A~%" (to-json-string updated-object))
+              ;; Update canvas state
+              (update-canvas-object canvas-id object-id updated-object
+                                  (client-user-id client))
+              (format t "Object updated in canvas state~%")
+
+              ;; Broadcast to all other clients
+              (broadcast-to-room room
+                               `((:type . "object-update")
+                                 (:object-id . ,object-id)
+                                 (:updates . ,updates)
+                                 (:user-id . ,(client-user-id client))
+                                 (:username . ,(client-username client)))
+                               websocket)
+              (format t "Broadcast to room complete~%")))
+          (unless current-object
+            (format t "WARNING: Object ~A not found in canvas ~A~%" object-id canvas-id))
+          (format t "=== END OBJECT UPDATE ===~%~%"))))))
+
+(defun handle-object-delete (resource websocket data room)
+  "Handle object deletion"
+  (let ((client (gethash websocket (room-clients room))))
+    (when client
+      (let* ((object-id (cdr (assoc :object-id data)))
+             (canvas-id (resource-canvas-id resource)))
+
+        (format t "Object deletion requested: ~A in canvas ~A by ~A~%"
+                object-id canvas-id (client-username client))
+
+        ;; Delete from canvas state
+        (let ((deleted (delete-canvas-object canvas-id object-id
+                                            (client-user-id client))))
+          (if deleted
+              (progn
+                (format t "Object ~A deleted successfully from canvas ~A~%"
+                        object-id canvas-id)
+                ;; Broadcast to all other clients
+                (broadcast-to-room room
+                                 `((:type . "object-delete")
+                                   (:object-id . ,object-id)
+                                   (:user-id . ,(client-user-id client))
+                                   (:username . ,(client-username client)))
+                                 websocket))
+              (format t "WARNING: Object ~A not found in canvas ~A~%"
+                      object-id canvas-id)))))))
+</file>
+
+<file path="backend/src/utils.lisp">
+;;;; utils.lisp - Utility functions for CollabCanvas
+
+(in-package #:collabcanvas)
+
+;;; String utilities
+(defun generate-uuid ()
+  "Generate a UUID v4 string"
+  (format nil "~8,'0X-~4,'0X-~4,'0X-~4,'0X-~12,'0X"
+          (random (expt 2 32))
+          (random (expt 2 16))
+          (logior #x4000 (random (expt 2 16)))
+          (logior #x8000 (random (expt 2 16)))
+          (random (expt 2 48))))
+
+(defun generate-session-id ()
+  "Generate a secure session ID"
+  (ironclad:byte-array-to-hex-string
+   (ironclad:digest-sequence
+    :sha256
+    (ironclad:ascii-string-to-byte-array
+     (format nil "~A~A~A"
+             (get-universal-time)
+             (random (expt 2 64))
+             (generate-uuid))))))
+
+;;; Time utilities
+(defun current-timestamp ()
+  "Get current timestamp in ISO 8601 format"
+  (local-time:format-timestring nil (local-time:now)))
+
+(defun timestamp-to-unix (timestamp)
+  "Convert timestamp string to Unix epoch"
+  (local-time:timestamp-to-unix
+   (local-time:parse-timestring timestamp)))
+
+(defun unix-to-timestamp (unix)
+  "Convert Unix epoch to timestamp string"
+  (local-time:format-timestring nil
+   (local-time:unix-to-timestamp unix)))
+
+(defun expired-p (expires-at)
+  "Check if a timestamp has expired"
+  (local-time:timestamp<
+   (local-time:parse-timestring expires-at)
+   (local-time:now)))
+
+;;; JSON utilities
+(defun plist-to-alist (plist)
+  "Convert property list to association list"
+  (loop for (key value) on plist by #'cddr
+        collect (cons key value)))
+
+(defun camel-case-to-kebab-case (string)
+  "Convert camelCase to kebab-case: sessionId -> session-id"
+  (let ((result '())
+        (prev-lower nil))
+    (loop for char across string
+          do (cond
+               ;; If uppercase and previous was lowercase, add hyphen before
+               ((and (upper-case-p char) prev-lower)
+                (push #\- result)
+                (push (char-downcase char) result)
+                (setf prev-lower nil))
+               ;; If uppercase, just downcase
+               ((upper-case-p char)
+                (push (char-downcase char) result)
+                (setf prev-lower nil))
+               ;; If lowercase, keep as is
+               (t
+                (push char result)
+                (setf prev-lower t))))
+    (coerce (nreverse result) 'string)))
+
+(defun normalize-json-keys (object)
+  "Convert Jonathan's pipe-escaped keywords to regular keywords and plist to alist.
+   Also converts camelCase to kebab-case for Common Lisp conventions."
+  (cond
+    ((null object) nil)
+    ;; Handle plists (convert to alist)
+    ((and (consp object) (keywordp (car object)))
+     (plist-to-alist
+      (loop for (key value) on object by #'cddr
+            for key-str = (symbol-name key)
+            for kebab-str = (camel-case-to-kebab-case key-str)
+            collect (intern (string-upcase kebab-str) :keyword)
+            collect (normalize-json-keys value))))
+    ;; Handle cons cells (alists)
+    ((consp object)
+     (cons (normalize-json-keys (car object))
+           (normalize-json-keys (cdr object))))
+    ;; Pass through everything else
+    (t object)))
+
+(defun parse-json (string)
+  "Parse JSON string, returning nil on error"
+  (handler-case
+      (normalize-json-keys (jonathan:parse string))
+    (error (e)
+      (when *debug-mode*
+        (format t "JSON parse error: ~A~%" e))
+      nil)))
+
+(defun alist-p (obj)
+  "Check if object is an association list"
+  (and (listp obj)
+       (not (null obj))
+       (every #'consp obj)
+       ;; Make sure it's not a nested alist value
+       (every (lambda (pair) (keywordp (car pair))) obj)))
+
+(defun hash-table-to-alist (hash)
+  "Convert hash table to association list"
+  (let ((result '()))
+    (maphash (lambda (key value)
+               (push (cons (intern (string-upcase key) :keyword) value) result))
+             hash)
+    (nreverse result)))
+
+(defun convert-to-hash (obj)
+  "Recursively convert alists to hash tables for Jonathan"
+  (cond
+    ;; If it's a hash table, convert to alist first then to hash
+    ((hash-table-p obj)
+     (convert-to-hash (hash-table-to-alist obj)))
+    ;; If it's an alist, convert to hash table
+    ((and (listp obj)
+          (not (null obj))
+          (every #'consp obj)
+          (every (lambda (pair) (keywordp (car pair))) obj))
+     (let ((hash (make-hash-table :test 'equal)))
+       (dolist (pair obj)
+         (setf (gethash (string-downcase (symbol-name (car pair))) hash)
+               (convert-to-hash (cdr pair))))
+       hash))
+    ;; If it's a list of non-alists, convert each element
+    ((listp obj)
+     (mapcar #'convert-to-hash obj))
+    ;; Otherwise return as-is (atomic values)
+    (t obj)))
+
+(defun to-json-string (object)
+  "Convert object to JSON string"
+  (jonathan:to-json (convert-to-hash object)))
+
+;;; HTTP utilities
+(defun get-json-body ()
+  "Get and parse JSON body from current request"
+  (let ((raw-body (hunchentoot:raw-post-data :force-text t)))
+    (when raw-body
+      (parse-json raw-body))))
+
+(defun json-response (data &key (status 200))
+  "Send JSON response with appropriate headers"
+  (setf (hunchentoot:content-type*) "application/json")
+  (setf (hunchentoot:return-code*) status)
+  ;; Convert any alists to hash tables recursively
+  (jonathan:to-json (convert-to-hash data)))
+
+(defun error-response (message &key (status 400))
+  "Send error response as JSON"
+  (json-response `((:error . ,message)) :status status))
+
+(defun success-response (data)
+  "Send success response as JSON"
+  (json-response `((:success . t) (:data . ,data))))
+
+;;; CORS utilities
+(defun set-cors-headers ()
+  "Set CORS headers for development"
+  (when *cors-enabled*
+    (setf (hunchentoot:header-out "Access-Control-Allow-Origin") "*")
+    (setf (hunchentoot:header-out "Access-Control-Allow-Methods")
+          "GET, POST, PUT, DELETE, OPTIONS")
+    (setf (hunchentoot:header-out "Access-Control-Allow-Headers")
+          "Content-Type, Authorization")
+    (setf (hunchentoot:header-out "Access-Control-Max-Age") "3600")))
+
+;;; Validation utilities
+(defun valid-email-p (email)
+  "Check if email is valid"
+  (and (stringp email)
+       (cl-ppcre:scan "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$" email)))
+
+(defun valid-username-p (username)
+  "Check if username is valid"
+  (and (stringp username)
+       (>= (length username) 3)
+       (<= (length username) 30)
+       (cl-ppcre:scan "^[a-zA-Z0-9_-]+$" username)))
+
+(defun valid-password-p (password)
+  "Check if password meets requirements"
+  (and (stringp password)
+       (>= (length password) 8)))
+
+;;; Canvas utilities
+(defun valid-canvas-id-p (canvas-id)
+  "Check if canvas ID is valid"
+  (and (stringp canvas-id)
+       (cl-ppcre:scan "^[a-zA-Z0-9-]+$" canvas-id)))
+
+(defun generate-canvas-id ()
+  "Generate a unique canvas ID"
+  (format nil "canvas-~A" (subseq (generate-uuid) 0 8)))
+</file>
+
+<file path="frontend/src/canvas.js">
+// src/canvas.js
+// Complete PixiJS Canvas Manager for CollabCanvas
+import * as PIXI from 'pixi.js';
+
+export class CanvasManager {
+  constructor(app) {
+    this.app = app;
+    this.viewport = new PIXI.Container();
+    this.objects = new Map(); // objectId -> PIXI Graphics
+    this.selectedObjects = new Set();
+    this.selectionIndicators = new Map(); // objectId -> selection box Graphics
+    this.remoteCursors = new Map(); // userId -> cursor container
+
+    // State
+    this.isPanning = false;
+    this.panStart = { x: 0, y: 0 };
+    this.currentTool = 'select'; // 'select', 'rectangle', 'circle', 'text'
+    this.currentColor = 0x3498db; // Default blue
+    
+    // Viewport setup
+    this.app.stage.addChild(this.viewport);
+    this.viewport.sortableChildren = true;
+    
+    // Grid background (optional visual aid)
+    this.drawGrid();
+    
+    // Setup interaction
+    this.setupPanZoom();
+    this.setupKeyboardShortcuts();
+    this.setupToolHandlers();
+    
+    console.log('Canvas initialized');
+  }
+  
+  // ==================== Grid ====================
+  
+  drawGrid() {
+    const grid = new PIXI.Graphics();
+    grid.lineStyle(1, 0x333333, 0.3);
+    
+    const gridSize = 50;
+    const gridExtent = 5000;
+    
+    // Vertical lines
+    for (let x = -gridExtent; x <= gridExtent; x += gridSize) {
+      grid.moveTo(x, -gridExtent);
+      grid.lineTo(x, gridExtent);
+    }
+    
+    // Horizontal lines
+    for (let y = -gridExtent; y <= gridExtent; y += gridSize) {
+      grid.moveTo(-gridExtent, y);
+      grid.lineTo(gridExtent, y);
+    }
+    
+    grid.zIndex = -1;
+    this.viewport.addChild(grid);
+  }
+  
+  // ==================== Pan & Zoom ====================
+  
+  setupPanZoom() {
+    const canvas = this.app.view;
+    
+    // Pan with middle mouse or Alt+drag
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.button === 1 || (e.button === 0 && e.altKey)) {
+        this.isPanning = true;
+        this.panStart = { x: e.clientX, y: e.clientY };
+        canvas.style.cursor = 'grabbing';
+        e.preventDefault();
+      }
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+      if (this.isPanning) {
+        const dx = e.clientX - this.panStart.x;
+        const dy = e.clientY - this.panStart.y;
+        
+        this.viewport.x += dx;
+        this.viewport.y += dy;
+        
+        this.panStart = { x: e.clientX, y: e.clientY };
+      }
+    });
+    
+    canvas.addEventListener('mouseup', () => {
+      if (this.isPanning) {
+        this.isPanning = false;
+        canvas.style.cursor = 'default';
+      }
+    });
+    
+    // Zoom with mouse wheel
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      
+      // Get position before zoom
+      const worldPosBefore = this.screenToWorld(mouseX, mouseY);
+      
+      // Apply zoom
+      const newScale = this.viewport.scale.x * zoomFactor;
+      if (newScale >= 0.1 && newScale <= 10) {
+        this.viewport.scale.set(newScale);
+        
+        // Adjust position to keep mouse over same world point
+        const worldPosAfter = this.screenToWorld(mouseX, mouseY);
+        this.viewport.x += (worldPosAfter.x - worldPosBefore.x) * this.viewport.scale.x;
+        this.viewport.y += (worldPosAfter.y - worldPosBefore.y) * this.viewport.scale.y;
+      }
+    }, { passive: false });
+  }
+  
+  screenToWorld(screenX, screenY) {
+    return {
+      x: (screenX - this.viewport.x) / this.viewport.scale.x,
+      y: (screenY - this.viewport.y) / this.viewport.scale.y
+    };
+  }
+  
+  worldToScreen(worldX, worldY) {
+    return {
+      x: worldX * this.viewport.scale.x + this.viewport.x,
+      y: worldY * this.viewport.scale.y + this.viewport.y
+    };
+  }
+  
+  // ==================== Keyboard Shortcuts ====================
+  
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Tool shortcuts
+      if (e.key === 'r' || e.key === 'R') {
+        this.setTool('rectangle');
+      } else if (e.key === 'c' || e.key === 'C') {
+        this.setTool('circle');
+      } else if (e.key === 't' || e.key === 'T') {
+        this.setTool('text');
+      } else if (e.key === 'v' || e.key === 'V' || e.key === 'Escape') {
+        this.setTool('select');
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        this.deleteSelected();
+      }
+    });
+  }
+  
+  setTool(tool) {
+    this.currentTool = tool;
+    console.log('Tool:', tool);
+    // Update UI indicator if you have one
+  }
+  
+  // ==================== Tool Handlers ====================
+  
+  setupToolHandlers() {
+    const canvas = this.app.view;
+    let drawStart = null;
+    let previewShape = null;
+
+    // Track cursor movement
+    canvas.addEventListener('mousemove', (e) => {
+      const worldPos = this.screenToWorld(e.clientX, e.clientY);
+
+      // Notify about cursor movement
+      if (this.onCursorMoved) {
+        this.onCursorMoved(worldPos.x, worldPos.y);
+      }
+
+      // Handle preview shape drawing
+      if (drawStart && previewShape) {
+        const width = worldPos.x - drawStart.x;
+        const height = worldPos.y - drawStart.y;
+
+        previewShape.clear();
+        previewShape.beginFill(this.currentColor);
+
+        if (this.currentTool === 'rectangle') {
+          previewShape.drawRect(drawStart.x, drawStart.y, width, height);
+        } else if (this.currentTool === 'circle') {
+          const radius = Math.sqrt(width * width + height * height);
+          previewShape.drawCircle(drawStart.x, drawStart.y, radius);
+        }
+
+        previewShape.endFill();
+      }
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.button !== 0 || e.altKey) return; // Left click only, not panning
+      
+      const worldPos = this.screenToWorld(e.clientX, e.clientY);
+      
+      if (this.currentTool === 'rectangle' || this.currentTool === 'circle') {
+        drawStart = worldPos;
+        
+        // Create preview shape
+        previewShape = new PIXI.Graphics();
+        previewShape.alpha = 0.5;
+        this.viewport.addChild(previewShape);
+      }
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+      if (drawStart && previewShape) {
+        const worldPos = this.screenToWorld(e.clientX, e.clientY);
+        
+        // Create actual object
+        const objData = this.createToolObject(drawStart, worldPos);
+        
+        // Clean up preview
+        this.viewport.removeChild(previewShape);
+        previewShape = null;
+        drawStart = null;
+        
+        // Notify about new object (callback to WebSocket)
+        if (this.onObjectCreated) {
+          this.onObjectCreated(objData);
+        }
+      }
+    });
+  }
+  
+  createToolObject(start, end) {
+    const id = this.generateId();
+    
+    if (this.currentTool === 'rectangle') {
+      const width = Math.abs(end.x - start.x);
+      const height = Math.abs(end.y - start.y);
+      const x = Math.min(start.x, end.x);
+      const y = Math.min(start.y, end.y);
+      
+      this.createRectangle(id, x, y, width, height, this.currentColor);
+      
+      return {
+        id,
+        type: 'rectangle',
+        x, y, width, height,
+        color: this.currentColor
+      };
+    } else if (this.currentTool === 'circle') {
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
+      const radius = Math.sqrt(dx * dx + dy * dy);
+      
+      this.createCircle(id, start.x, start.y, radius, this.currentColor);
+      
+      return {
+        id,
+        type: 'circle',
+        x: start.x,
+        y: start.y,
+        radius,
+        color: this.currentColor
+      };
+    }
+  }
+  
+  // ==================== Object Creation ====================
+  
+  createRectangle(id, x, y, width, height, color) {
+    const rect = new PIXI.Graphics();
+    rect.beginFill(color);
+    rect.drawRect(0, 0, width, height);
+    rect.endFill();
+    rect.x = x;
+    rect.y = y;
+    rect.interactive = true;
+    rect.buttonMode = true;
+
+    // Store dimensions for selection box
+    rect.userData = { width, height, type: 'rectangle' };
+
+    this.makeDraggable(rect, id);
+    this.makeSelectable(rect, id);
+
+    this.objects.set(id, rect);
+    this.viewport.addChild(rect);
+
+    return rect;
+  }
+  
+  createCircle(id, x, y, radius, color) {
+    const circle = new PIXI.Graphics();
+    circle.beginFill(color);
+    circle.drawCircle(0, 0, radius);
+    circle.endFill();
+    circle.x = x;
+    circle.y = y;
+    circle.interactive = true;
+    circle.buttonMode = true;
+
+    // Store dimensions for selection box
+    circle.userData = { radius, type: 'circle' };
+
+    this.makeDraggable(circle, id);
+    this.makeSelectable(circle, id);
+
+    this.objects.set(id, circle);
+    this.viewport.addChild(circle);
+
+    return circle;
+  }
+  
+  createText(id, text, x, y, fontSize, color) {
+    const textObj = new PIXI.Text(text, {
+      fontSize,
+      fill: color,
+      fontFamily: 'Arial'
+    });
+    textObj.x = x;
+    textObj.y = y;
+    textObj.interactive = true;
+    textObj.buttonMode = true;
+    
+    this.makeDraggable(textObj, id);
+    this.makeSelectable(textObj, id);
+    
+    this.objects.set(id, textObj);
+    this.viewport.addChild(textObj);
+    
+    return textObj;
+  }
+  
+  // ==================== Interaction ====================
+  
+  makeDraggable(obj, id) {
+    let dragData = null;
+    let dragOffset = { x: 0, y: 0 };
+    let lastDragUpdate = 0;
+    const dragUpdateInterval = 50; // Send updates every 50ms during drag (~20 FPS)
+
+    obj.on('pointerdown', (event) => {
+      if (this.currentTool !== 'select') return;
+
+      dragData = event.data;
+      obj.alpha = 0.7;
+      dragData.dragging = true;
+
+      // Store the offset between cursor and object position
+      const cursorPos = dragData.getLocalPosition(obj.parent);
+      dragOffset.x = cursorPos.x - obj.x;
+      dragOffset.y = cursorPos.y - obj.y;
+
+      event.stopPropagation();
+    });
+
+    obj.on('pointerup', () => {
+      if (dragData && dragData.dragging) {
+        obj.alpha = 1;
+        dragData.dragging = false;
+
+        // Send final position update
+        if (this.onObjectUpdated) {
+          this.onObjectUpdated(id, { x: obj.x, y: obj.y });
+        }
+
+        dragData = null;
+      }
+    });
+
+    obj.on('pointermove', () => {
+      if (dragData && dragData.dragging) {
+        const newPosition = dragData.getLocalPosition(obj.parent);
+        // Apply the offset to maintain cursor position relative to object
+        obj.x = newPosition.x - dragOffset.x;
+        obj.y = newPosition.y - dragOffset.y;
+
+        // Send throttled updates during drag for real-time visualization
+        const now = performance.now();
+        if (now - lastDragUpdate >= dragUpdateInterval) {
+          if (this.onObjectUpdated) {
+            this.onObjectUpdated(id, { x: obj.x, y: obj.y });
+          }
+          lastDragUpdate = now;
+        }
+      }
+    });
+  }
+  
+  makeSelectable(obj, id) {
+    obj.on('click', (event) => {
+      if (this.currentTool === 'select') {
+        if (event.data.originalEvent.shiftKey) {
+          // Multi-select
+          if (this.selectedObjects.has(id)) {
+            this.deselectObject(id);
+          } else {
+            this.selectObject(id);
+          }
+        } else {
+          // Single select
+          this.clearSelection();
+          this.selectObject(id);
+        }
+        event.stopPropagation();
+      }
+    });
+  }
+  
+  selectObject(id) {
+    const obj = this.objects.get(id);
+    if (!obj) return;
+
+    this.selectedObjects.add(id);
+
+    // Remove existing selection indicator if any
+    const existingIndicator = this.selectionIndicators.get(id);
+    if (existingIndicator) {
+      this.viewport.removeChild(existingIndicator);
+      existingIndicator.destroy();
+    }
+
+    // Create selection indicator
+    const indicator = new PIXI.Graphics();
+    indicator.lineStyle(2, 0x00FF00);
+
+    if (obj.userData) {
+      if (obj.userData.type === 'rectangle') {
+        // Draw selection box around rectangle
+        const { width, height } = obj.userData;
+        indicator.drawRect(-2, -2, width + 4, height + 4);
+        indicator.x = obj.x;
+        indicator.y = obj.y;
+      } else if (obj.userData.type === 'circle') {
+        // Draw selection box around circle
+        const { radius } = obj.userData;
+        indicator.drawCircle(0, 0, radius + 2);
+        indicator.x = obj.x;
+        indicator.y = obj.y;
+      }
+    }
+
+    // Add to viewport and store reference
+    this.viewport.addChild(indicator);
+    this.selectionIndicators.set(id, indicator);
+  }
+
+  deselectObject(id) {
+    const obj = this.objects.get(id);
+    if (!obj) return;
+
+    this.selectedObjects.delete(id);
+
+    // Remove selection indicator
+    const indicator = this.selectionIndicators.get(id);
+    if (indicator) {
+      this.viewport.removeChild(indicator);
+      indicator.destroy();
+      this.selectionIndicators.delete(id);
+    }
+  }
+  
+  clearSelection() {
+    this.selectedObjects.forEach(id => this.deselectObject(id));
+    this.selectedObjects.clear();
+  }
+  
+  deleteSelected() {
+    this.selectedObjects.forEach(id => {
+      this.deleteObject(id);
+      if (this.onObjectDeleted) {
+        this.onObjectDeleted(id);
+      }
+    });
+    this.selectedObjects.clear();
+  }
+  
+  // ==================== Object Management ====================
+
+  loadState(canvasState) {
+    console.error('========================================');
+    console.error('=== LOAD STATE CALLED ===');
+    console.error('========================================');
+    console.error('Canvas state received:', canvasState);
+    console.error('Canvas state type:', typeof canvasState);
+    console.error('Is array?', Array.isArray(canvasState));
+
+    // Clear existing objects
+    console.error('Clearing existing objects...');
+    this.objects.forEach((obj, id) => {
+      this.deleteObject(id);
+    });
+    console.error('Objects cleared. Map size:', this.objects.size);
+
+    // Load objects from state
+    if (canvasState && typeof canvasState === 'object') {
+      // If it's an array, iterate through it
+      if (Array.isArray(canvasState)) {
+        console.error(`=== Loading ${canvasState.length} objects from ARRAY ===`);
+        canvasState.forEach((objData, index) => {
+          console.error(`Loading object ${index}:`, JSON.stringify(objData));
+          this.createRemoteObject(objData);
+        });
+      } else {
+        // If it's an object/hash, iterate through its values
+        const values = Object.values(canvasState);
+        console.error(`=== Loading ${values.length} objects from OBJECT ===`);
+        values.forEach((objData, index) => {
+          console.error(`Loading object ${index}:`, JSON.stringify(objData));
+          this.createRemoteObject(objData);
+        });
+      }
+    } else {
+      console.error('!!! INVALID canvas state !!!:', canvasState);
+    }
+
+    console.error('========================================');
+    console.error(`=== LOAD STATE COMPLETE: ${this.objects.size} objects ===`);
+    console.error('Current objects in map:', Array.from(this.objects.keys()));
+    console.error('========================================');
+  }
+
+  updateObject(id, updates) {
+    const obj = this.objects.get(id);
+    if (!obj) return;
+
+    if (updates.x !== undefined) obj.x = updates.x;
+    if (updates.y !== undefined) obj.y = updates.y;
+
+    // For Graphics objects, need to redraw if dimensions change
+    if (obj instanceof PIXI.Graphics) {
+      if (updates.width !== undefined || updates.height !== undefined) {
+        // Recreate the shape - this is simplistic, you might want a better approach
+        console.log('Dimension updates for Graphics require recreation');
+      }
+    }
+  }
+
+  deleteObject(id) {
+    const obj = this.objects.get(id);
+    if (obj) {
+      this.viewport.removeChild(obj);
+      this.objects.delete(id);
+      obj.destroy();
+
+      // Clean up selection indicator if it exists
+      const indicator = this.selectionIndicators.get(id);
+      if (indicator) {
+        this.viewport.removeChild(indicator);
+        indicator.destroy();
+        this.selectionIndicators.delete(id);
+      }
+
+      // Remove from selected objects set
+      this.selectedObjects.delete(id);
+    }
+  }
+
+  // ==================== Remote Object Sync ====================
+
+  createRemoteObject(objData) {
+    console.log('Creating remote object:', objData);
+    console.log('Object properties:', {
+      id: objData.id,
+      type: objData.type,
+      x: objData.x,
+      y: objData.y,
+      width: objData.width,
+      height: objData.height,
+      radius: objData.radius,
+      color: objData.color,
+      colorType: typeof objData.color
+    });
+
+    // Convert color to proper format (ensure it's a number)
+    const color = this.normalizeColor(objData.color);
+    console.log('Normalized color:', color, 'type:', typeof color);
+
+    // Infer type from data if missing (backwards compatibility)
+    let type = objData.type;
+    if (!type) {
+      console.warn('Object missing type field, inferring from properties:', objData);
+      if (objData.radius !== undefined) {
+        type = 'circle';
+      } else if (objData.width !== undefined && objData.height !== undefined) {
+        type = 'rectangle';
+      } else if (objData.text !== undefined) {
+        type = 'text';
+      } else {
+        console.error('Cannot infer type for object:', objData);
+        return;
+      }
+    }
+
+    if (type === 'rectangle') {
+      // Validate dimensions
+      if (!objData.width || !objData.height || objData.width <= 0 || objData.height <= 0) {
+        console.warn('Skipping rectangle with invalid dimensions:', objData);
+        return;
+      }
+
+      console.log('Creating rectangle with:', {
+        id: objData.id,
+        x: objData.x,
+        y: objData.y,
+        width: objData.width,
+        height: objData.height,
+        color: color
+      });
+      this.createRectangle(
+        objData.id,
+        objData.x,
+        objData.y,
+        objData.width,
+        objData.height,
+        color
+      );
+      console.log('Rectangle created successfully. Objects in map:', this.objects.size);
+    } else if (type === 'circle') {
+      console.log('Creating circle with:', {
+        id: objData.id,
+        x: objData.x,
+        y: objData.y,
+        radius: objData.radius,
+        color: color
+      });
+      this.createCircle(
+        objData.id,
+        objData.x,
+        objData.y,
+        objData.radius,
+        color
+      );
+      console.log('Circle created successfully');
+    } else if (type === 'text') {
+      console.log('Creating text with:', {
+        id: objData.id,
+        text: objData.text,
+        x: objData.x,
+        y: objData.y,
+        fontSize: objData.fontSize,
+        color: color
+      });
+      this.createText(
+        objData.id,
+        objData.text,
+        objData.x,
+        objData.y,
+        objData.fontSize,
+        color
+      );
+      console.log('Text created successfully');
+    } else {
+      console.error('Unknown object type:', type);
+    }
+  }
+
+  normalizeColor(color) {
+    // If it's already a number (0xRRGGBB format), return it
+    if (typeof color === 'number') {
+      return color;
+    }
+
+    // If it's a hex string like "#3498db", convert to number
+    if (typeof color === 'string') {
+      if (color.startsWith('#')) {
+        return parseInt(color.substring(1), 16);
+      }
+      // If it's a string number like "3498db", convert to number
+      return parseInt(color, 16);
+    }
+
+    // Default color if something goes wrong
+    return 0x3498db;
+  }
+
+  updateRemoteObject(objectId, updates) {
+    console.log('Updating remote object:', objectId, updates);
+    this.updateObject(objectId, updates);
+  }
+
+  deleteRemoteObject(objectId) {
+    console.log('Deleting remote object:', objectId);
+    this.deleteObject(objectId);
+  }
+  
+  getObject(id) {
+    return this.objects.get(id);
+  }
+  
+  getAllObjects() {
+    return Array.from(this.objects.entries()).map(([id, obj]) => ({
+      id,
+      type: obj.constructor.name,
+      x: obj.x,
+      y: obj.y
+    }));
+  }
+  
+  // ==================== Remote Cursors ====================
+  
+  updateRemoteCursor(userId, username, x, y, color) {
+    let cursor = this.remoteCursors.get(userId);
+
+    // Convert color string (like "#FF6B6B") to number
+    const colorNum = color && typeof color === 'string' && color.startsWith('#')
+      ? parseInt(color.substring(1), 16)
+      : 0xFF6B6B;
+
+    if (!cursor) {
+      // Create new cursor
+      cursor = new PIXI.Container();
+
+      // Cursor pointer (triangle)
+      const pointer = new PIXI.Graphics();
+      pointer.beginFill(colorNum);
+      pointer.moveTo(0, 0);
+      pointer.lineTo(12, 18);
+      pointer.lineTo(6, 18);
+      pointer.lineTo(0, 24);
+      pointer.endFill();
+
+      // Username label
+      const label = new PIXI.Text(username, {
+        fontSize: 12,
+        fill: 0xFFFFFF,
+        backgroundColor: colorNum,
+        padding: 4
+      });
+      label.x = 15;
+      label.y = 0;
+
+      cursor.addChild(pointer);
+      cursor.addChild(label);
+      cursor.zIndex = 1000;
+
+      this.remoteCursors.set(userId, cursor);
+      this.viewport.addChild(cursor);
+    }
+
+    cursor.x = x;
+    cursor.y = y;
+  }
+  
+  removeRemoteCursor(userId) {
+    const cursor = this.remoteCursors.get(userId);
+    if (cursor) {
+      this.viewport.removeChild(cursor);
+      cursor.destroy();
+      this.remoteCursors.delete(userId);
+    }
+  }
+  
+  // ==================== Utilities ====================
+  
+  generateId() {
+    return 'obj-' + Math.random().toString(36).substr(2, 9);
+  }
+  
+  setColor(color) {
+    this.currentColor = color;
+  }
+  
+  getCanvasState() {
+    const objects = [];
+    this.objects.forEach((obj, id) => {
+      // Serialize object data
+      objects.push({
+        id,
+        type: obj.constructor.name,
+        x: obj.x,
+        y: obj.y,
+        // Add more properties as needed
+      });
+    });
+    return { objects };
+  }
+  
+  // Callbacks - set these from outside
+  onObjectCreated = null;
+  onObjectMoved = null;
+  onObjectDeleted = null;
+  onCursorMoved = null;
+}
+</file>
+
+<file path="frontend/src/main.js">
+// main.js - Application entry point for CollabCanvas
+
+import './styles.css'
+import * as PIXI from 'pixi.js'
+import { CanvasManager } from './canvas.js'
+import { WebSocketClient } from './websocket.js'
+import { AuthManager } from './auth.js'
+
+class CollabCanvas {
+    constructor() {
+        this.canvasManager = null
+        this.wsClient = null
+        this.authManager = null
+        this.sessionId = null
+        this.userId = null
+        this.username = null
+        this.canvasId = this.getCanvasId()
+        this.activeUsers = [] // Track active users
+    }
+
+    getCanvasId() {
+        // Get canvas ID from URL or use default shared canvas
+        const params = new URLSearchParams(window.location.search)
+        let canvasId = params.get('canvas')
+
+        if (!canvasId) {
+            // Use a fixed default canvas so all users join the same one
+            canvasId = 'default-canvas'
+            // Update URL without reload
+            const newUrl = new URL(window.location)
+            newUrl.searchParams.set('canvas', canvasId)
+            window.history.replaceState({}, '', newUrl)
+        }
+
+        return canvasId
+    }
+
+    async init() {
+        console.log('Initializing CollabCanvas...')
+
+        // Update canvas ID in status bar
+        document.getElementById('canvas-id').textContent = this.canvasId
+
+        // Initialize authentication
+        this.authManager = new AuthManager()
+
+        // Check for existing session
+        this.sessionId = localStorage.getItem('sessionId')
+
+        if (this.sessionId) {
+            // Validate session with backend
+            const isValid = await this.validateSession()
+
+            if (!isValid) {
+                this.sessionId = null
+                localStorage.removeItem('sessionId')
+            }
+        }
+
+        if (!this.sessionId) {
+            // Hide loading screen and show auth modal
+            this.hideLoadingScreen()
+            const authData = await this.authManager.showModal()
+            this.sessionId = authData.sessionId
+            this.userId = authData.userId
+            this.username = authData.username
+            localStorage.setItem('sessionId', this.sessionId)
+        }
+
+        // Hide loading screen (session is valid)
+        this.hideLoadingScreen()
+
+        // Initialize canvas
+        this.initCanvas()
+
+        // Initialize WebSocket connection
+        this.initWebSocket()
+
+        // Setup UI event handlers
+        this.setupUIHandlers()
+
+        console.log('CollabCanvas initialized successfully')
+    }
+
+    hideLoadingScreen() {
+        const loadingScreen = document.getElementById('loading-screen')
+        if (loadingScreen) {
+            loadingScreen.classList.add('hidden')
+        }
+    }
+
+    async validateSession() {
+        try {
+            const response = await fetch('/api/session', {
+                credentials: 'include',
+                headers: {
+                    'Authorization': this.sessionId
+                }
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                if (data.success && data.data && data.data.valid) {
+                    this.userId = data.data['user-id']
+                    this.username = data.data.username
+                    console.log('Session restored:', this.username)
+                    return true
+                }
+            }
+        } catch (error) {
+            console.error('Session validation failed:', error)
+        }
+
+        return false
+    }
+
+    initCanvas() {
+        const container = document.getElementById('canvas-container')
+
+        // Create PixiJS application
+        const app = new PIXI.Application({
+            width: window.innerWidth,
+            height: window.innerHeight,
+            backgroundColor: 0x1a1a1a,
+            resizeTo: window
+        })
+
+        container.appendChild(app.view)
+
+        this.canvasManager = new CanvasManager(app)
+
+        // Set up canvas callbacks for WebSocket synchronization
+        this.canvasManager.onCursorMoved = (x, y) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendCursorUpdate(x, y)
+            }
+        }
+
+        this.canvasManager.onObjectCreated = (object) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendObjectCreate(object)
+            }
+        }
+
+        this.canvasManager.onObjectUpdated = (objectId, updates) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendObjectUpdate(objectId, updates)
+            }
+        }
+
+        this.canvasManager.onObjectDeleted = (objectId) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendObjectDelete(objectId)
+            }
+        }
+
+        // Update status bar callbacks
+        this.canvasManager.onToolChange = (tool) => {
+            document.getElementById('current-tool').textContent =
+                tool.charAt(0).toUpperCase() + tool.slice(1)
+        }
+
+        this.canvasManager.onMouseMove = (x, y) => {
+            document.getElementById('mouse-position').textContent = `${Math.round(x)}, ${Math.round(y)}`
+        }
+
+        this.canvasManager.onZoomChange = (zoom) => {
+            document.getElementById('zoom-level').textContent = `${Math.round(zoom * 100)}%`
+        }
+
+        this.canvasManager.onObjectCountChange = (count) => {
+            document.getElementById('object-count').textContent = count
+        }
+    }
+
+    initWebSocket() {
+        // Use wss:// for HTTPS pages, ws:// for HTTP
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+        // window.location.host includes port if non-standard (e.g., localhost:8080)
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/${this.canvasId}`
+
+        this.wsClient = new WebSocketClient(wsUrl, this.sessionId, this.canvasId)
+
+        // Set up WebSocket callbacks
+        this.wsClient.onAuthSuccess = (data) => {
+            console.error('=== WebSocket authenticated ===')
+            console.error('Auth data received:', data)
+
+            // Backend sends 'canvas-state' (kebab-case), not 'canvasState'
+            const canvasState = data['canvas-state'] || data.canvasState
+            console.error('canvasState exists?', !!canvasState)
+            console.error('canvasState type:', typeof canvasState)
+            console.error('canvasState length:', canvasState ? canvasState.length : 0)
+
+            // Load initial canvas state
+            if (canvasState) {
+                console.error('=== CALLING loadState ===')
+                this.canvasManager.loadState(canvasState)
+                console.error('=== loadState RETURNED ===')
+            } else {
+                console.error('=== NO CANVAS STATE IN AUTH RESPONSE ===')
+            }
+        }
+
+        this.wsClient.onUserConnected = (data) => {
+            // Add new user to active users list
+            this.activeUsers.push({
+                'user-id': data.userId || data['user-id'],
+                username: data.username,
+                color: data.color
+            })
+            this.updatePresenceList(this.activeUsers)
+            this.showNotification(`${data.username} joined`, 'info')
+        }
+
+        this.wsClient.onUserDisconnected = (data) => {
+            // Remove user from active users list
+            const userId = data.userId || data['user-id']
+            this.activeUsers = this.activeUsers.filter(u =>
+                (u['user-id'] || u.userId) !== userId
+            )
+            this.updatePresenceList(this.activeUsers)
+            this.canvasManager.removeRemoteCursor(userId)
+            this.showNotification(`${data.username} left`, 'info')
+        }
+
+        this.wsClient.onPresenceUpdate = (users) => {
+            // Replace entire active users list with server's authoritative list
+            this.activeUsers = users
+            this.updatePresenceList(this.activeUsers)
+        }
+
+        this.wsClient.onCursorUpdate = (data) => {
+            this.canvasManager.updateRemoteCursor(
+                data.userId,
+                data.username,
+                data.x,
+                data.y,
+                data.color
+            )
+        }
+
+        this.wsClient.onObjectCreated = (data) => {
+            this.canvasManager.createRemoteObject(data.object)
+        }
+
+        this.wsClient.onObjectUpdated = (data) => {
+            // Backend sends 'object-id' (kebab-case)
+            const objectId = data['object-id'] || data.objectId
+            this.canvasManager.updateRemoteObject(objectId, data.updates)
+        }
+
+        this.wsClient.onObjectDeleted = (data) => {
+            // Backend sends 'object-id' (kebab-case)
+            const objectId = data['object-id'] || data.objectId
+            this.canvasManager.deleteRemoteObject(objectId)
+        }
+
+        this.wsClient.onError = (error) => {
+            console.error('WebSocket error:', error)
+            this.showNotification('Connection error', 'error')
+        }
+
+        this.wsClient.onReconnecting = () => {
+            this.showNotification('Reconnecting...', 'warning')
+        }
+
+        this.wsClient.onReconnected = () => {
+            this.showNotification('Reconnected', 'success')
+        }
+
+        // Connect to WebSocket
+        this.wsClient.connect()
+    }
+
+    setupUIHandlers() {
+        // Tool buttons
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tool = btn.dataset.tool
+                this.canvasManager.setTool(tool)
+
+                // Update active button
+                document.querySelectorAll('.tool-btn').forEach(b =>
+                    b.classList.remove('active'))
+                btn.classList.add('active')
+            })
+        })
+
+        // Color picker
+        const colorPicker = document.getElementById('color-picker')
+        colorPicker.addEventListener('change', (e) => {
+            this.canvasManager.setColor(e.target.value)
+        })
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Prevent shortcuts when typing in inputs
+            if (e.target.tagName === 'INPUT') return
+
+            switch(e.key.toLowerCase()) {
+                case 'v':
+                    this.selectTool('select')
+                    break
+                case 'r':
+                    this.selectTool('rectangle')
+                    break
+                case 'c':
+                    this.selectTool('circle')
+                    break
+                case 'delete':
+                case 'backspace':
+                    if (!e.target.isContentEditable) {
+                        e.preventDefault()
+                        this.canvasManager.deleteSelected()
+                    }
+                    break
+                case 'z':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault()
+                        if (e.shiftKey) {
+                            this.canvasManager.redo()
+                        } else {
+                            this.canvasManager.undo()
+                        }
+                    }
+                    break
+            }
+        })
+
+        // Logout button (if added to UI)
+        const logoutBtn = document.getElementById('logout-btn')
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                await this.logout()
+            })
+        }
+    }
+
+    selectTool(tool) {
+        this.canvasManager.setTool(tool)
+
+        // Update UI
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            if (btn.dataset.tool === tool) {
+                btn.classList.add('active')
+            } else {
+                btn.classList.remove('active')
+            }
+        })
+    }
+
+    updatePresenceList(users = []) {
+        const container = document.getElementById('users-container')
+        container.innerHTML = ''
+
+        users.forEach(user => {
+            const userItem = document.createElement('div')
+            userItem.className = 'user-item'
+            // Handle both kebab-case and camelCase keys
+            const username = user.username
+            const color = user.color
+            userItem.innerHTML = `
+                <span class="user-indicator" style="background-color: ${color}"></span>
+                <span>${username}</span>
+            `
+            container.appendChild(userItem)
+        })
+    }
+
+    showNotification(message, type = 'info') {
+        // Simple notification system (can be enhanced with a library)
+        console.log(`[${type.toUpperCase()}] ${message}`)
+
+        // TODO: Implement visual notifications
+    }
+
+    async logout() {
+        try {
+            await fetch('/api/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': this.sessionId
+                }
+            })
+        } catch (error) {
+            console.error('Logout error:', error)
+        }
+
+        // Clean up
+        localStorage.removeItem('sessionId')
+        this.wsClient.disconnect()
+
+        // Reload page to show login
+        window.location.reload()
+    }
+}
+
+// Initialize application when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        const app = new CollabCanvas()
+        app.init()
+        window.collabCanvas = app // For debugging
+    })
+} else {
+    const app = new CollabCanvas()
+    app.init()
+    window.collabCanvas = app // For debugging
+}
+</file>
+
+<file path="backend/src/main.lisp">
+;;;; main.lisp - Main entry point and server setup for CollabCanvas
+
+(in-package #:collabcanvas)
+
+(defparameter *server* nil "HTTP server instance")
+(defparameter *websocket-acceptor* nil "WebSocket acceptor instance")
+
+;;; HTTP Request Handlers Setup
+(defun setup-routes ()
+  "Setup HTTP routes"
+  ;; Health check
+  (hunchentoot:define-easy-handler (health :uri "/health") ()
+    (set-cors-headers)
+    (json-response `((:status . "healthy")
+                    (:service . "collabcanvas")
+                    (:timestamp . ,(current-timestamp)))))
+
+  ;; Test endpoint
+  (hunchentoot:define-easy-handler (test-post :uri "/api/test"
+                                              :default-request-type :post) ()
+    (setf (hunchentoot:content-type*) "application/json")
+    (format t "TEST ENDPOINT CALLED~%")
+    "{\"test\":\"success\"}")
+
+  ;; Authentication routes - check request method internally
+  (hunchentoot:define-easy-handler (register-handler :uri "/api/register") ()
+    (set-cors-headers)
+    (if (eq (hunchentoot:request-method*) :options)
+        (progn
+          (setf (hunchentoot:return-code*) 200)
+          "")
+        (progn
+          (format t "REGISTER HANDLER CALLED~%")
+          (setf (hunchentoot:content-type*) "application/json")
+          (let ((result (handle-register)))
+            (format t "REGISTER RESULT: ~A~%" result)
+            result))))
+
+  (hunchentoot:define-easy-handler (login-handler :uri "/api/login") ()
+    (set-cors-headers)
+    (if (eq (hunchentoot:request-method*) :options)
+        (progn
+          (setf (hunchentoot:return-code*) 200)
+          "")
+        (progn
+          (format t "LOGIN HANDLER CALLED~%")
+          (setf (hunchentoot:content-type*) "application/json")
+          (let ((result (handle-login)))
+            (format t "LOGIN RESULT: ~A~%" result)
+            result))))
+
+  (hunchentoot:define-easy-handler (logout-handler :uri "/api/logout") ()
+    (set-cors-headers)
+    (if (eq (hunchentoot:request-method*) :options)
+        (progn
+          (setf (hunchentoot:return-code*) 200)
+          "")
+        (progn
+          (setf (hunchentoot:content-type*) "application/json")
+          (handle-logout))))
+
+  (hunchentoot:define-easy-handler (session-handler :uri "/api/session") ()
+    (set-cors-headers)
+    (if (eq (hunchentoot:request-method*) :options)
+        (progn
+          (setf (hunchentoot:return-code*) 200)
+          "")
+        (progn
+          (setf (hunchentoot:content-type*) "application/json")
+          (handle-session-check))))
+
+  ;; Canvas state routes
+  (hunchentoot:define-easy-handler (canvas-state-handler :uri "/api/canvas/state") ()
+    (set-cors-headers)
+    (cond
+      ((eq (hunchentoot:request-method*) :options)
+       (setf (hunchentoot:return-code*) 200)
+       "")
+      ((eq (hunchentoot:request-method*) :get)
+       (handle-get-canvas-state))
+      ((eq (hunchentoot:request-method*) :post)
+       (handle-save-canvas-state))
+      (t
+       (error-response "Method not allowed" :status 405)))))
+
+;;; WebSocket Setup
+(defclass canvas-acceptor (hunchensocket:websocket-acceptor
+                           hunchentoot:easy-acceptor)
+  ()
+  (:documentation "Custom acceptor that combines WebSocket and Easy acceptor"))
+
+(defun setup-websocket-dispatch ()
+  "Setup WebSocket dispatch table"
+  (pushnew 'dispatch-websocket-request
+           hunchensocket:*websocket-dispatch-table*))
+
+(defun dispatch-websocket-request (request)
+  "Dispatch WebSocket requests to appropriate canvas rooms"
+  (let ((uri (hunchentoot:script-name request)))
+    (when (cl-ppcre:scan "^/ws/" uri)
+      ;; Extract canvas ID from URI like /ws/canvas-abc123
+      (let ((canvas-id (third (cl-ppcre:split "/" uri))))
+        (when (and canvas-id (valid-canvas-id-p canvas-id))
+          (make-instance 'canvas-websocket-resource
+                        :canvas-id canvas-id))))))
+
+;;; Server Lifecycle Management
+(defun start-server (&key (port *port*) (host *host*))
+  "Start the CollabCanvas server"
+  (format t "~%=== Starting CollabCanvas Server ===~%")
+
+  ;; Initialize database
+  (format t "Initializing database...~%")
+  (handler-case
+      (init-database)
+    (error (e)
+      (format t "Database initialization error: ~A~%" e)
+      (return-from start-server nil)))
+
+  ;; Setup routes
+  (format t "Setting up HTTP routes...~%")
+  (setup-routes)
+
+  ;; Create and start the acceptor (combines HTTP and WebSocket)
+  (format t "Starting server on ~A:~A...~%" host port)
+  (format t "Frontend path: ~A~%" *frontend-path*)
+  (setf *websocket-acceptor*
+        (make-instance 'canvas-acceptor
+                      :port port
+                      :address host
+                      :access-log-destination nil
+                      :message-log-destination (if *debug-mode*
+                                                 *standard-output*
+                                                 nil)
+                      :document-root (namestring *frontend-path*)))
+
+  ;; Setup static file dispatcher for frontend
+  (push (hunchentoot:create-static-file-dispatcher-and-handler
+         "/" (merge-pathnames "index.html" *frontend-path*))
+        hunchentoot:*dispatch-table*)
+
+  (push (hunchentoot:create-folder-dispatcher-and-handler
+         "/assets/" (merge-pathnames "assets/" *frontend-path*))
+        hunchentoot:*dispatch-table*)
+
+  ;; Setup WebSocket dispatch
+  (setup-websocket-dispatch)
+
+  ;; Start the acceptor
+  (hunchentoot:start *websocket-acceptor*)
+  (setf *server* *websocket-acceptor*)
+
+  (format t "~%✓ CollabCanvas server started successfully!~%")
+  (format t "  HTTP API: http://~A:~A/api~%" host port)
+  (format t "  WebSocket: ws://~A:~A/ws/<canvas-id>~%" host port)
+  (format t "  Health: http://~A:~A/health~%" host port)
+  (format t "  Frontend: http://~A:~A/~%" host port)
+  (format t "~%Press Ctrl+C to stop the server~%~%")
+
+  t)
+
+(defun stop-server ()
+  "Stop the CollabCanvas server"
+  (format t "~%Stopping CollabCanvas server...~%")
+
+  (when *server*
+    (handler-case
+        (progn
+          ;; Persist all dirty canvas states
+          (format t "Saving canvas states...~%")
+          (maphash (lambda (canvas-id state)
+                    (declare (ignore state))
+                    (persist-canvas-state canvas-id))
+                  *canvas-states*)
+
+          ;; Stop the server
+          (hunchentoot:stop *server*)
+          (setf *server* nil)
+          (setf *websocket-acceptor* nil))
+      (error (e)
+        (format t "Error stopping server: ~A~%" e))))
+
+  ;; Disconnect database
+  (disconnect-database)
+
+  (format t "Server stopped.~%"))
+
+(defun restart-server ()
+  "Restart the server"
+  (stop-server)
+  (sleep 1)
+  (start-server))
+
+;;; Main entry point for standalone execution
+(defun main ()
+  "Main entry point for the application"
+  (handler-case
+      (progn
+        (format t "~%CollabCanvas - Real-time Collaborative Design Tool~%")
+        (format t "Version 0.1.0~%")
+
+        ;; Parse command line arguments if needed
+        (let ((args #+sbcl (cdr sb-ext:*posix-argv*)
+                   #+ccl (cdr ccl:*command-line-argument-list*)
+                   #-(or sbcl ccl) nil))
+          (declare (ignore args))
+
+          ;; Start the server
+          (unless (start-server)
+            (format t "Failed to start server~%")
+            (return-from main 1))
+
+          ;; Keep the server running
+          (loop
+            (sleep 1)
+            ;; Periodic cleanup tasks
+            (when (zerop (mod (get-universal-time) 3600))
+              (cleanup-expired-sessions))))
+
+        ;; Return success
+        0)
+
+    ;; Handle interrupts (Ctrl+C)
+    (#+sbcl sb-sys:interactive-interrupt
+     #+ccl ccl:interrupt-signal-condition
+     #+clisp system::simple-interrupt-condition
+     #+ecl ext:interactive-interrupt
+     #+lispworks mp:process-interrupt
+     ()
+      (format t "~%~%Interrupt received, shutting down gracefully...~%")
+      (stop-server)
+      0)
+
+    ;; Handle other errors
+    (error (e)
+      (format t "~%Fatal error: ~A~%" e)
+      (stop-server)
+      1)))
+
+;;; Export public interface
+(export '(start-server stop-server restart-server main))
+</file>
+
+</files>
