@@ -123,6 +123,7 @@
 
   ;; Create and start the acceptor (combines HTTP and WebSocket)
   (format t "Starting server on ~A:~A...~%" host port)
+  (format t "Frontend path: ~A~%" *frontend-path*)
   (setf *websocket-acceptor*
         (make-instance 'canvas-acceptor
                       :port port
@@ -130,7 +131,17 @@
                       :access-log-destination nil
                       :message-log-destination (if *debug-mode*
                                                  *standard-output*
-                                                 nil)))
+                                                 nil)
+                      :document-root (namestring *frontend-path*)))
+
+  ;; Setup static file dispatcher for frontend
+  (push (hunchentoot:create-static-file-dispatcher-and-handler
+         "/" (merge-pathnames "index.html" *frontend-path*))
+        hunchentoot:*dispatch-table*)
+
+  (push (hunchentoot:create-folder-dispatcher-and-handler
+         "/assets/" (merge-pathnames "assets/" *frontend-path*))
+        hunchentoot:*dispatch-table*)
 
   ;; Setup WebSocket dispatch
   (setup-websocket-dispatch)
@@ -143,6 +154,7 @@
   (format t "  HTTP API: http://~A:~A/api~%" host port)
   (format t "  WebSocket: ws://~A:~A/ws/<canvas-id>~%" host port)
   (format t "  Health: http://~A:~A/health~%" host port)
+  (format t "  Frontend: http://~A:~A/~%" host port)
   (format t "~%Press Ctrl+C to stop the server~%~%")
 
   t)

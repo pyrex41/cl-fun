@@ -542,7 +542,7 @@
         "dependencies": [
           "7"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -603,7 +603,7 @@
             "parentId": "undefined"
           }
         ],
-        "updatedAt": "2025-10-13T21:29:03.397Z"
+        "updatedAt": "2025-10-14T02:52:42.112Z"
       },
       {
         "id": "9",
@@ -615,7 +615,7 @@
         "dependencies": [
           "8"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -675,7 +675,8 @@
             "testStrategy": "Select one or more objects, press Delete key, and verify they are removed from the canvas.",
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-14T02:52:43.333Z"
       },
       {
         "id": "10",
@@ -766,7 +767,7 @@
           "9",
           "10"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -826,7 +827,8 @@
             "testStrategy": "Follow the test strategy from the parent task: Open two browser windows, perform actions in one, check sync in the other, measure latency.",
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-14T02:52:44.596Z"
       },
       {
         "id": "12",
@@ -838,7 +840,7 @@
         "dependencies": [
           "10"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -899,7 +901,7 @@
             "parentId": "undefined"
           }
         ],
-        "updatedAt": "2025-10-13T21:29:04.917Z"
+        "updatedAt": "2025-10-14T02:52:45.813Z"
       },
       {
         "id": "13",
@@ -912,7 +914,7 @@
           "2",
           "11"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -972,7 +974,8 @@
             "testStrategy": "Refresh the page after making changes, verify that the canvas reloads with the persisted state. Test with multiple users or disconnections.",
             "parentId": "undefined"
           }
-        ]
+        ],
+        "updatedAt": "2025-10-14T02:52:47.049Z"
       },
       {
         "id": "14",
@@ -984,7 +987,7 @@
         "dependencies": [
           "4"
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1050,7 +1053,7 @@
             "parentId": "undefined"
           }
         ],
-        "updatedAt": "2025-10-13T21:29:06.345Z"
+        "updatedAt": "2025-10-14T02:52:48.264Z"
       },
       {
         "id": "15",
@@ -1063,16 +1066,16 @@
           "13",
           "14"
         ],
-        "status": "deferred",
+        "status": "pending",
         "subtasks": [],
-        "updatedAt": "2025-10-13T19:29:12.767Z"
+        "updatedAt": "2025-10-14T02:52:04.930Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-10-13T21:29:06.346Z",
+      "lastModified": "2025-10-14T02:52:48.265Z",
       "taskCount": 15,
-      "completedCount": 8,
+      "completedCount": 14,
       "tags": [
         "master"
       ]

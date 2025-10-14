@@ -174,7 +174,10 @@ class CollabCanvas {
     }
 
     initWebSocket() {
-        const wsUrl = `ws://${window.location.hostname}:${window.location.port}/ws/${this.canvasId}`
+        // Use wss:// for HTTPS pages, ws:// for HTTP
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+        // window.location.host includes port if non-standard (e.g., localhost:8080)
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/${this.canvasId}`
 
         this.wsClient = new WebSocketClient(wsUrl, this.sessionId, this.canvasId)
 

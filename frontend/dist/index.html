@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CollabCanvas - Real-time Collaborative Design</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            overflow: hidden;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #app {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+
+        /* Toolbar */
+        #toolbar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(40, 40, 40, 0.95);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .tool-btn {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #444;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 18px;
+        }
+
+        .tool-btn:hover {
+            background: #3a3a3a;
+            border-color: #666;
+        }
+
+        .tool-btn.active {
+            background: #4a7c8e;
+            border-color: #5a9cb0;
+        }
+
+        .tool-separator {
+            width: 1px;
+            background: #444;
+            margin: 0 5px;
+        }
+
+        #color-picker {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Presence List */
+        #presence-list {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(40, 40, 40, 0.95);
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 200px;
+            max-width: 300px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        #presence-list h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 5px 0;
+            font-size: 14px;
+        }
+
+        .user-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        /* Status Bar */
+        #status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(30, 30, 30, 0.95);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #999;
+            z-index: 100;
+        }
+
+        .status-section {
+            display: flex;
+            gap: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-label {
+            color: #666;
+        }
+
+        /* Auth Modal */
+        #auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        #auth-modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 30px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #444;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.2s;
+            font-size: 16px;
+        }
+
+        .tab-btn.active {
+            color: #e0e0e0;
+            border-bottom: 2px solid #5a9cb0;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #5a9cb0;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4a7c8e;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            background: #5a9cb0;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        #loading-screen.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top-color: #5a9cb0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+  <script type="module" crossorigin src="/assets/index-CqSaLBiy.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/pixi-DokiZb80.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-BS7BhgPj.css">
+  <script type="module">import.meta.url;import("_").catch(()=>1);(async function*(){})().next();if(location.protocol!="file:"){window.__vite_is_modern_browser=true}</script>
+  <script type="module">!function(){if(window.__vite_is_modern_browser)return;console.warn("vite: loading legacy chunks, syntax error above and the same error below should be ignored");var e=document.getElementById("vite-legacy-polyfill"),n=document.createElement("script");n.src=e.src,n.onload=function(){System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))},document.body.appendChild(n)}();</script>
+</head>
+<body>
+    <div id="app">
+        <div id="canvas-container"></div>
+
+        <!-- Toolbar -->
+        <div id="toolbar">
+            <button class="tool-btn active" data-tool="select" title="Select (V)">
+                <span>↖</span>
+            </button>
+            <button class="tool-btn" data-tool="rectangle" title="Rectangle (R)">
+                <span>□</span>
+            </button>
+            <button class="tool-btn" data-tool="circle" title="Circle (C)">
+                <span>○</span>
+            </button>
+            <div class="tool-separator"></div>
+            <input type="color" id="color-picker" value="#5a9cb0" title="Color">
+        </div>
+
+        <!-- Presence List -->
+        <div id="presence-list">
+            <h3>Online Users</h3>
+            <div id="users-container"></div>
+        </div>
+
+        <!-- Status Bar -->
+        <div id="status-bar">
+            <div class="status-section">
+                <div class="status-item">
+                    <span class="status-label">Tool:</span>
+                    <span id="current-tool">Select</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Position:</span>
+                    <span id="mouse-position">0, 0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Zoom:</span>
+                    <span id="zoom-level">100%</span>
+                </div>
+            </div>
+            <div class="status-section">
+                <div class="status-item">
+                    <span class="status-label">Objects:</span>
+                    <span id="object-count">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Canvas:</span>
+                    <span id="canvas-id">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Auth Modal -->
+        <div id="auth-modal" class="hidden">
+            <div class="modal-content">
+                <div class="modal-tabs">
+                    <button class="tab-btn active" data-tab="login">Login</button>
+                    <button class="tab-btn" data-tab="register">Register</button>
+                </div>
+
+                <form class="auth-form active" id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Login</button>
+                    <div class="error-message" id="login-error"></div>
+                </form>
+
+                <form class="auth-form" id="register-form">
+                    <div class="form-group">
+                        <label for="register-username">Username</label>
+                        <input type="text" id="register-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input type="email" id="register-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Register</button>
+                    <div class="error-message" id="register-error"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+  <script nomodule>!function(){var e=document,t=e.createElement("script");if(!("noModule"in t)&&"onbeforeload"in t){var n=!1;e.addEventListener("beforeload",(function(e){if(e.target===t)n=!0;else if(!e.target.hasAttribute("nomodule")||!n)return;e.preventDefault()}),!0),t.type="module",t.src=".",e.head.appendChild(t),t.remove()}}();</script>
+  <script nomodule crossorigin id="vite-legacy-polyfill" src="/assets/polyfills-legacy-1NTguBDw.js"></script>
+  <script nomodule crossorigin id="vite-legacy-entry" data-src="/assets/index-legacy-D3NQiwmV.js">System.import(document.getElementById('vite-legacy-entry').getAttribute('data-src'))</script>
+</body>
+</html>

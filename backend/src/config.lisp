@@ -13,11 +13,19 @@
   "WebSocket server port (same as HTTP for simplicity)")
 
 ;;; Database Configuration
-(defparameter *database-path* "data/canvas.db"
+(defparameter *database-path*
+  (or (uiop:getenv "DATABASE_PATH")
+      "data/canvas.db")
   "Path to SQLite database file")
 
 (defparameter *database-lock* (bt:make-lock "database-lock")
   "Lock for database operations")
+
+;;; Frontend Configuration
+(defparameter *frontend-path*
+  (or (uiop:getenv "FRONTEND_PATH")
+      (merge-pathnames "../frontend/dist/" (uiop:getcwd)))
+  "Path to frontend static files")
 
 ;;; Session Configuration
 (defparameter *session-timeout* (* 24 60 60)
@@ -63,5 +71,9 @@
 (defparameter *cors-enabled* t
   "Enable CORS for development")
 
-(defparameter *allowed-origins* '("http://localhost:6465" "http://localhost:5173" "http://localhost:3000")
+(defparameter *allowed-origins*
+  '("http://localhost:6465"
+    "http://localhost:5173"
+    "http://localhost:3000"
+    "https://cl-fun.fly.dev")
   "List of allowed CORS origins")
