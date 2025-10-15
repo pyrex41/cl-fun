@@ -2,6 +2,18 @@
 // Complete PixiJS Canvas Manager for CollabCanvas
 import * as PIXI from 'pixi.js';
 
+// Note: CullerPlugin may not be available in all PixiJS v8 builds
+// We have custom viewport culling as a fallback
+try {
+  // Attempt to import and register CullerPlugin if available
+  if (PIXI.extensions && PIXI.CullerPlugin) {
+    PIXI.extensions.add(PIXI.CullerPlugin);
+    console.log('CullerPlugin registered successfully');
+  }
+} catch (e) {
+  console.log('CullerPlugin not available, using custom culling implementation');
+}
+
 export class PerformanceMonitor {
   constructor(app, canvasManager) {
     this.app = app;
@@ -111,6 +123,10 @@ export class CanvasManager {
     this.app.stage.addChild(this.viewport);
     this.viewport.sortableChildren = true;
 
+    // Enable culling on viewport for PixiJS built-in CullerPlugin (if available)
+    // Falls back to our custom culling implementation in setupViewportCulling()
+    this.viewport.cullable = true;
+
     // Grid background (optional visual aid)
     this.drawGrid();
 
@@ -153,23 +169,26 @@ export class CanvasManager {
   drawGrid() {
     const grid = new PIXI.Graphics();
     grid.lineStyle(1, 0x333333, 0.3);
-    
+
     const gridSize = 50;
     const gridExtent = 5000;
-    
+
     // Vertical lines
     for (let x = -gridExtent; x <= gridExtent; x += gridSize) {
       grid.moveTo(x, -gridExtent);
       grid.lineTo(x, gridExtent);
     }
-    
+
     // Horizontal lines
     for (let y = -gridExtent; y <= gridExtent; y += gridSize) {
       grid.moveTo(-gridExtent, y);
       grid.lineTo(gridExtent, y);
     }
-    
+
     grid.zIndex = -1;
+    // Grid is non-interactive - optimize event traversal
+    grid.interactive = false;
+    grid.interactiveChildren = false;
     this.viewport.addChild(grid);
   }
   
@@ -676,6 +695,10 @@ export class CanvasManager {
       }
     }
 
+    // Selection indicators are non-interactive - optimize event traversal
+    indicator.interactive = false;
+    indicator.interactiveChildren = false;
+
     // Add to viewport and store reference
     this.viewport.addChild(indicator);
     this.selectionIndicators.set(id, indicator);
@@ -1156,6 +1179,10 @@ export class CanvasManager {
       cursor.addChild(pointer);
       cursor.addChild(label);
       cursor.zIndex = 1000;
+
+      // Remote cursors are non-interactive - optimize event traversal
+      cursor.interactive = false;
+      cursor.interactiveChildren = false;
 
       this.remoteCursors.set(userId, cursor);
       this.viewport.addChild(cursor);
