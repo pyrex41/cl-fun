@@ -3089,7 +3089,7 @@
         "dependencies": [
           "4"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -3152,7 +3152,8 @@
         ],
         "complexity": 5,
         "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this adds and configures a plugin."
+        "expansionPrompt": "No expansion needed as this adds and configures a plugin.",
+        "updatedAt": "2025-10-15T21:08:50.754Z"
       },
       {
         "id": "14",
@@ -3164,7 +3165,7 @@
         "dependencies": [
           "4"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -3229,7 +3230,8 @@
         ],
         "complexity": 3,
         "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this sets properties on containers."
+        "expansionPrompt": "No expansion needed as this sets properties on containers.",
+        "updatedAt": "2025-10-15T21:10:30.101Z"
       },
       {
         "id": "15",
@@ -3303,9 +3305,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-10-15T21:00:32.390Z",
+      "lastModified": "2025-10-15T21:10:30.102Z",
       "taskCount": 15,
-      "completedCount": 13,
+      "completedCount": 15,
       "tags": [
         "pixi-upgrade"
       ]
