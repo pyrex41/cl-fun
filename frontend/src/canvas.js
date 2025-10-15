@@ -128,13 +128,13 @@ export class CanvasManager {
     // Create cursor shape using Graphics
     const graphics = new PIXI.Graphics();
 
-    // Draw cursor pointer (triangle)
-    graphics.beginFill(0xFFFFFF); // White fill (will be tinted)
-    graphics.moveTo(0, 0);
-    graphics.lineTo(12, 18);
-    graphics.lineTo(6, 18);
-    graphics.lineTo(0, 24);
-    graphics.endFill();
+    // Draw cursor pointer (triangle) using v8 builder pattern
+    graphics.poly([
+      { x: 0, y: 0 },
+      { x: 12, y: 18 },
+      { x: 6, y: 18 },
+      { x: 0, y: 24 }
+    ]).fill(0xFFFFFF); // White fill (will be tinted)
 
     // Render to texture
     const texture = this.app.renderer.generateTexture(graphics, {
@@ -349,16 +349,14 @@ export class CanvasManager {
             const height = currentWorldPos.y - drawStart.y;
 
             previewShape.clear();
-            previewShape.beginFill(this.currentColor);
 
+            // PixiJS v8 builder pattern
             if (this.currentTool === 'rectangle') {
-              previewShape.drawRect(drawStart.x, drawStart.y, width, height);
+              previewShape.rect(drawStart.x, drawStart.y, width, height).fill(this.currentColor);
             } else if (this.currentTool === 'circle') {
               const radius = Math.sqrt(width * width + height * height);
-              previewShape.drawCircle(drawStart.x, drawStart.y, radius);
+              previewShape.circle(drawStart.x, drawStart.y, radius).fill(this.currentColor);
             }
-
-            previewShape.endFill();
             lastPreviewUpdate = now;
           }
           previewUpdatePending = false;
@@ -542,13 +540,12 @@ export class CanvasManager {
   
   createRectangle(id, x, y, width, height, color) {
     const rect = new PIXI.Graphics();
-    rect.beginFill(color);
-    rect.drawRect(0, 0, width, height);
-    rect.endFill();
+    // PixiJS v8 builder pattern
+    rect.rect(0, 0, width, height).fill(color);
     rect.x = x;
     rect.y = y;
     rect.interactive = true;
-    rect.buttonMode = true;
+    rect.cursor = 'pointer'; // v8 replaces buttonMode
     rect.visible = true; // Start visible, culling will handle visibility
 
     // Store dimensions for selection box
@@ -565,13 +562,12 @@ export class CanvasManager {
   
   createCircle(id, x, y, radius, color) {
     const circle = new PIXI.Graphics();
-    circle.beginFill(color);
-    circle.drawCircle(0, 0, radius);
-    circle.endFill();
+    // PixiJS v8 builder pattern
+    circle.circle(0, 0, radius).fill(color);
     circle.x = x;
     circle.y = y;
     circle.interactive = true;
-    circle.buttonMode = true;
+    circle.cursor = 'pointer'; // v8 replaces buttonMode
     circle.visible = true; // Start visible, culling will handle visibility
 
     // Store dimensions for selection box
@@ -663,19 +659,18 @@ export class CanvasManager {
 
     // Create selection indicator
     const indicator = new PIXI.Graphics();
-    indicator.lineStyle(2, 0x00FF00);
 
     if (obj.userData) {
       if (obj.userData.type === 'rectangle') {
-        // Draw selection box around rectangle
+        // Draw selection box around rectangle using v8 builder pattern
         const { width, height } = obj.userData;
-        indicator.drawRect(-2, -2, width + 4, height + 4);
+        indicator.rect(-2, -2, width + 4, height + 4).stroke({ width: 2, color: 0x00FF00 });
         indicator.x = obj.x;
         indicator.y = obj.y;
       } else if (obj.userData.type === 'circle') {
-        // Draw selection box around circle
+        // Draw selection box around circle using v8 builder pattern
         const { radius } = obj.userData;
-        indicator.drawCircle(0, 0, radius + 2);
+        indicator.circle(0, 0, radius + 2).stroke({ width: 2, color: 0x00FF00 });
         indicator.x = obj.x;
         indicator.y = obj.y;
       }
@@ -800,11 +795,9 @@ export class CanvasManager {
     // Clear and redraw the graphics object based on its current properties
     obj.clear();
 
-    // Basic rectangle drawing - you might want to extend this for other shapes
+    // Basic rectangle drawing using v8 builder pattern
     if (obj.width && obj.height) {
-      obj.beginFill(obj.color || 0xFF0000);
-      obj.drawRect(0, 0, obj.width, obj.height);
-      obj.endFill();
+      obj.rect(0, 0, obj.width, obj.height).fill(obj.color || 0xFF0000);
     }
 
     // Apply rotation if set
