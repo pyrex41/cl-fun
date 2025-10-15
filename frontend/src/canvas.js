@@ -176,7 +176,7 @@ export class CanvasManager {
   // ==================== Pan & Zoom ====================
   
   setupPanZoom() {
-    const canvas = this.app.view;
+    const canvas = this.app.canvas;
     
     // Pan with middle mouse or Alt+drag
     canvas.addEventListener('mousedown', (e) => {
@@ -234,7 +234,7 @@ export class CanvasManager {
   // ==================== Centralized Drag (Performance Optimized) ====================
 
   setupCentralizedDrag() {
-    const canvas = this.app.view;
+    const canvas = this.app.canvas;
 
     // Global mousemove handler (only one for all objects)
     canvas.addEventListener('mousemove', (e) => {
@@ -322,7 +322,7 @@ export class CanvasManager {
   // ==================== Tool Handlers ====================
   
   setupToolHandlers() {
-    const canvas = this.app.view;
+    const canvas = this.app.canvas;
     let drawStart = null;
     let previewShape = null;
     let lastPreviewUpdate = 0;
