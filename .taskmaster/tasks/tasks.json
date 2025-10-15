@@ -50,9 +50,7 @@
             "id": 4,
             "title": "Install frontend dependencies",
             "description": "Ensure all frontend dependencies are installed, focusing on PixiJS v7 and any additional tools required for the project.",
-            "dependencies": [
-              3
-            ],
+            "dependencies": [],
             "details": "After initializing the Vite project, install PixiJS v7 and confirm that the package.json includes all necessary dependencies for vanilla JS ES6+ development. Check for any peer dependencies and resolve them.",
             "status": "done",
             "testStrategy": "Check that npm install completes without errors and that PixiJS can be imported in a test JS file.",
@@ -65,9 +63,7 @@
             "description": "Create a Docker setup using Debian base image to containerize the project, ensuring both backend and frontend can run within the container.",
             "dependencies": [
               1,
-              2,
-              3,
-              4
+              2
             ],
             "details": "Write a Dockerfile with Debian base image. Include instructions to install SBCL, Roswell, Node.js, and other necessary tools. Copy project files and set up commands to run the backend and frontend. Ensure the container can build and run the application.",
             "status": "done",
@@ -2230,6 +2226,1077 @@
       "created": "2025-10-14T16:32:33.526Z",
       "description": "Tasks for perf context",
       "updated": "2025-10-14T16:32:33.527Z"
+    }
+  },
+  "pixi-upgrade": {
+    "tasks": [
+      {
+        "id": "1",
+        "title": "Backup Current Codebase",
+        "description": "Verify the current codebase backup on the 'pixi-upgrade' branch and commit any pending changes before starting the upgrade.",
+        "status": "in-progress",
+        "dependencies": [],
+        "priority": "high",
+        "details": "We are already on a separate branch 'pixi-upgrade' in a dedicated worktree. Verify repository status and commit any pending changes before starting the upgrade.",
+        "testStrategy": "Verify that we are on the 'pixi-upgrade' branch and no uncommitted changes remain.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Verify Branch and Repository State",
+            "description": "Verify that we are on the correct 'pixi-upgrade' branch in the worktree and that the repository is in a clean state ready for the upgrade work.",
+            "dependencies": [],
+            "details": "Run 'git status' to check if there are any uncommitted changes, confirm the current branch is 'pixi-upgrade', and ensure we are in the dedicated worktree.",
+            "status": "pending",
+            "testStrategy": "Ensure no uncommitted changes are present, the branch is 'pixi-upgrade', and we are in the correct worktree.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Commit Pending Changes",
+            "description": "Commit any outstanding changes to the repository before starting the upgrade.",
+            "dependencies": [
+              1
+            ],
+            "details": "If there are uncommitted changes, stage them with 'git add .' and commit with 'git commit -m \"Commit before upgrade\"'.",
+            "status": "pending",
+            "testStrategy": "Run 'git status' again to confirm no changes are pending.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Verify Backup Integrity",
+            "description": "Confirm the backup on the 'pixi-upgrade' branch is intact and contains the codebase.",
+            "dependencies": [
+              2
+            ],
+            "details": "Run 'git log --oneline' to verify the branch history and ensure the codebase is intact.",
+            "status": "pending",
+            "testStrategy": "Attempt to build or run a basic check on the branch to ensure no issues.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 2,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this is a straightforward Git operation.",
+        "updatedAt": "2025-10-15T20:43:56.957Z"
+      },
+      {
+        "id": "2",
+        "title": "Update Package Dependencies",
+        "description": "Update package.json to use PixiJS v8 and remove individual sub-packages.",
+        "details": "Remove all @pixi/* dependencies from package.json. Add a single 'pixi.js': '^8.x.x'. Run npm install to update node_modules.",
+        "testStrategy": "Check package.json for correct dependencies and ensure npm install completes without errors.",
+        "priority": "high",
+        "dependencies": [
+          "1"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Backup current package.json",
+            "description": "Create a backup of the current package.json file to allow for easy rollback if needed.",
+            "dependencies": [],
+            "details": "Make a copy of package.json in the project root, naming it package.json.backup or similar, to preserve the original state before modifications.",
+            "status": "pending",
+            "testStrategy": "Verify that the backup file exists and matches the original package.json content.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Remove @pixi/* dependencies",
+            "description": "Remove all individual @pixi/* package dependencies from the package.json file.",
+            "dependencies": [
+              1
+            ],
+            "details": "Open package.json and delete all lines or entries for packages starting with @pixi/, such as @pixi/app, @pixi/graphics, etc., ensuring no remnants are left.",
+            "status": "pending",
+            "testStrategy": "Check package.json to confirm no @pixi/* entries remain in the dependencies or devDependencies sections.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add pixi.js v8 dependency",
+            "description": "Add the single 'pixi.js' dependency with version '^8.x.x' to package.json.",
+            "dependencies": [
+              2
+            ],
+            "details": "In the dependencies section of package.json, add a new entry: \"pixi.js\": \"^8.x.x\", ensuring it is properly formatted as valid JSON.",
+            "status": "pending",
+            "testStrategy": "Inspect package.json to verify the 'pixi.js' entry is present with the correct version specifier.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Save updated package.json",
+            "description": "Save the modified package.json file after removing old dependencies and adding the new one.",
+            "dependencies": [
+              3
+            ],
+            "details": "After editing, save the file in the project root, ensuring the JSON syntax is valid by running a quick validation if possible.",
+            "status": "pending",
+            "testStrategy": "Use a JSON validator or attempt to parse the file to confirm it is syntactically correct.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Run npm install",
+            "description": "Execute npm install to update node_modules with the new PixiJS v8 dependency.",
+            "dependencies": [
+              4
+            ],
+            "details": "In the terminal, navigate to the project root and run 'npm install', waiting for the command to complete successfully without errors.",
+            "status": "pending",
+            "testStrategy": "Check that npm install finishes without errors, and verify that node_modules contains the updated pixi.js package.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this involves editing a single file and running a command."
+      },
+      {
+        "id": "3",
+        "title": "Refactor Imports Across Codebase",
+        "description": "Change all PixiJS imports from individual sub-packages to single 'pixi.js' import.",
+        "details": "Search and replace all imports like 'import { Application } from '@pixi/app'' with 'import { Application } from 'pixi.js''. Update in main.js, canvas.js, and any other files using PixiJS.",
+        "testStrategy": "Run the application and check for import errors in the console. Ensure no @pixi/* imports remain.",
+        "priority": "high",
+        "dependencies": [
+          "2"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Refactor PixiJS Imports in main.js",
+            "description": "Update all PixiJS imports in main.js from individual sub-packages to the single 'pixi.js' import.",
+            "dependencies": [],
+            "details": "Locate all import statements in main.js that use '@pixi/*' sub-packages, such as 'import { Application } from '@pixi/app'', and replace them with 'import { Application } from 'pixi.js''. Ensure all necessary exports are available from the single import.",
+            "status": "pending",
+            "testStrategy": "Run the application and check the console for any import errors related to PixiJS in main.js.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Refactor PixiJS Imports in canvas.js",
+            "description": "Update all PixiJS imports in canvas.js from individual sub-packages to the single 'pixi.js' import.",
+            "dependencies": [],
+            "details": "Search for and replace all imports in canvas.js that reference '@pixi/*' packages, like 'import { Graphics } from '@pixi/graphics'', with 'import { Graphics } from 'pixi.js''. Verify that the file compiles without import issues after changes.",
+            "status": "pending",
+            "testStrategy": "Execute the app and inspect the console for import-related errors in canvas.js, ensuring PixiJS objects are accessible.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Refactor PixiJS Imports in Other Files",
+            "description": "Update PixiJS imports in any remaining files across the codebase that use individual sub-packages.",
+            "dependencies": [],
+            "details": "Perform a global search across the project for any files importing from '@pixi/*' packages and replace them with imports from 'pixi.js'. This includes checking all JavaScript or TypeScript files not covered in main.js or canvas.js to ensure complete refactoring.",
+            "status": "pending",
+            "testStrategy": "Run the application and monitor the console for any remaining @pixi/* import errors, confirming all PixiJS imports are now from 'pixi.js'.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Generate subtasks for searching and replacing imports in each specific file (e.g., main.js, canvas.js, and any other PixiJS-using files)."
+      },
+      {
+        "id": "4",
+        "title": "Implement Asynchronous Initialization",
+        "description": "Refactor main.js to use async initialization for PixiJS Application.",
+        "details": "Convert the main function to async. Separate Application constructor from init(). Await app.init() with options before creating PixiJS objects.",
+        "testStrategy": "Run the app and verify it initializes without errors. Check console for async-related issues.",
+        "priority": "high",
+        "dependencies": [
+          "3"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Analyze Current main.js Structure",
+            "description": "Review the existing main.js file to understand the current synchronous initialization of the PixiJS Application, identifying where the Application constructor is called and how PixiJS objects are created.",
+            "dependencies": [],
+            "details": "Examine the code in main.js to map out the current flow, noting any synchronous calls to Application() and the sequence of object creation. This will provide a baseline for refactoring.",
+            "status": "pending",
+            "testStrategy": "Manually inspect the code and document the current structure in comments or a separate note.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Convert Main Function to Async",
+            "description": "Modify the main function in main.js to be declared as an async function to support asynchronous operations.",
+            "dependencies": [
+              1
+            ],
+            "details": "Change the function declaration from 'function main()' or similar to 'async function main()' in main.js. Ensure the function signature is updated correctly to allow awaiting promises inside it.",
+            "status": "pending",
+            "testStrategy": "Run a syntax check or linter to verify the async keyword is properly applied without syntax errors.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Separate Application Constructor from Init",
+            "description": "Refactor the code to create the PixiJS Application instance without immediately initializing it, preparing for a separate init call.",
+            "dependencies": [
+              2
+            ],
+            "details": "Locate the Application constructor call in main.js and separate it from any immediate initialization. Store the app instance in a variable, ensuring no objects are created until after init() is awaited.",
+            "status": "pending",
+            "testStrategy": "Execute the code up to this point and confirm that the Application is instantiated but not yet initialized, checking for any runtime errors.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Await app.init() with Options",
+            "description": "Add an await call to app.init() with the necessary options before proceeding to create PixiJS objects.",
+            "dependencies": [
+              3
+            ],
+            "details": "After the Application constructor, insert 'await app.init(options);' where options include any required configuration like canvas settings. Ensure this is placed before any PixiJS object creation to comply with PixiJS v8 async requirements.",
+            "status": "pending",
+            "testStrategy": "Run the application and monitor the console for successful initialization messages or errors related to async init.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Create PixiJS Objects After Init",
+            "description": "Move or ensure that all PixiJS object creation (like sprites, containers) happens after the awaited app.init() call.",
+            "dependencies": [
+              4
+            ],
+            "details": "Review and adjust the code in main.js so that any creation of PixiJS objects, such as adding children to the stage or setting up viewports, occurs only after app.init() has resolved. This prevents initialization issues in PixiJS v8.",
+            "status": "pending",
+            "testStrategy": "Run the app and verify it initializes without errors, checking console for async-related issues and ensuring PixiJS objects render correctly.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this focuses on refactoring a single file's initialization logic."
+      },
+      {
+        "id": "5",
+        "title": "Replace app.view with app.canvas",
+        "description": "Update all references to app.view to use app.canvas instead.",
+        "details": "Search for app.view in the codebase and replace with app.canvas, primarily in main.js and canvas.js.",
+        "testStrategy": "Inspect the DOM to ensure the canvas element is correctly referenced. Test canvas rendering.",
+        "priority": "medium",
+        "dependencies": [
+          "4"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Search for all app.view references in the codebase",
+            "description": "Perform a comprehensive search across the entire codebase to locate every instance of 'app.view' that needs to be replaced.",
+            "dependencies": [],
+            "details": "Use grep or a code search tool to find all occurrences of 'app.view' in files, noting the exact lines and files for replacement. Focus on main.js and canvas.js as primary targets, but check all files to ensure completeness.",
+            "status": "pending",
+            "testStrategy": "Verify the search results by manually checking a few files to confirm no instances are missed.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Replace app.view in main.js",
+            "description": "Update all references to app.view with app.canvas in the main.js file.",
+            "dependencies": [
+              1
+            ],
+            "details": "Open main.js and replace each instance of 'app.view' with 'app.canvas'. Ensure the replacement is done accurately without affecting surrounding code. Save the file after changes.",
+            "status": "pending",
+            "testStrategy": "Run a diff or search in main.js to confirm all 'app.view' have been replaced and no new instances remain.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Replace app.view in canvas.js",
+            "description": "Update all references to app.view with app.canvas in the canvas.js file.",
+            "dependencies": [
+              1
+            ],
+            "details": "Open canvas.js and replace each instance of 'app.view' with 'app.canvas'. Carefully check for any context-specific usages to avoid breaking functionality. Save the file after changes.",
+            "status": "pending",
+            "testStrategy": "Run a diff or search in canvas.js to confirm all 'app.view' have been replaced and no new instances remain.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Check and replace app.view in other files if any",
+            "description": "Review search results for any additional files containing app.view and perform replacements.",
+            "dependencies": [
+              1
+            ],
+            "details": "From the search results, identify any files beyond main.js and canvas.js that have 'app.view'. Replace them with 'app.canvas' in each file, ensuring consistency across the codebase.",
+            "status": "pending",
+            "testStrategy": "Perform another search post-replacement to ensure no 'app.view' instances are left in any file.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Test canvas rendering after replacements",
+            "description": "Verify that the app functions correctly with app.canvas references.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Run the application and inspect the DOM to ensure the canvas element is correctly referenced. Test canvas rendering functionality to confirm no errors or broken behaviors due to the replacements.",
+            "status": "pending",
+            "testStrategy": "Use browser developer tools to inspect the DOM for correct canvas references and perform visual checks on rendering.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this is a simple find-and-replace operation."
+      },
+      {
+        "id": "6",
+        "title": "Migrate Graphics API to Builder Pattern",
+        "description": "Refactor all Graphics drawing logic to use the new builder pattern.",
+        "details": "Change from beginFill/drawShape/endFill to shape().fill().stroke(). Update functions like createRectangle and createCircle in canvas.js.",
+        "testStrategy": "Create shapes and verify they render correctly without visual artifacts.",
+        "priority": "high",
+        "dependencies": [
+          "4"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update createRectangle function to builder pattern",
+            "description": "Refactor the createRectangle function in canvas.js to use the new builder pattern, changing from beginFill/drawShape/endFill to shape().fill().stroke().",
+            "dependencies": [],
+            "details": "Locate the createRectangle function in canvas.js. Replace the old API calls with the new builder pattern syntax, ensuring the rectangle is created using shape().rect().fill().stroke(). Update any related parameters and ensure compatibility with PixiJS v8.",
+            "status": "pending",
+            "testStrategy": "Create a rectangle shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking dimensions and fill/stroke properties.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Update createCircle function to builder pattern",
+            "description": "Refactor the createCircle function in canvas.js to use the new builder pattern, changing from beginFill/drawShape/endFill to shape().fill().stroke().",
+            "dependencies": [],
+            "details": "Locate the createCircle function in canvas.js. Replace the old API calls with the new builder pattern syntax, ensuring the circle is created using shape().circle().fill().stroke(). Update any related parameters and ensure compatibility with PixiJS v8.",
+            "status": "pending",
+            "testStrategy": "Create a circle shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking radius and fill/stroke properties.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Update createTriangle function to builder pattern",
+            "description": "Refactor the createTriangle function in canvas.js to use the new builder pattern, changing from beginFill/drawShape/endFill to shape().fill().stroke().",
+            "dependencies": [],
+            "details": "Locate the createTriangle function in canvas.js. Replace the old API calls with the new builder pattern syntax, ensuring the triangle is created using shape().polygon().fill().stroke() with appropriate vertices. Update any related parameters and ensure compatibility with PixiJS v8.",
+            "status": "pending",
+            "testStrategy": "Create a triangle shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking vertices and fill/stroke properties.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Update createLine function to builder pattern",
+            "description": "Refactor the createLine function in canvas.js to use the new builder pattern, changing from beginFill/drawShape/endFill to shape().fill().stroke().",
+            "dependencies": [],
+            "details": "Locate the createLine function in canvas.js. Replace the old API calls with the new builder pattern syntax, ensuring the line is created using shape().moveTo().lineTo().stroke(). Update any related parameters and ensure compatibility with PixiJS v8.",
+            "status": "pending",
+            "testStrategy": "Create a line shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking start/end points and stroke properties.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Generate subtasks for updating each drawing function (e.g., createRectangle, createCircle) to the new builder pattern, including testing each shape individually."
+      },
+      {
+        "id": "7",
+        "title": "Update Shape Function Names",
+        "description": "Rename drawShape methods to their v8 equivalents.",
+        "details": "Replace drawRect with rect, drawCircle with circle, etc., in all Graphics usage.",
+        "testStrategy": "Test drawing various shapes and confirm they appear as expected.",
+        "priority": "medium",
+        "dependencies": [
+          "6"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Identify all Graphics usage files",
+            "description": "Search the codebase to find all files that import or use the Graphics class from PixiJS.",
+            "dependencies": [],
+            "details": "Use grep or a code search tool to locate files containing 'Graphics' and method calls like drawRect, drawCircle, etc. Compile a list of affected files.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Replace drawRect with rect",
+            "description": "Update all instances of drawRect method calls to use rect instead.",
+            "dependencies": [
+              1
+            ],
+            "details": "In each identified file, perform a find-and-replace operation to change drawRect() to rect(). Ensure the parameters remain compatible.",
+            "status": "pending",
+            "testStrategy": "Verify that rectangles are drawn correctly after replacement.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Replace drawCircle with circle",
+            "description": "Update all instances of drawCircle method calls to use circle instead.",
+            "dependencies": [
+              1
+            ],
+            "details": "In each identified file, perform a find-and-replace operation to change drawCircle() to circle(). Check parameter compatibility.",
+            "status": "pending",
+            "testStrategy": "Verify that circles are drawn correctly after replacement.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Replace other drawShape methods",
+            "description": "Update remaining drawShape methods like drawEllipse, drawPolygon, etc., to their v8 equivalents.",
+            "dependencies": [
+              1
+            ],
+            "details": "Identify and replace methods such as drawEllipse with ellipse, drawPolygon with polygon, etc. Ensure all Graphics shape drawing methods are updated.",
+            "status": "pending",
+            "testStrategy": "Test rendering of ellipses, polygons, and other shapes to confirm they appear as expected.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Verify and test all Graphics updates",
+            "description": "Run tests to ensure all shape drawing works correctly after renaming methods.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Execute the project's test suite, particularly focusing on rendering tests. Manually check that shapes are drawn without errors in the application.",
+            "status": "pending",
+            "testStrategy": "Run automated tests and perform visual checks on shape rendering in the app.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this is a rename operation across Graphics usage."
+      },
+      {
+        "id": "8",
+        "title": "Use Style Objects for Fills and Strokes",
+        "description": "Update fill() and stroke() calls to use style objects where applicable.",
+        "details": "Change calls like fill(color) to fill({color: color}) and stroke(width, color) to stroke({width: width, color: color}).",
+        "testStrategy": "Render shapes with fills and strokes and check for correct styling.",
+        "priority": "medium",
+        "dependencies": [
+          "7"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Identify Files with Fill and Stroke Calls",
+            "description": "Scan the codebase to find all files that use fill() or stroke() methods.",
+            "dependencies": [
+              7
+            ],
+            "details": "Use grep or search tools to locate all instances of fill( and stroke( in the project files, ensuring to cover all shape creation code.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Convert Fill Calls to Style Objects",
+            "description": "Change all fill(color) calls to fill({color: color}) format.",
+            "dependencies": [
+              1
+            ],
+            "details": "For each identified fill call, modify the parameters to pass an object with the color property, ensuring compatibility with PixiJS v8 API.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Convert Stroke Calls to Style Objects",
+            "description": "Change stroke(width, color) calls to stroke({width: width, color: color}) format.",
+            "dependencies": [
+              1
+            ],
+            "details": "For each stroke call, update to use an object with width and color properties, matching the new PixiJS v8 style object structure.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Review and Fix Edge Cases",
+            "description": "Check for any complex fill or stroke usages that need special handling.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Ensure all changes are syntactically correct, handle any edge cases like multiple parameters or conditional calls, and verify no errors introduced.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Test Shape Rendering with New Styles",
+            "description": "Render shapes and verify fills and strokes appear correctly.",
+            "dependencies": [
+              4
+            ],
+            "details": "Run the application, render various shapes with fills and strokes, and visually inspect to confirm correct styling and no visual regressions.",
+            "status": "pending",
+            "testStrategy": "Render shapes with fills and strokes and check for correct styling.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this updates API calls in shape creation."
+      },
+      {
+        "id": "9",
+        "title": "Replace updateTransform with onRender",
+        "description": "Update custom logic using updateTransform to use the new onRender hook.",
+        "details": "Create an _onRender method and bind it in the constructor. Replace updateTransform calls with onRender.",
+        "testStrategy": "Test custom rendering logic to ensure it executes correctly during render cycles.",
+        "priority": "medium",
+        "dependencies": [
+          "4"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Identify classes using updateTransform",
+            "description": "Locate all classes in the codebase that currently use the updateTransform method to understand the scope of refactoring needed.",
+            "dependencies": [],
+            "details": "Search the codebase for 'updateTransform' calls using grep or IDE search tools. Document the classes, methods, and contexts where it's used to prepare for replacement.",
+            "status": "pending",
+            "testStrategy": "Verify that all instances are identified by cross-checking with code review.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Create _onRender method in identified classes",
+            "description": "Add a new _onRender method to each class that previously used updateTransform, implementing the custom logic.",
+            "dependencies": [
+              1
+            ],
+            "details": "In each identified class, define a new private method named _onRender that encapsulates the logic previously in updateTransform. Ensure the method signature matches the onRender hook requirements.",
+            "status": "pending",
+            "testStrategy": "Check that the _onRender method is syntactically correct and compiles without errors.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Bind _onRender in constructors",
+            "description": "Bind the _onRender method in the constructor of each affected class to ensure proper context.",
+            "dependencies": [
+              2
+            ],
+            "details": "In the constructor of each class, add a binding statement like this._onRender = this._onRender.bind(this); to maintain the correct 'this' context when the method is used as a hook.",
+            "status": "pending",
+            "testStrategy": "Run unit tests to confirm that the binding works and the method can be called without context errors.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Replace updateTransform calls with onRender",
+            "description": "Update all calls to updateTransform to use the new onRender hook instead.",
+            "dependencies": [
+              3
+            ],
+            "details": "Replace each updateTransform() call with the appropriate onRender hook invocation, ensuring that the _onRender method is passed or registered as needed in the PixiJS application lifecycle.",
+            "status": "pending",
+            "testStrategy": "Test that the application renders correctly and that custom logic executes during render cycles by observing visual output and console logs.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Verify and test the refactoring",
+            "description": "Perform comprehensive testing to ensure the refactoring from updateTransform to onRender works as expected.",
+            "dependencies": [
+              4
+            ],
+            "details": "Run the full application, check for any runtime errors, and validate that rendering behavior matches the original functionality. Use debugging tools to step through render cycles.",
+            "status": "pending",
+            "testStrategy": "Conduct integration tests focusing on render cycle execution, including edge cases like multiple objects and performance benchmarks.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this refactors custom logic in specific classes."
+      },
+      {
+        "id": "10",
+        "title": "Update getBounds Usage",
+        "description": "Refactor getBounds() calls to use the new return format.",
+        "details": "Change container.getBounds() to container.getBounds().rectangle where a PIXI.Rectangle is expected.",
+        "testStrategy": "Test bounding box calculations for containers and ensure selections work.",
+        "priority": "medium",
+        "dependencies": [
+          "4"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Identify all getBounds() call sites",
+            "description": "Search the codebase to locate every instance where getBounds() is called on containers, ensuring a comprehensive list for refactoring.",
+            "dependencies": [],
+            "details": "Use grep or IDE search tools to find all occurrences of .getBounds() in the project files, excluding comments and documentation. Document the file paths and line numbers for each call.",
+            "status": "pending",
+            "testStrategy": "Verify the list by manually checking a sample of files to ensure no calls are missed.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Update getBounds() calls to use .rectangle",
+            "description": "Modify each identified getBounds() call to append .rectangle where a PIXI.Rectangle is expected, based on the new return format.",
+            "dependencies": [
+              1
+            ],
+            "details": "For each call site identified in subtask 1, change container.getBounds() to container.getBounds().rectangle. Ensure the context confirms PIXI.Rectangle is expected, and handle any necessary imports or type checks.",
+            "status": "pending",
+            "testStrategy": "Compile the code after changes and check for TypeScript errors or runtime issues related to rectangle access.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Handle edge cases and conditional usages",
+            "description": "Address any conditional or complex usages of getBounds() that might require special handling in the refactoring.",
+            "dependencies": [
+              1
+            ],
+            "details": "Review the identified call sites for scenarios like conditional checks, loops, or assignments. Adjust the code to properly access .rectangle in these cases, ensuring the logic remains intact.",
+            "status": "pending",
+            "testStrategy": "Run unit tests on affected components to confirm edge cases behave as expected.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Update related bounding box calculations",
+            "description": "Adjust any calculations or operations that depend on the getBounds() return value to work with the new .rectangle format.",
+            "dependencies": [
+              2
+            ],
+            "details": "Locate and modify code that performs operations on the getBounds() result, such as width/height calculations or intersection checks, to use the rectangle properties correctly.",
+            "status": "pending",
+            "testStrategy": "Test bounding box calculations manually or via automated tests to ensure accuracy.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Verify and test overall functionality",
+            "description": "Run comprehensive tests to ensure the refactored getBounds() usages work correctly and selections or bounding boxes function as intended.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Execute the project's test suite, focusing on rendering, selections, and any features relying on bounding boxes. Manually test UI interactions that depend on getBounds() to confirm no regressions.",
+            "status": "pending",
+            "testStrategy": "Use visual inspections and automated tests to validate that shapes, containers, and selections render and behave correctly with the new format.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this adjusts getBounds calls to new format."
+      },
+      {
+        "id": "11",
+        "title": "Update Ticker Callback",
+        "description": "Adjust Ticker callback to use ticker.deltaTime instead of direct deltaTime.",
+        "details": "Modify Ticker.shared.add() callback to access deltaTime via ticker.deltaTime.",
+        "testStrategy": "Test animations and updates that rely on ticker to ensure smooth performance.",
+        "priority": "medium",
+        "dependencies": [
+          "4"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Locate Ticker Callbacks",
+            "description": "Search the codebase for all instances of Ticker.shared.add() callbacks that use direct deltaTime.",
+            "dependencies": [],
+            "details": "Use grep or IDE search to find all Ticker.shared.add() calls and note where deltaTime is accessed directly instead of via ticker.deltaTime. This ensures we identify all locations needing updates.",
+            "status": "pending",
+            "testStrategy": "Verify that all identified callbacks are listed and none are missed by cross-checking with code review.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Modify Callback Signatures",
+            "description": "Update the callback functions to accept the ticker parameter and access deltaTime via ticker.deltaTime.",
+            "dependencies": [
+              1
+            ],
+            "details": "For each identified callback, change the function signature to include 'ticker' as the first parameter, and replace any direct deltaTime references with ticker.deltaTime. Ensure the callback is properly bound if necessary.",
+            "status": "pending",
+            "testStrategy": "Compile the code and check for syntax errors in the modified callbacks.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Update Ticker Registration",
+            "description": "Ensure Ticker.shared.add() calls pass the callback correctly with the new signature.",
+            "dependencies": [
+              2
+            ],
+            "details": "Review and adjust the Ticker.shared.add() calls to ensure they are registering the updated callbacks properly. If the callback was previously anonymous, consider making it a named function for clarity.",
+            "status": "pending",
+            "testStrategy": "Run the application and confirm that callbacks are registered without errors, checking console logs for any Ticker-related warnings.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Test Animation Performance",
+            "description": "Run tests to verify that animations using the updated callbacks perform smoothly.",
+            "dependencies": [
+              3
+            ],
+            "details": "Execute unit tests or manual tests for animations and updates that rely on the ticker. Measure frame rates and ensure deltaTime calculations are accurate, preventing issues like variable time steps.",
+            "status": "pending",
+            "testStrategy": "Use performance profiling tools to monitor frame times and deltaTime values during animation playback.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Code Review and Final Validation",
+            "description": "Conduct a final review of all changes and validate the migration to ticker.deltaTime.",
+            "dependencies": [
+              4
+            ],
+            "details": "Perform a code review to ensure all Ticker callbacks now use ticker.deltaTime consistently. Run a full test suite to confirm no regressions in animation or update logic.",
+            "status": "pending",
+            "testStrategy": "Integrate with CI/CD pipeline to run automated tests, ensuring the changes pass all existing test cases related to rendering and updates.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this modifies a single callback."
+      },
+      {
+        "id": "12",
+        "title": "Replace PIXI.utils Imports",
+        "description": "Update all PIXI.utils.* calls to direct imports from 'pixi.js'.",
+        "details": "Change imports like PIXI.utils.isMobile to import { isMobile } from 'pixi.js'.",
+        "testStrategy": "Run the app and check for any utils-related errors or warnings.",
+        "priority": "medium",
+        "dependencies": [
+          "3"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Identify Files Using PIXI.utils Imports",
+            "description": "Scan the entire codebase to find all files that contain PIXI.utils.* calls or imports.",
+            "dependencies": [],
+            "details": "Use grep or a code search tool to locate all instances of PIXI.utils in the project files, including JavaScript, TypeScript, and any other relevant files. Document the list of files and specific lines for reference.",
+            "status": "pending",
+            "testStrategy": "Verify the list by manually checking a few files to ensure no instances are missed.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Update Import Statements in Identified Files",
+            "description": "Replace PIXI.utils imports with direct imports from 'pixi.js' in each identified file.",
+            "dependencies": [
+              1
+            ],
+            "details": "For each file from subtask 1, change statements like 'import PIXI from 'pixi.js';' followed by PIXI.utils usage, to direct imports such as 'import { isMobile } from 'pixi.js';'. Ensure all necessary utils functions are imported.",
+            "status": "pending",
+            "testStrategy": "Check the import sections of updated files to confirm they match the new direct import pattern.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Replace PIXI.utils Usage with Direct Calls",
+            "description": "Update all code references from PIXI.utils.something to just something, assuming the direct import is in place.",
+            "dependencies": [
+              2
+            ],
+            "details": "Go through each file and replace usages like PIXI.utils.isMobile() with isMobile(), ensuring the function is imported directly. Handle any potential naming conflicts or scope issues.",
+            "status": "pending",
+            "testStrategy": "Run a linter or static analysis tool to detect any undefined references or syntax errors after replacements.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Verify No Remaining PIXI.utils References",
+            "description": "Perform a final check to ensure all PIXI.utils calls have been replaced and no references remain.",
+            "dependencies": [
+              3
+            ],
+            "details": "Re-scan the codebase using the same search method as in subtask 1 to confirm zero instances of PIXI.utils. Review any build or compilation logs for related warnings.",
+            "status": "pending",
+            "testStrategy": "Attempt to build the project and check for any errors related to missing PIXI.utils imports.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Test Application Functionality",
+            "description": "Run the application and verify that all utils-related functionality works correctly after the import changes.",
+            "dependencies": [
+              4
+            ],
+            "details": "Start the app, interact with features that use the updated utils (e.g., mobile detection), and monitor for runtime errors. Ensure rendering and logic dependent on these utils perform as expected.",
+            "status": "pending",
+            "testStrategy": "Run the app and check console for any utils-related errors or warnings, as per the parent task's test strategy.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this updates import statements."
+      },
+      {
+        "id": "13",
+        "title": "Implement CullerPlugin for Performance",
+        "description": "Add and configure the CullerPlugin for automatic culling.",
+        "details": "Import { extensions, CullerPlugin } from 'pixi.js' and add extensions.add(CullerPlugin). Set cullable = true on the main viewport container.",
+        "testStrategy": "Monitor FPS during scene rendering with many objects to ensure culling improves performance.",
+        "priority": "medium",
+        "dependencies": [
+          "4"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Import CullerPlugin from PixiJS",
+            "description": "Import the CullerPlugin and extensions from the pixi.js library to prepare for plugin addition.",
+            "dependencies": [],
+            "details": "In the main application file, add the import statement: import { extensions, CullerPlugin } from 'pixi.js';. Ensure this is done after the PixiJS application is initialized.",
+            "status": "pending",
+            "testStrategy": "Verify that the import does not cause any syntax errors or runtime issues during application startup.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Add CullerPlugin to Extensions",
+            "description": "Register the CullerPlugin with the PixiJS extensions system to enable automatic culling functionality.",
+            "dependencies": [
+              1
+            ],
+            "details": "After importing, add the plugin by calling extensions.add(CullerPlugin);. This should be done in the initialization phase of the application, ensuring it happens before creating any renderable objects.",
+            "status": "pending",
+            "testStrategy": "Check the console for any errors related to plugin registration and confirm that the plugin is listed in the extensions.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Configure Main Viewport as Cullable",
+            "description": "Set the cullable property to true on the main viewport container to allow the CullerPlugin to manage its visibility.",
+            "dependencies": [
+              2
+            ],
+            "details": "Locate the main viewport container in the code and set its cullable property: viewport.cullable = true;. This enables culling for objects within this container, improving performance by not rendering off-screen elements.",
+            "status": "pending",
+            "testStrategy": "Inspect the viewport object in the debugger to confirm the cullable property is set to true.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Integrate Culling into Application Lifecycle",
+            "description": "Ensure the culling logic is properly integrated into the application's rendering loop or initialization sequence.",
+            "dependencies": [
+              3
+            ],
+            "details": "Verify that the CullerPlugin is active during the application's update and render cycles. This may involve checking that the plugin hooks into the ticker or render events appropriately.",
+            "status": "pending",
+            "testStrategy": "Run the application and observe that culling is occurring by checking for reduced draw calls in performance tools.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Monitor Performance Improvements",
+            "description": "Test and monitor the performance gains from enabling culling, especially in scenes with many objects.",
+            "dependencies": [
+              4
+            ],
+            "details": "Use performance monitoring tools to measure FPS before and after enabling culling. Load a scene with numerous objects and compare rendering times, ensuring the plugin reduces unnecessary computations.",
+            "status": "pending",
+            "testStrategy": "Monitor FPS during scene rendering with many objects using browser dev tools or a performance monitor, verifying that culling improves performance without introducing errors.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this adds and configures a plugin."
+      },
+      {
+        "id": "14",
+        "title": "Optimize Event System",
+        "description": "Review and set interactiveChildren to false on non-interactive containers.",
+        "details": "Identify containers like grid backgrounds and set interactiveChildren = false to reduce event traversal.",
+        "testStrategy": "Test interaction with interactive elements and ensure non-interactive ones don't interfere.",
+        "priority": "low",
+        "dependencies": [
+          "4"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Identify Container Objects in Codebase",
+            "description": "Scan the codebase to locate all instances of container objects such as DisplayObjectContainers, Sprites, or other PixiJS objects that hold child elements.",
+            "dependencies": [
+              4
+            ],
+            "details": "Use grep or manual search in files like main.js, canvas.js, and other relevant files to find all container declarations and usages. Document their locations and types.",
+            "status": "pending",
+            "testStrategy": "Verify the list of identified containers matches expected structures in the code.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Classify Containers as Interactive or Non-Interactive",
+            "description": "Review each identified container to determine if it requires interactivity or is purely for layout/background purposes.",
+            "dependencies": [
+              1
+            ],
+            "details": "Examine the purpose of each container, such as grid backgrounds being non-interactive. Categorize them based on whether they handle user events or not.",
+            "status": "pending",
+            "testStrategy": "Cross-check classifications with code comments or usage patterns to ensure accuracy.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Set interactiveChildren to False on Non-Interactive Containers",
+            "description": "Apply the interactiveChildren = false property to all containers classified as non-interactive.",
+            "dependencies": [
+              2
+            ],
+            "details": "Modify the code in the relevant files to add or set interactiveChildren = false on the identified non-interactive containers, ensuring no interactive children are affected.",
+            "status": "pending",
+            "testStrategy": "Run the application and check that no errors occur during initialization or rendering.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Test Interactive Element Functionality",
+            "description": "Verify that interactive elements within the containers still respond correctly to user interactions.",
+            "dependencies": [
+              3
+            ],
+            "details": "Interact with buttons, clickable areas, or other interactive components in the app to ensure they trigger events as expected after the changes.",
+            "status": "pending",
+            "testStrategy": "Use manual testing or automated scripts to simulate interactions and log event firings.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Validate Event Traversal Optimization",
+            "description": "Confirm that setting interactiveChildren reduces unnecessary event processing on non-interactive containers.",
+            "dependencies": [
+              4
+            ],
+            "details": "Monitor event handling performance, perhaps by adding temporary logging or using browser dev tools to check event propagation paths and ensure efficiency improvements.",
+            "status": "pending",
+            "testStrategy": "Compare event logs or performance metrics before and after changes to quantify the optimization.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this sets properties on containers."
+      },
+      {
+        "id": "15",
+        "title": "Conduct Functional and Performance Testing",
+        "description": "Run full testing suite including functional checks and performance benchmarks.",
+        "details": "Execute QA checklist for user stories. Run performance tests using PerformanceMonitor, comparing to v7 baseline. Ensure FPS meets criteria.",
+        "testStrategy": "Validate all acceptance criteria: no errors, tests pass, performance met, no deprecations.",
+        "priority": "high",
+        "dependencies": [
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14"
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Run Functional Checks on User Stories",
+            "description": "Execute the QA checklist to verify that all user stories meet their acceptance criteria, ensuring no errors occur and all tests pass.",
+            "dependencies": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14
+            ],
+            "details": "Go through each user story in the QA checklist, perform functional tests to check for correct behavior, error handling, and compliance with requirements. Document any issues found and ensure all tests are passing before proceeding.",
+            "status": "pending",
+            "testStrategy": "Validate all acceptance criteria including no errors and tests passing.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Run Performance Benchmarks Against v7 Baseline",
+            "description": "Execute performance tests using PerformanceMonitor to compare current performance against the v7 baseline and ensure FPS meets the required criteria.",
+            "dependencies": [
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14
+            ],
+            "details": "Set up and run PerformanceMonitor on the application, measure FPS and other key metrics during benchmarks, compare results directly to the v7 baseline data, and verify that performance thresholds are met or exceeded.",
+            "status": "pending",
+            "testStrategy": "Monitor FPS and other performance metrics, ensuring they meet or exceed the v7 baseline criteria.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Generate subtasks for running functional checks on user stories and separate subtasks for performance benchmarks against v7 baseline."
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2025-10-15T20:43:56.959Z",
+      "taskCount": 15,
+      "completedCount": 0,
+      "tags": [
+        "pixi-upgrade"
+      ]
     }
   }
 }
