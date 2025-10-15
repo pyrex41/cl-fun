@@ -935,7 +935,8 @@ export class CanvasManager {
     }
 
     // Check texture memory (basic check)
-    const textureCount = Object.keys(PIXI.utils.TextureCache).length;
+    // Note: In PixiJS v8, texture cache access has changed
+    const textureCount = PIXI.Cache ? Object.keys(PIXI.Cache._cache).length : 0;
     if (textureCount > 100) { // Arbitrary threshold
       issues.push(`High texture count detected: ${textureCount} textures in cache`);
     }
@@ -968,8 +969,9 @@ export class CanvasManager {
       selectedObjects,
       remoteCursors,
       totalTrackedObjects: objectsInMap + selectionIndicators + selectedObjects + remoteCursors,
-      textureCacheSize: Object.keys(PIXI.utils.TextureCache).length,
-      baseTextureCacheSize: Object.keys(PIXI.utils.BaseTextureCache).length
+      // PixiJS v8: Cache API has changed
+      textureCacheSize: PIXI.Cache ? Object.keys(PIXI.Cache._cache).length : 0,
+      baseTextureCacheSize: 0 // BaseTextureCache deprecated in v8
     };
   }
 
