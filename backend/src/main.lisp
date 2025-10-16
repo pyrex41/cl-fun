@@ -23,6 +23,13 @@
     "{\"test\":\"success\"}")
 
   ;; Authentication routes - check request method internally
+  ;; Auth0 OAuth2
+  (hunchentoot:define-easy-handler (auth0-login :uri "/auth0/login") ()
+    (handle-auth0-login))
+
+  (hunchentoot:define-easy-handler (auth0-callback :uri "/auth0/callback") ()
+    (handle-auth0-callback))
+
   (hunchentoot:define-easy-handler (register-handler :uri "/api/register") ()
     (set-cors-headers)
     (if (eq (hunchentoot:request-method*) :options)
@@ -147,6 +154,7 @@
 
   ;; Setup routes
   (format t "Setting up HTTP routes...~%")
+  (ignore-errors (ensure-auth0-config!))
   (setup-routes)
 
   ;; Create and start the acceptor (combines HTTP and WebSocket)

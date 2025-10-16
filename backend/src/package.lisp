@@ -18,6 +18,9 @@
   (:import-from #:jonathan
                 #:parse
                 #:to-json)
+  (:import-from #:dexador)
+  (:import-from #:babel)
+  (:import-from #:cl-base64)
   (:import-from #:ironclad
                 #:digest-sequence
                 #:byte-array-to-hex-string
@@ -44,11 +47,23 @@
    #:*database-path*
    #:*session-timeout*
 
+   ;; Auth0 config & OAuth
+   #:ensure-auth0-config!
+   #:auth0-authorize-url
+   #:auth0-token-url
+   #:auth0-userinfo-url
+   #:auth0-logout-url
+   #:handle-auth0-login
+   #:handle-auth0-callback
+
    ;; Database
    #:init-database
    #:with-database
    #:execute-query
    #:execute-non-query
+   #:ensure-auth0-user-columns
+   #:get-user-by-auth0-sub
+   #:find-or-create-user-from-oauth
 
    ;; Authentication
    #:register-user

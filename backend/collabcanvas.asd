@@ -14,17 +14,22 @@
                :sqlite
                :alexandria
                :cl-ppcre
-               :local-time)
+               :local-time
+               :dexador
+               :babel
+               :cl-base64)
   :components ((:module "src"
                 :components
                 ((:file "package")
                  (:file "config" :depends-on ("package"))
+                 (:file "auth0-config" :depends-on ("package" "config"))
+                 (:file "auth0-oauth" :depends-on ("package" "config" "utils" "auth0-config"))
                  (:file "utils" :depends-on ("package" "config"))
                  (:file "database" :depends-on ("package" "config" "utils"))
                  (:file "auth" :depends-on ("package" "database" "utils"))
                  (:file "canvas-state" :depends-on ("package" "database"))
                  (:file "websocket" :depends-on ("package" "auth" "canvas-state"))
-                 (:file "main" :depends-on ("package" "config" "database" "auth" "websocket" "canvas-state")))))
+                 (:file "main" :depends-on ("package" "config" "database" "auth" "auth0-config" "auth0-oauth" "websocket" "canvas-state")))))
   :in-order-to ((test-op (test-op "collabcanvas/tests"))))
 
 (defsystem "collabcanvas/tests"

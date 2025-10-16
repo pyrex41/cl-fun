@@ -19,8 +19,7 @@
             "details": "Use Roswell to create a new SBCL project named 'collabcanvas' with ASDF system definition. Ensure the project structure includes backend/src/ for source files. Verify that the ASDF system loads correctly in the REPL.",
             "status": "done",
             "testStrategy": "Load the project in SBCL REPL and check that the ASDF system is defined without errors.",
-            "updatedAt": "2025-10-13T21:24:51.583Z",
-            "parentId": "undefined"
+            "updatedAt": "2025-10-13T21:24:51.583Z"
           },
           {
             "id": 2,
@@ -32,7 +31,6 @@
             "details": "After setting up the backend project, use Quicklisp to install Hunchentoot for web server, Hunchensocket for WebSockets, cl-sqlite for database, Jonathan for JSON handling, Ironclad for cryptography, and Bordeaux-threads for threading. Ensure all packages are available and loadable.",
             "status": "done",
             "testStrategy": "Run (ql:quickload :collabcanvas) in the REPL and confirm all dependencies load without errors.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:24:52.880Z"
           },
           {
@@ -43,7 +41,6 @@
             "details": "Use npm or yarn to initialize a Vite project in the frontend directory. Install PixiJS v7 as a dependency. Create the frontend/src/ structure for source files. Configure Vite for vanilla JS ES6+ development.",
             "status": "done",
             "testStrategy": "Run npm run build in the frontend directory and verify that the build completes successfully with PixiJS integrated.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:24:54.220Z"
           },
           {
@@ -54,7 +51,6 @@
             "details": "After initializing the Vite project, install PixiJS v7 and confirm that the package.json includes all necessary dependencies for vanilla JS ES6+ development. Check for any peer dependencies and resolve them.",
             "status": "done",
             "testStrategy": "Check that npm install completes without errors and that PixiJS can be imported in a test JS file.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:24:55.568Z"
           },
           {
@@ -68,7 +64,6 @@
             "details": "Write a Dockerfile with Debian base image. Include instructions to install SBCL, Roswell, Node.js, and other necessary tools. Copy project files and set up commands to run the backend and frontend. Ensure the container can build and run the application.",
             "status": "done",
             "testStrategy": "Build the Docker image and run the container, verifying that both backend and frontend start without errors.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:24:56.916Z"
           }
         ],
@@ -82,9 +77,9 @@
         "testStrategy": "Run SQLite commands to verify tables exist and constraints are enforced. Insert test data and query to confirm integrity.",
         "priority": "high",
         "dependencies": [
-          "1"
+          1
         ],
-        "status": "done",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -93,8 +88,7 @@
             "dependencies": [],
             "details": "Write a schema.sql file that includes CREATE TABLE statements for users (id, email, username, password_hash), sessions (id, user_id, session_id, expires_at), and canvas_states (id, session_id, state_json). Add PRIMARY KEY and UNIQUE constraints, and indexes for performance on frequently queried columns like email and session_id.",
             "status": "pending",
-            "testStrategy": "Validate the SQL syntax by attempting to execute it in a SQLite environment and check for errors.",
-            "parentId": "undefined"
+            "testStrategy": "Validate the SQL syntax by attempting to execute it in a SQLite environment and check for errors."
           },
           {
             "id": 2,
@@ -105,8 +99,7 @@
             ],
             "details": "In database.lisp, define a function to connect to the SQLite database file located in the data/ directory, using cl-sqlite. Ensure the connection is reusable and handle any connection errors gracefully.",
             "status": "pending",
-            "testStrategy": "Call the connection function and verify that the database file is created in data/ if it doesn't exist, and that subsequent calls reuse the connection.",
-            "parentId": "undefined"
+            "testStrategy": "Call the connection function and verify that the database file is created in data/ if it doesn't exist, and that subsequent calls reuse the connection."
           },
           {
             "id": 3,
@@ -117,8 +110,7 @@
             ],
             "details": "Implement a function in database.lisp that reads and executes the schema.sql file using the established database connection. Ensure all tables are created with their indexes and constraints.",
             "status": "pending",
-            "testStrategy": "After execution, query the database to confirm that tables users, sessions, and canvas_states exist with the correct columns and indexes.",
-            "parentId": "undefined"
+            "testStrategy": "After execution, query the database to confirm that tables users, sessions, and canvas_states exist with the correct columns and indexes."
           },
           {
             "id": 4,
@@ -129,8 +121,7 @@
             ],
             "details": "Define utility functions for executing SELECT, INSERT, UPDATE, and DELETE queries, handling parameters securely to prevent SQL injection. Include functions for fetching results and handling transactions.",
             "status": "pending",
-            "testStrategy": "Write and execute test queries to insert sample data into the tables and retrieve it, verifying that the utilities work correctly and data integrity is maintained.",
-            "parentId": "undefined"
+            "testStrategy": "Write and execute test queries to insert sample data into the tables and retrieve it, verifying that the utilities work correctly and data integrity is maintained."
           },
           {
             "id": 5,
@@ -141,8 +132,7 @@
             ],
             "details": "Check that the SQLite database file is created in the data/ directory. Run a final verification to ensure all tables, indexes, and constraints are properly set up and functional.",
             "status": "pending",
-            "testStrategy": "Use SQLite commands to inspect the database file, confirm table structures, and perform basic operations to ensure everything is working as expected.",
-            "parentId": "undefined"
+            "testStrategy": "Use SQLite commands to inspect the database file, confirm table structures, and perform basic operations to ensure everything is working as expected."
           }
         ],
         "updatedAt": "2025-10-13T21:24:58.407Z"
@@ -155,9 +145,9 @@
         "testStrategy": "Use curl to test registration, login, and logout endpoints. Verify session persistence and expiry. Check database for correct data insertion.",
         "priority": "high",
         "dependencies": [
-          "2"
+          2
         ],
-        "status": "done",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -166,8 +156,7 @@
             "dependencies": [],
             "details": "In the database setup, define a 'users' table with columns: id (primary key), email (unique), username (unique), password_hash (text). Define a 'sessions' table with columns: id (primary key), user_id (foreign key to users), session_id (unique), created_at (timestamp), expires_at (timestamp). Use SQLite pragmas for foreign keys.\n<info added on 2025-10-13T20:19:17.572Z>\nInstead of creating new tables, this subtask should confirm that Task 2 successfully created the users and sessions tables with the correct columns and constraints. Query the SQLite database schema using PRAGMA table_info or similar to validate the structure: users table with id (primary key), email (unique), username (unique), password_hash (text); sessions table with id (primary key), user_id (foreign key to users), session_id (unique), created_at (timestamp), expires_at (timestamp). Ensure foreign key constraints are enabled and unique constraints are in place on email and username. Raise errors if the schema does not match expectations.\n</info added on 2025-10-13T20:19:17.572Z>",
             "status": "pending",
-            "testStrategy": "Verify table creation by querying the database schema and inserting test data to confirm unique constraints.",
-            "parentId": "undefined"
+            "testStrategy": "Verify table creation by querying the database schema and inserting test data to confirm unique constraints."
           },
           {
             "id": 2,
@@ -178,8 +167,7 @@
             ],
             "details": "In auth.lisp, define a function hash-password that takes a plain password string, uses Ironclad to compute SHA-256 hash, and returns the hex-encoded string. Ensure it handles UTF-8 encoding properly.",
             "status": "pending",
-            "testStrategy": "Unit test the function with known inputs and verify outputs match expected SHA-256 hashes.",
-            "parentId": "undefined"
+            "testStrategy": "Unit test the function with known inputs and verify outputs match expected SHA-256 hashes."
           },
           {
             "id": 3,
@@ -191,8 +179,7 @@
             ],
             "details": "Using Hunchentoot, add a POST handler for /api/register that parses JSON body for email, username, password. Validate inputs, hash password, insert into users table, handle unique constraint violations by returning appropriate error responses.",
             "status": "pending",
-            "testStrategy": "Use curl to send POST requests with valid and invalid data, check for successful registration and error messages for duplicates.",
-            "parentId": "undefined"
+            "testStrategy": "Use curl to send POST requests with valid and invalid data, check for successful registration and error messages for duplicates."
           },
           {
             "id": 4,
@@ -205,8 +192,7 @@
             ],
             "details": "Add a POST handler for /api/login that takes email/username and password. Query user by email or username, verify password hash, generate a unique session ID, insert into sessions table with 24-hour expiry, return session ID in response.",
             "status": "pending",
-            "testStrategy": "Test login with correct and incorrect credentials using curl, verify session creation in database and response contains session ID.",
-            "parentId": "undefined"
+            "testStrategy": "Test login with correct and incorrect credentials using curl, verify session creation in database and response contains session ID."
           },
           {
             "id": 5,
@@ -217,8 +203,7 @@
             ],
             "details": "Add a POST handler for /api/logout that takes session ID, deletes the session from the database. Optionally, implement session validation middleware for protected endpoints to check expiry.",
             "status": "pending",
-            "testStrategy": "Login to get a session, call logout, verify session is removed from database, and test that expired sessions are invalidated.",
-            "parentId": "undefined"
+            "testStrategy": "Login to get a session, call logout, verify session is removed from database, and test that expired sessions are invalidated."
           }
         ],
         "updatedAt": "2025-10-13T21:24:59.652Z"
@@ -231,7 +216,7 @@
         "testStrategy": "Open app, attempt registration and login. Verify modal blocks canvas, session persists on refresh. Test invalid credentials error handling.",
         "priority": "medium",
         "dependencies": [
-          "3"
+          3
         ],
         "status": "done",
         "subtasks": [
@@ -243,7 +228,6 @@
             "details": "In auth.js, create a modal element with two tabs: one for login and one for register. Use CSS to style the modal as an overlay that appears when authentication is required. Ensure the modal is hidden by default and can be toggled.",
             "status": "done",
             "testStrategy": "Open the app and verify the modal appears with login and register tabs visible.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:27:24.151Z"
           },
           {
@@ -256,7 +240,6 @@
             "details": "In the login tab, add fields for email and password. In the register tab, add fields for email, password, and username. Include submit buttons for each form. Validate that required fields are filled before submission.",
             "status": "done",
             "testStrategy": "Switch between tabs and confirm fields are present and functional.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:28:10.289Z"
           },
           {
@@ -269,7 +252,6 @@
             "details": "On form submission, collect form data and use fetch to call the appropriate backend endpoint. Handle the response asynchronously. Prepare for storing sessionId on success.",
             "status": "done",
             "testStrategy": "Submit forms with valid data and check network requests in browser dev tools.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:28:11.618Z"
           },
           {
@@ -282,7 +264,6 @@
             "details": "Upon successful response, store the sessionId in localStorage. Hide the modal and allow access to the canvas. Check for existing sessionId on app load to skip modal if already authenticated.",
             "status": "done",
             "testStrategy": "Register and login, then refresh the page to verify session persists and canvas is accessible.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:28:12.950Z"
           },
           {
@@ -295,7 +276,6 @@
             "details": "On failed responses, parse error messages from the backend and display them in the modal. Clear messages on successful attempts. Ensure the modal remains open on errors.",
             "status": "done",
             "testStrategy": "Attempt login/register with invalid credentials and verify error messages appear.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:28:14.350Z"
           }
         ],
@@ -309,9 +289,9 @@
         "testStrategy": "Start server and connect via browser console WebSocket. Send test messages and verify routing and broadcasting. Check room creation and client addition/removal.",
         "priority": "high",
         "dependencies": [
-          "3"
+          3
         ],
-        "status": "done",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -320,8 +300,7 @@
             "dependencies": [],
             "details": "Configure Hunchensocket to create a WebSocket acceptor that listens on a specified port, handling the basic setup for WebSocket connections.",
             "status": "pending",
-            "testStrategy": "Start the server and verify that it listens on the port without errors, using a simple connection test.",
-            "parentId": "undefined"
+            "testStrategy": "Start the server and verify that it listens on the port without errors, using a simple connection test."
           },
           {
             "id": 2,
@@ -332,8 +311,7 @@
             ],
             "details": "In websocket.lisp, implement a canvas-room class that includes thread-safe lists for managing connected clients, ensuring safe concurrent access.",
             "status": "pending",
-            "testStrategy": "Instantiate the class and perform basic operations like adding/removing clients in a multi-threaded environment to check for race conditions.",
-            "parentId": "undefined"
+            "testStrategy": "Instantiate the class and perform basic operations like adding/removing clients in a multi-threaded environment to check for race conditions."
           },
           {
             "id": 3,
@@ -344,8 +322,7 @@
             ],
             "details": "Add logic to accept incoming WebSocket connections, associate them with canvas rooms, and manage client addition/removal from room lists upon connect/disconnect.",
             "status": "pending",
-            "testStrategy": "Connect multiple clients via browser console and verify they are added to the room; disconnect and check removal.",
-            "parentId": "undefined"
+            "testStrategy": "Connect multiple clients via browser console and verify they are added to the room; disconnect and check removal."
           },
           {
             "id": 4,
@@ -356,8 +333,7 @@
             ],
             "details": "In websocket.lisp, create handlers for message types including authentication, cursor updates, and object operations, parsing incoming messages and dispatching to appropriate functions.",
             "status": "pending",
-            "testStrategy": "Send test messages of each type from a client and verify they are routed correctly, logging the handling process.",
-            "parentId": "undefined"
+            "testStrategy": "Send test messages of each type from a client and verify they are routed correctly, logging the handling process."
           },
           {
             "id": 5,
@@ -368,8 +344,7 @@
             ],
             "details": "Create utility functions in websocket.lisp that iterate over the thread-safe client lists in a canvas-room and send messages to all connected members.",
             "status": "pending",
-            "testStrategy": "Connect multiple clients to a room, send a broadcast message, and verify all clients receive it via console logs.",
-            "parentId": "undefined"
+            "testStrategy": "Connect multiple clients to a room, send a broadcast message, and verify all clients receive it via console logs."
           }
         ],
         "updatedAt": "2025-10-13T21:25:01.037Z"
@@ -382,9 +357,9 @@
         "testStrategy": "Load canvas, verify PixiJS renders grid correctly. Check coordinate conversions with console logs. Ensure canvas fills viewport without scrollbars.",
         "priority": "high",
         "dependencies": [
-          "1"
+          1
         ],
-        "status": "done",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -393,8 +368,7 @@
             "dependencies": [],
             "details": "In canvas.js, create a new PIXI.Application with options for width and height set to window.innerWidth and window.innerHeight, and append its view to the document body. Ensure it resizes dynamically with window resize events.",
             "status": "pending",
-            "testStrategy": "Load the canvas and verify that PixiJS application renders and fills the viewport completely without any scrollbars appearing.",
-            "parentId": "undefined"
+            "testStrategy": "Load the canvas and verify that PixiJS application renders and fills the viewport completely without any scrollbars appearing."
           },
           {
             "id": 2,
@@ -405,8 +379,7 @@
             ],
             "details": "After initializing the PIXI.Application, create a new PIXI.Container instance and add it to the application's stage. This container will hold all world-space objects and transformations.",
             "status": "pending",
-            "testStrategy": "Check that the container is added to the stage and can hold child objects by adding a test sprite and confirming it renders.",
-            "parentId": "undefined"
+            "testStrategy": "Check that the container is added to the stage and can hold child objects by adding a test sprite and confirming it renders."
           },
           {
             "id": 3,
@@ -417,8 +390,7 @@
             ],
             "details": "In the world container, create PIXI.Graphics to draw horizontal and vertical lines at 50px intervals in world coordinates. Update the grid rendering on zoom and pan events to maintain visibility.",
             "status": "pending",
-            "testStrategy": "Zoom and pan the canvas, verify the grid lines appear at correct 50px intervals and adjust dynamically with transformations.",
-            "parentId": "undefined"
+            "testStrategy": "Zoom and pan the canvas, verify the grid lines appear at correct 50px intervals and adjust dynamically with transformations."
           },
           {
             "id": 4,
@@ -429,8 +401,7 @@
             ],
             "details": "Attach event listeners to the PIXI.Application view for 'mousedown', 'mousemove', and 'mouseup' events. Store mouse positions and states to handle interactions such as panning or selecting.",
             "status": "pending",
-            "testStrategy": "Click and drag on the canvas, use console logs to verify that mouse events are captured and positions are recorded accurately.",
-            "parentId": "undefined"
+            "testStrategy": "Click and drag on the canvas, use console logs to verify that mouse events are captured and positions are recorded accurately."
           },
           {
             "id": 5,
@@ -441,8 +412,7 @@
             ],
             "details": "Create functions screenToWorld(x, y) and worldToScreen(x, y) that account for the world container's position, scale, and rotation. Use these for accurate object placement and interaction in world space.",
             "status": "pending",
-            "testStrategy": "Use console logs to test coordinate conversions by logging screen positions and their world equivalents, ensuring accuracy during zoom and pan.",
-            "parentId": "undefined"
+            "testStrategy": "Use console logs to test coordinate conversions by logging screen positions and their world equivalents, ensuring accuracy during zoom and pan."
           }
         ],
         "updatedAt": "2025-10-13T21:25:02.354Z"
@@ -455,7 +425,7 @@
         "testStrategy": "Test pan with middle-click and Alt+drag, verify smooth movement. Zoom in/out with wheel, check cursor centering and FPS via DevTools. Confirm no frame drops with rapid interactions.",
         "priority": "high",
         "dependencies": [
-          "6"
+          6
         ],
         "status": "done",
         "subtasks": [
@@ -467,7 +437,6 @@
             "details": "Add event listeners for mousedown, mousemove, mouseup, and wheel events on the canvas element. Track mouse state variables like isPanning, lastMouseX, lastMouseY, and zoomLevel. Ensure listeners are attached when the canvas is initialized.",
             "status": "done",
             "testStrategy": "Verify that event listeners are attached by checking console logs on mouse interactions.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:27:39.201Z"
           },
           {
@@ -480,7 +449,6 @@
             "details": "In the mousedown event, check for middle button or Alt+left-click to set isPanning to true and record initial mouse position. In mousemove, if isPanning, calculate delta movement and update the viewport offset. Reset on mouseup. Prevent default drag behavior.",
             "status": "done",
             "testStrategy": "Test middle-click drag and Alt+left-click drag to ensure the canvas pans smoothly without selecting text or other elements.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:28:15.758Z"
           },
           {
@@ -493,7 +461,6 @@
             "details": "In the wheel event, calculate zoom factor based on deltaY, clamp between 0.1 and 10. Adjust zoom level and recompute viewport to center on cursor position. Use transform or scale on the canvas rendering context. Update zoomLevel variable.",
             "status": "done",
             "testStrategy": "Scroll mouse wheel in and out, check that zoom scales from 0.1x to 10x and centers on cursor. Verify zoom stops at limits.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:28:17.092Z"
           },
           {
@@ -507,7 +474,6 @@
             "details": "Create a viewport object with properties: offsetX, offsetY, zoom. Update these in pan and zoom handlers. Use these to transform world coordinates to screen coordinates in rendering functions. Ensure viewport is reset or initialized properly.",
             "status": "done",
             "testStrategy": "After pan and zoom, inspect viewport values and confirm they match expected changes based on mouse movements.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:28:18.386Z"
           },
           {
@@ -522,7 +488,6 @@
             "details": "Wrap pan and zoom updates in requestAnimationFrame to limit to 60 FPS. Debounce rapid events if necessary. Profile with DevTools to confirm no frame drops during interactions. Optimize rendering by only updating changed parts if possible.",
             "status": "done",
             "testStrategy": "Use DevTools Performance tab to record interactions, verify frame rate stays at 60 FPS with no drops during rapid pan and zoom.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:28:20.031Z"
           }
         ],
@@ -536,9 +501,9 @@
         "testStrategy": "Switch to rectangle tool, click-drag to create. Repeat for circle. Verify objects appear with correct properties. Check keyboard shortcuts switch modes.",
         "priority": "high",
         "dependencies": [
-          "7"
+          7
         ],
-        "status": "done",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -547,8 +512,7 @@
             "dependencies": [],
             "details": "Modify the canvas.js file to include a mode variable that can be set to 'rectangle' or 'circle' based on key presses 'R' and 'C'. Ensure the mode affects the creation behavior.",
             "status": "pending",
-            "testStrategy": "Press 'R' and 'C' keys and verify the mode changes via console logs or UI indicators.",
-            "parentId": "undefined"
+            "testStrategy": "Press 'R' and 'C' keys and verify the mode changes via console logs or UI indicators."
           },
           {
             "id": 2,
@@ -559,8 +523,7 @@
             ],
             "details": "In canvas.js, attach a mousedown event listener to the canvas. On mousedown, record the starting point (x, y) and create a temporary PIXI.Graphics object for previewing the shape being drawn.",
             "status": "pending",
-            "testStrategy": "Switch to rectangle mode, click on canvas, and check if a temporary graphic appears at the click position.",
-            "parentId": "undefined"
+            "testStrategy": "Switch to rectangle mode, click on canvas, and check if a temporary graphic appears at the click position."
           },
           {
             "id": 3,
@@ -571,8 +534,7 @@
             ],
             "details": "Add a mousemove event listener that, while dragging, calculates width/height for rectangle or radius for circle based on current mouse position and starting point, then redraws the temporary PIXI.Graphics object.",
             "status": "pending",
-            "testStrategy": "Start dragging after mousedown, move mouse, and verify the shape resizes in real-time on the canvas.",
-            "parentId": "undefined"
+            "testStrategy": "Start dragging after mousedown, move mouse, and verify the shape resizes in real-time on the canvas."
           },
           {
             "id": 4,
@@ -583,8 +545,7 @@
             ],
             "details": "In the mouseup event listener, remove the temporary graphic, create a new PIXI.Graphics object with final dimensions, assign properties like id, type, x, y, width/height/radius, color, and add it to the canvas stage.",
             "status": "pending",
-            "testStrategy": "Complete a click-drag action, release mouse, and confirm a permanent object appears with correct size and properties.",
-            "parentId": "undefined"
+            "testStrategy": "Complete a click-drag action, release mouse, and confirm a permanent object appears with correct size and properties."
           },
           {
             "id": 5,
@@ -595,8 +556,7 @@
             ],
             "details": "Create a function in canvas.js that generates unique IDs, perhaps using a counter or timestamp-based method. Assign this ID to each new object upon finalization in the mouseup handler.",
             "status": "pending",
-            "testStrategy": "Create multiple objects and verify each has a unique ID by inspecting object properties or logging them.",
-            "parentId": "undefined"
+            "testStrategy": "Create multiple objects and verify each has a unique ID by inspecting object properties or logging them."
           }
         ],
         "updatedAt": "2025-10-14T02:52:42.112Z"
@@ -609,9 +569,9 @@
         "testStrategy": "Create objects, select single/multiple, drag to new positions. Verify positions update correctly. Delete selected objects and confirm removal.",
         "priority": "high",
         "dependencies": [
-          "8"
+          8
         ],
-        "status": "done",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -620,8 +580,7 @@
             "dependencies": [],
             "details": "Modify canvas.js to listen for the 'V' key press event and set the current tool mode to 'select'. Ensure this mode allows for object selection without creating new objects.",
             "status": "pending",
-            "testStrategy": "Press 'V' key and verify select mode is activated, preventing object creation.",
-            "parentId": "undefined"
+            "testStrategy": "Press 'V' key and verify select mode is activated, preventing object creation."
           },
           {
             "id": 2,
@@ -632,8 +591,7 @@
             ],
             "details": "In canvas.js, add mouse click event handler in select mode to detect clicks on objects using PIXI's hit detection. Mark the clicked object as selected and visually indicate selection (e.g., highlight).",
             "status": "pending",
-            "testStrategy": "Create an object, enter select mode, click on it, and verify it is selected and highlighted.",
-            "parentId": "undefined"
+            "testStrategy": "Create an object, enter select mode, click on it, and verify it is selected and highlighted."
           },
           {
             "id": 3,
@@ -644,8 +602,7 @@
             ],
             "details": "Extend the click handler in canvas.js to check for Shift key during click. If Shift is held, add the clicked object to the selection without deselecting others. Maintain a list of selected objects.",
             "status": "pending",
-            "testStrategy": "Create multiple objects, select one, then Shift+click another, and verify both are selected.",
-            "parentId": "undefined"
+            "testStrategy": "Create multiple objects, select one, then Shift+click another, and verify both are selected."
           },
           {
             "id": 4,
@@ -656,8 +613,7 @@
             ],
             "details": "In canvas.js, add mouse down, move, and up event handlers for dragging. On mouse down on selected objects, initiate drag. Update positions during move and finalize on mouse up, converting screen coordinates to world coordinates.",
             "status": "pending",
-            "testStrategy": "Select an object, drag it to a new position, and verify the position updates correctly in world coordinates.",
-            "parentId": "undefined"
+            "testStrategy": "Select an object, drag it to a new position, and verify the position updates correctly in world coordinates."
           },
           {
             "id": 5,
@@ -668,8 +624,7 @@
             ],
             "details": "In canvas.js, add a keydown event listener for the Delete key. When pressed, remove all selected objects from the canvas and update the object list. Ensure positions are handled in world coordinates if needed.",
             "status": "pending",
-            "testStrategy": "Select one or more objects, press Delete key, and verify they are removed from the canvas.",
-            "parentId": "undefined"
+            "testStrategy": "Select one or more objects, press Delete key, and verify they are removed from the canvas."
           }
         ],
         "updatedAt": "2025-10-14T02:52:43.333Z"
@@ -682,7 +637,7 @@
         "testStrategy": "Connect to server, send auth, verify auth-success. Send test object-create message and check server response. Test reconnection after disconnect.",
         "priority": "high",
         "dependencies": [
-          "5"
+          5
         ],
         "status": "done",
         "subtasks": [
@@ -693,8 +648,7 @@
             "dependencies": [],
             "details": "In websocket.js, define a WebSocketClient class with a constructor that takes host, canvasId, and authToken. Initialize properties like ws (WebSocket instance), isConnected (boolean), and message handlers. Ensure the class is exportable for use in other modules.",
             "status": "done",
-            "testStrategy": null,
-            "parentId": "undefined",
+            "testStrategy": "Basic verification: run and ensure no errors.",
             "updatedAt": "2025-10-13T21:27:55.378Z"
           },
           {
@@ -707,7 +661,6 @@
             "details": "In the WebSocketClient class, add a connect() method that creates a new WebSocket connection to ws://host/ws/{canvas-id}. On connection open, send an auth message with the authToken. Listen for auth-success or auth-failure responses and handle accordingly, updating connection status.",
             "status": "done",
             "testStrategy": "Connect to a test server, verify WebSocket opens, send auth message, and check for auth-success response.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:28:21.428Z"
           },
           {
@@ -720,7 +673,6 @@
             "details": "In the WebSocketClient class, implement sendMessage() method to send JSON messages for cursor positions and object operations (create, update, delete). Add onMessage handler to parse incoming messages and dispatch to appropriate handlers for cursor updates and object changes. Ensure messages are properly formatted as JSON.",
             "status": "done",
             "testStrategy": "Send a test cursor update message and verify it's received. Send an object-create message and check the response.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:28:22.890Z"
           },
           {
@@ -733,7 +685,6 @@
             "details": "In the WebSocketClient class, add an onClose handler that attempts to reconnect after a delay (e.g., exponential backoff). Track reconnection attempts and stop after a maximum number. Re-authenticate upon successful reconnection. Provide a method to manually disconnect.",
             "status": "done",
             "testStrategy": "Disconnect the WebSocket manually, verify automatic reconnection occurs, and auth is re-sent.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:28:24.212Z"
           },
           {
@@ -746,7 +697,6 @@
             "details": "In the WebSocketClient class, implement a throttling mechanism using a timer or library to ensure cursor position updates are sent at most 30 times per second. Buffer or drop excess updates. Integrate this into the cursor sending logic to prevent flooding the server.",
             "status": "done",
             "testStrategy": "Simulate rapid cursor movements and verify that no more than 30 updates are sent per second.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-13T21:28:25.505Z"
           }
         ],
@@ -760,10 +710,10 @@
         "testStrategy": "Open two browser windows, create/update/delete objects in one, verify immediate sync in the other. Check latency <100ms with network tools.",
         "priority": "high",
         "dependencies": [
-          "9",
-          "10"
+          9,
+          10
         ],
-        "status": "done",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -772,8 +722,7 @@
             "dependencies": [],
             "details": "In CanvasManager, hook into object creation, update, and deletion events to serialize the object data (id, type, position, etc.) into a JSON message and send it via WebSocketClient to the server.",
             "status": "pending",
-            "testStrategy": "Use browser console to verify messages are sent on object actions, check network tab for WebSocket frames.",
-            "parentId": "undefined"
+            "testStrategy": "Use browser console to verify messages are sent on object actions, check network tab for WebSocket frames."
           },
           {
             "id": 2,
@@ -784,8 +733,7 @@
             ],
             "details": "Add a WebSocket message handler in CanvasManager that parses incoming JSON messages for object create, update, or delete operations, and updates the local canvas state accordingly, ensuring UI reflects changes.",
             "status": "pending",
-            "testStrategy": "Send manual WebSocket messages from server and observe canvas updates in real-time without local actions.",
-            "parentId": "undefined"
+            "testStrategy": "Send manual WebSocket messages from server and observe canvas updates in real-time without local actions."
           },
           {
             "id": 3,
@@ -796,8 +744,7 @@
             ],
             "details": "In the server code, upon receiving a message from a client, relay it to all other connected WebSocket clients, ensuring efficient broadcasting without echoing back to the originator.",
             "status": "pending",
-            "testStrategy": "Connect multiple clients, perform an action on one, and verify the message is received by others via server logs or client-side logs.",
-            "parentId": "undefined"
+            "testStrategy": "Connect multiple clients, perform an action on one, and verify the message is received by others via server logs or client-side logs."
           },
           {
             "id": 4,
@@ -808,8 +755,7 @@
             ],
             "details": "Attach timestamps to all object change messages. In the message handler, compare timestamps on conflicts (e.g., simultaneous updates to the same object) and apply the most recent one, discarding older changes.",
             "status": "pending",
-            "testStrategy": "Simulate conflicts by rapidly updating the same object from two clients and verify only the latest change persists.",
-            "parentId": "undefined"
+            "testStrategy": "Simulate conflicts by rapidly updating the same object from two clients and verify only the latest change persists."
           },
           {
             "id": 5,
@@ -820,8 +766,7 @@
             ],
             "details": "Open multiple browser windows, create, update, and delete objects in one, and verify immediate reflection in others. Use network tools to confirm latency under 100ms and handle edge cases like disconnections.",
             "status": "pending",
-            "testStrategy": "Follow the test strategy from the parent task: Open two browser windows, perform actions in one, check sync in the other, measure latency.",
-            "parentId": "undefined"
+            "testStrategy": "Follow the test strategy from the parent task: Open two browser windows, perform actions in one, check sync in the other, measure latency."
           }
         ],
         "updatedAt": "2025-10-14T02:52:44.596Z"
@@ -834,9 +779,9 @@
         "testStrategy": "Move mouse in one window, verify cursor appears in others with <50ms latency. Check presence list updates on join/leave.",
         "priority": "medium",
         "dependencies": [
-          "10"
+          10
         ],
-        "status": "done",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -845,8 +790,7 @@
             "dependencies": [],
             "details": "In canvas.js, add an event listener for mousemove events on the canvas element. Use a throttling mechanism (e.g., lodash.throttle or custom implementation) to limit updates to every 50ms or less to avoid excessive sending.",
             "status": "pending",
-            "testStrategy": "Move mouse rapidly and verify that position updates are throttled, not sent on every pixel movement.",
-            "parentId": "undefined"
+            "testStrategy": "Move mouse rapidly and verify that position updates are throttled, not sent on every pixel movement."
           },
           {
             "id": 2,
@@ -857,8 +801,7 @@
             ],
             "details": "In websocket.js, on each throttled mouse move, send a message containing the current cursor x, y coordinates, username, and a unique color identifier via the WebSocket connection.",
             "status": "pending",
-            "testStrategy": "Move mouse and use browser dev tools to inspect WebSocket messages, confirming position data is sent with username and color.",
-            "parentId": "undefined"
+            "testStrategy": "Move mouse and use browser dev tools to inspect WebSocket messages, confirming position data is sent with username and color."
           },
           {
             "id": 3,
@@ -869,8 +812,7 @@
             ],
             "details": "In websocket.js, add a message handler to receive cursor update messages, parse the JSON payload to extract position, username, and color, and store or update a list of remote cursors.",
             "status": "pending",
-            "testStrategy": "Open multiple browser windows, move mouse in one, and check console logs in others for received messages with correct data.",
-            "parentId": "undefined"
+            "testStrategy": "Open multiple browser windows, move mouse in one, and check console logs in others for received messages with correct data."
           },
           {
             "id": 4,
@@ -881,8 +823,7 @@
             ],
             "details": "In canvas.js, for each remote cursor in the list, render a cursor icon (e.g., a small arrow or dot) at the received position, add a text label with the username, and apply the unique color. Update positions in real-time as new messages arrive.",
             "status": "pending",
-            "testStrategy": "With multiple users, move cursors and verify they appear in other windows with labels, colors, and <50ms latency using browser performance tools.",
-            "parentId": "undefined"
+            "testStrategy": "With multiple users, move cursors and verify they appear in other windows with labels, colors, and <50ms latency using browser performance tools."
           },
           {
             "id": 5,
@@ -893,8 +834,7 @@
             ],
             "details": "In websocket.js, on WebSocket open (connect), send a join message with username. On close (disconnect), send a leave message. Maintain a presence list and update the UI (e.g., a sidebar) to show current online users.",
             "status": "pending",
-            "testStrategy": "Open/close browser windows and check that the presence list updates immediately on join/leave, reflecting accurate user counts.",
-            "parentId": "undefined"
+            "testStrategy": "Open/close browser windows and check that the presence list updates immediately on join/leave, reflecting accurate user counts."
           }
         ],
         "updatedAt": "2025-10-14T02:52:45.813Z"
@@ -907,10 +847,10 @@
         "testStrategy": "Create objects, refresh page, verify state persists. Disconnect all users, reconnect, check state loads. Confirm debouncing prevents excessive saves.",
         "priority": "high",
         "dependencies": [
-          "2",
-          "11"
+          2,
+          11
         ],
-        "status": "done",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -919,8 +859,7 @@
             "dependencies": [],
             "details": "Create a table named 'canvas_states' with columns: id (primary key, auto-increment), state_json (text for JSON blob), and timestamp (datetime for last update). Ensure the table is created in the SQLite database used by the application.",
             "status": "pending",
-            "testStrategy": "Run a database query to verify the table exists with correct columns.",
-            "parentId": "undefined"
+            "testStrategy": "Run a database query to verify the table exists with correct columns."
           },
           {
             "id": 2,
@@ -931,8 +870,7 @@
             ],
             "details": "In canvas-state.lisp, create a save-canvas-state function that serializes the canvas state to JSON and inserts/updates it in the canvas_states table. Implement debouncing using a timer (500ms delay) to batch saves and avoid overloading the database on rapid changes.",
             "status": "pending",
-            "testStrategy": "Simulate rapid canvas changes and check that saves occur only after 500ms of inactivity, verifying database entries.",
-            "parentId": "undefined"
+            "testStrategy": "Simulate rapid canvas changes and check that saves occur only after 500ms of inactivity, verifying database entries."
           },
           {
             "id": 3,
@@ -943,8 +881,7 @@
             ],
             "details": "In canvas-state.lisp, add a handler for GET /api/canvas/state that queries the canvas_states table for the latest state JSON, parses it, and returns it in the response. Handle cases where no state exists (return empty or default state).",
             "status": "pending",
-            "testStrategy": "Use curl or a browser to call the endpoint and verify it returns the correct JSON state or default when no data is present.",
-            "parentId": "undefined"
+            "testStrategy": "Use curl or a browser to call the endpoint and verify it returns the correct JSON state or default when no data is present."
           },
           {
             "id": 4,
@@ -955,8 +892,7 @@
             ],
             "details": "Modify the canvas manipulation code (e.g., in canvas.js or related Lisp functions) to call the debounced save function whenever objects are created, moved, or deleted. Ensure the state includes all necessary object properties for accurate restoration.",
             "status": "pending",
-            "testStrategy": "Create and modify objects on the canvas, then check the database to confirm the state is saved correctly after debouncing.",
-            "parentId": "undefined"
+            "testStrategy": "Create and modify objects on the canvas, then check the database to confirm the state is saved correctly after debouncing."
           },
           {
             "id": 5,
@@ -967,8 +903,7 @@
             ],
             "details": "In the client-side code (e.g., canvas.js), add logic to fetch the state via GET /api/canvas/state on page load or connection, and populate the canvas with the loaded objects. Handle authentication if required, and merge or replace existing state appropriately.",
             "status": "pending",
-            "testStrategy": "Refresh the page after making changes, verify that the canvas reloads with the persisted state. Test with multiple users or disconnections.",
-            "parentId": "undefined"
+            "testStrategy": "Refresh the page after making changes, verify that the canvas reloads with the persisted state. Test with multiple users or disconnections."
           }
         ],
         "updatedAt": "2025-10-14T02:52:47.049Z"
@@ -981,9 +916,9 @@
         "testStrategy": "Verify toolbar switches tools, presence shows online users, status updates correctly. Check UI doesn't obstruct canvas and is responsive.",
         "priority": "medium",
         "dependencies": [
-          "4"
+          4
         ],
-        "status": "done",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -992,8 +927,7 @@
             "dependencies": [],
             "details": "In HTML, add a div for the toolbar. Use CSS for styling with dark theme. In JS, create buttons for each tool and a color input. Attach event listeners to switch tool modes in canvas.js.",
             "status": "pending",
-            "testStrategy": "Click each tool button and verify the active tool changes. Select a color and confirm it applies to new objects.",
-            "parentId": "undefined"
+            "testStrategy": "Click each tool button and verify the active tool changes. Select a color and confirm it applies to new objects."
           },
           {
             "id": 2,
@@ -1004,8 +938,7 @@
             ],
             "details": "Add a div in the top-right of the page layout. Use JS to fetch and display user list from backend. Style with dark theme CSS. Update list on user join/leave events.",
             "status": "pending",
-            "testStrategy": "Simulate multiple users logging in and verify the list updates in real-time. Check positioning doesn't overlap with other UI elements.",
-            "parentId": "undefined"
+            "testStrategy": "Simulate multiple users logging in and verify the list updates in real-time. Check positioning doesn't overlap with other UI elements."
           },
           {
             "id": 3,
@@ -1016,8 +949,7 @@
             ],
             "details": "Insert a status bar div at the bottom of the page. In JS, update text content based on current tool, mouse coordinates, and zoom factor. Ensure responsive design and dark theme.",
             "status": "pending",
-            "testStrategy": "Switch tools and move mouse; verify status bar updates accurately. Zoom in/out and check zoom display changes.",
-            "parentId": "undefined"
+            "testStrategy": "Switch tools and move mouse; verify status bar updates accurately. Zoom in/out and check zoom display changes."
           },
           {
             "id": 4,
@@ -1030,8 +962,7 @@
             ],
             "details": "Define CSS variables for dark theme colors (e.g., background, text, borders). Apply these to all UI elements created. Test for consistency in visibility and aesthetics.",
             "status": "pending",
-            "testStrategy": "Inspect UI in browser dev tools for color consistency. Verify readability and contrast in dark mode.",
-            "parentId": "undefined"
+            "testStrategy": "Inspect UI in browser dev tools for color consistency. Verify readability and contrast in dark mode."
           },
           {
             "id": 5,
@@ -1045,8 +976,7 @@
             ],
             "details": "Use CSS flexbox or grid to arrange components: toolbar top-left, presence top-right, status bottom. Ensure canvas remains central and unobstructed. Make layout responsive.",
             "status": "pending",
-            "testStrategy": "Resize browser window and confirm UI elements adjust properly. Verify canvas interaction isn't blocked by UI overlays.",
-            "parentId": "undefined"
+            "testStrategy": "Resize browser window and confirm UI elements adjust properly. Verify canvas interaction isn't blocked by UI overlays."
           }
         ],
         "updatedAt": "2025-10-14T02:52:48.264Z"
@@ -1059,8 +989,8 @@
         "testStrategy": "Access deployed URL, test full flow: register, login, create objects, sync with another user. Verify performance and no errors in logs.",
         "priority": "high",
         "dependencies": [
-          "13",
-          "14"
+          13,
+          14
         ],
         "status": "pending",
         "subtasks": [
@@ -1579,7 +1509,7 @@
     ],
     "metadata": {
       "created": "2025-10-14T14:40:42.116Z",
-      "updated": "2025-10-14T18:52:29.375Z",
+      "updated": "2025-10-16T20:18:53.900Z",
       "description": "Tasks for master context"
     }
   },
@@ -1603,7 +1533,6 @@
             "details": "On the backend, define a message-queue struct with arrays for cursor-batch and object-batch. Implement queue-cursor-update to append updates to the cursor-batch. Implement flush-cursor-batch to send the batched updates via WebSocket or similar every 50ms using a timer. Ensure the batch includes all cursor positions and handles multiple updates efficiently.",
             "status": "done",
             "testStrategy": "Unit test the queue and flush functions to verify updates are batched and sent at the correct intervals.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T15:59:40.899Z"
           },
           {
@@ -1614,7 +1543,6 @@
             "details": "On the frontend, develop a CursorThrottle class that uses setInterval to throttle cursor position updates to no more than 20 per second. Capture cursor movements, buffer them, and send batched updates at the throttled rate. Integrate with the backend batching to maintain overall latency under 50ms.",
             "status": "done",
             "testStrategy": "Unit test the throttling mechanism to ensure it limits updates to 20/sec and handles rapid cursor movements without exceeding the rate.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T15:59:42.195Z"
           },
           {
@@ -1625,7 +1553,6 @@
             "details": "Execute unit tests for backend batching and frontend throttling. Run integration tests with multiple clients to simulate real-world usage. Conduct load tests with 5 concurrent users to measure latency using tools like performance.now(). Ensure all tests confirm latency <50ms and no network overload.",
             "status": "done",
             "testStrategy": "Use automated testing frameworks for unit and integration tests; employ load testing tools to measure latency percentiles and verify compliance with <50ms requirement under various conditions.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T15:59:43.450Z"
           }
         ],
@@ -1642,7 +1569,7 @@
         "testStrategy": "Unit test delta creation to ensure only changed fields are included. Integration test to verify deltas are applied correctly across clients. Measure bandwidth usage before and after implementation to confirm 60-80% reduction.",
         "priority": "high",
         "dependencies": [
-          "1"
+          1
         ],
         "status": "done",
         "subtasks": [
@@ -1653,8 +1580,7 @@
             "dependencies": [],
             "details": "On the backend, implement a function that takes old and new object states, performs a deep comparison to identify changed fields, and returns a delta object containing only the modified properties. Ensure the function handles nested objects if necessary and is efficient for real-time updates.",
             "status": "done",
-            "testStrategy": "Unit test the delta creation to ensure only changed fields are included and no unchanged fields are present.",
-            "parentId": "undefined"
+            "testStrategy": "Unit test the delta creation to ensure only changed fields are included and no unchanged fields are present."
           },
           {
             "id": 2,
@@ -1665,8 +1591,7 @@
             ],
             "details": "On the frontend, create an applyDelta method that merges the delta into the existing object state without overwriting unchanged fields. Send full object state on creation and deltas thereafter. Conduct bandwidth measurement tests by comparing network usage before and after implementation to confirm 60-80% reduction.",
             "status": "done",
-            "testStrategy": "Integration test to verify deltas are applied correctly across clients. Measure bandwidth usage before and after implementation using network profiling tools to confirm the 60-80% reduction.",
-            "parentId": "undefined"
+            "testStrategy": "Integration test to verify deltas are applied correctly across clients. Measure bandwidth usage before and after implementation using network profiling tools to confirm the 60-80% reduction."
           }
         ],
         "complexity": 5,
@@ -1681,8 +1606,8 @@
         "testStrategy": "Unit test queue processing to verify priority order. Integration test during heavy object updates to ensure cursor updates are not delayed. Performance test to confirm no cursor lag with high object update frequency.",
         "priority": "medium",
         "dependencies": [
-          "1",
-          "2"
+          1,
+          2
         ],
         "status": "done",
         "subtasks": [
@@ -1693,8 +1618,7 @@
             "dependencies": [],
             "details": "Implement a data structure using arrays or linked lists for each priority level, ensuring FIFO ordering within each priority. Include methods to enqueue messages with their priority and dequeue based on priority order.",
             "status": "done",
-            "testStrategy": "Unit test the queue structure to verify correct enqueuing and dequeuing across priorities.",
-            "parentId": "undefined"
+            "testStrategy": "Unit test the queue structure to verify correct enqueuing and dequeuing across priorities."
           },
           {
             "id": 2,
@@ -1705,8 +1629,7 @@
             ],
             "details": "Write logic to iterate through high-priority queue completely, then process up to a configurable limit from normal-priority, and optionally low-priority. Maintain message ordering within priorities using timestamps or sequence numbers.",
             "status": "done",
-            "testStrategy": "Unit test the processing logic to confirm priority order and limits are respected.",
-            "parentId": "undefined"
+            "testStrategy": "Unit test the processing logic to confirm priority order and limits are respected."
           },
           {
             "id": 3,
@@ -1718,8 +1641,7 @@
             ],
             "details": "Set up load tests simulating high-frequency object updates while monitoring cursor and presence update delays. Use performance metrics to verify that high-priority messages are processed without significant lag.",
             "status": "done",
-            "testStrategy": "Integration and performance tests under simulated high load to measure latency and confirm no cursor lag.",
-            "parentId": "undefined"
+            "testStrategy": "Integration and performance tests under simulated high load to measure latency and confirm no cursor lag."
           }
         ],
         "complexity": 6,
@@ -1743,8 +1665,7 @@
             "dependencies": [],
             "details": "In CanvasManager, add setupViewportCulling method to listen for viewport moved/zoomed events and call updateVisibleObjects. Implement updateVisibleObjects to calculate visible bounds with 200px padding using getVisibleBounds, and set obj.visible and obj.renderable based on intersection using isIntersecting helper functions.",
             "status": "done",
-            "testStrategy": "Unit test bounds calculation and intersection logic.",
-            "parentId": "undefined"
+            "testStrategy": "Unit test bounds calculation and intersection logic."
           },
           {
             "id": 2,
@@ -1756,7 +1677,6 @@
             "details": "Create integration tests by generating 500+ objects and verifying only visible ones are rendered. Perform performance tests to measure FPS during pan/zoom operations, ensuring it maintains 60 FPS with the culling logic in place.",
             "status": "done",
             "testStrategy": "Integration test with 500+ objects to verify visibility. Performance test for 60 FPS during pan/zoom.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:02:47.879Z"
           }
         ],
@@ -1773,7 +1693,7 @@
         "testStrategy": "Unit test FPS tracking accuracy. Integration test by simulating load and checking logs for warnings. Manual test to access stats via console and verify no performance impact from monitoring.",
         "priority": "medium",
         "dependencies": [
-          "4"
+          4
         ],
         "status": "done",
         "subtasks": [
@@ -1785,7 +1705,6 @@
             "details": "Define the PerformanceMonitor class with properties for FPS history array (max 60 entries), current FPS, and methods stubs for tracking and stats. Ensure it integrates with app.ticker for updates.",
             "status": "done",
             "testStrategy": "Unit test class instantiation and property initialization.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:18:10.090Z"
           },
           {
@@ -1798,7 +1717,6 @@
             "details": "In the PerformanceMonitor class, add a ticker listener that calculates FPS based on delta time from the ticker. Update the current FPS value on each tick and prepare for adding to history.",
             "status": "done",
             "testStrategy": "Unit test FPS calculation accuracy by mocking ticker events.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:18:11.375Z"
           },
           {
@@ -1811,7 +1729,6 @@
             "details": "Implement logic to add current FPS to the history array on each update, ensuring the array does not exceed 60 entries by removing oldest values. Calculate average FPS from the history.",
             "status": "done",
             "testStrategy": "Unit test array management, including adding, removing, and average calculation.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:18:12.803Z"
           },
           {
@@ -1824,7 +1741,6 @@
             "details": "Add logic to check if current FPS is below 55, and if so, log a warning message that includes the current object count (assuming access to object count) and the average FPS from history. Use console.warn or similar.",
             "status": "done",
             "testStrategy": "Integration test by simulating low FPS scenarios and verifying logs are generated correctly.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:18:14.154Z"
           },
           {
@@ -1837,7 +1753,6 @@
             "details": "Create the getStats method that computes and returns an object with current FPS, average FPS (from history), minimum FPS, and maximum FPS from the history array. Ensure calculations are accurate and efficient.",
             "status": "done",
             "testStrategy": "Unit test the getStats method with various history arrays to verify correct stats output.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:18:15.523Z"
           }
         ],
@@ -1854,7 +1769,7 @@
         "testStrategy": "Unit test texture sharing and sprite creation. Performance test rendering 10+ cursors to confirm no FPS drop. Visual test to ensure cursors are readable and performant.",
         "priority": "medium",
         "dependencies": [
-          "4"
+          4
         ],
         "status": "done",
         "subtasks": [
@@ -1865,8 +1780,7 @@
             "dependencies": [],
             "details": "In the PIXI application, create a function to draw a cursor shape (e.g., arrow or pointer) using PIXI.Graphics, render it to a texture once, and store it as a shared resource. This texture will be reused for all remote cursors to optimize memory and rendering performance.",
             "status": "done",
-            "testStrategy": "Unit test to verify the texture is created correctly and can be reused without errors.",
-            "parentId": "undefined"
+            "testStrategy": "Unit test to verify the texture is created correctly and can be reused without errors."
           },
           {
             "id": 2,
@@ -1877,8 +1791,7 @@
             ],
             "details": "Modify createRemoteCursor to instantiate a PIXI.Sprite using the shared cursorTexture, set its tint property for different colors based on user, and position it accordingly. Remove any code that creates individual PIXI.Graphics for each cursor to reduce overhead.",
             "status": "done",
-            "testStrategy": "Unit test sprite creation and tint application to ensure colors are applied correctly.",
-            "parentId": "undefined"
+            "testStrategy": "Unit test sprite creation and tint application to ensure colors are applied correctly."
           },
           {
             "id": 3,
@@ -1889,8 +1802,7 @@
             ],
             "details": "In createRemoteCursor, create a PIXI.Text object with the username, style it appropriately (e.g., font size, color), and add it as a child to the cursor sprite. Position the text relative to the cursor (e.g., above or beside it) to ensure readability.",
             "status": "done",
-            "testStrategy": "Visual test to confirm labels are displayed correctly and do not overlap or obscure the cursor.",
-            "parentId": "undefined"
+            "testStrategy": "Visual test to confirm labels are displayed correctly and do not overlap or obscure the cursor."
           },
           {
             "id": 4,
@@ -1901,8 +1813,7 @@
             ],
             "details": "Update the cursor update logic to interpolate positions between received updates for fluid animation. Use requestAnimationFrame or PIXI's ticker to animate cursor movement, ensuring it handles 10+ cursors without dropping below 60 FPS.",
             "status": "done",
-            "testStrategy": "Performance test rendering and animating 10+ cursors to measure FPS and confirm smooth movement.",
-            "parentId": "undefined"
+            "testStrategy": "Performance test rendering and animating 10+ cursors to measure FPS and confirm smooth movement."
           },
           {
             "id": 5,
@@ -1916,8 +1827,7 @@
             ],
             "details": "Profile the rendering pipeline, optimize any bottlenecks in texture usage, sprite management, and animation. Run comprehensive tests including unit tests for components, performance benchmarks for FPS, and visual checks for readability and performance.",
             "status": "done",
-            "testStrategy": "Performance test with 10+ cursors to confirm no FPS drop; visual test for readability; integration test to ensure all components work together seamlessly.",
-            "parentId": "undefined"
+            "testStrategy": "Performance test with 10+ cursors to confirm no FPS drop; visual test for readability; integration test to ensure all components work together seamlessly."
           }
         ],
         "complexity": 4,
@@ -1942,7 +1852,6 @@
             "details": "In the handle-client-disconnect function, ensure the client is removed from the room structure, broadcast a user-left event to other clients, and perform thorough cleanup of user-specific data such as session variables and temporary caches. This prevents orphaned references that could lead to memory accumulation.",
             "status": "done",
             "testStrategy": "Unit test the cleanup functions to verify that user data is properly removed upon disconnect.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:16:03.329Z"
           },
           {
@@ -1953,7 +1862,6 @@
             "details": "In the handleUserLeft function, destroy individual cursor objects but keep shared textures intact to avoid unnecessary reloading. Remove the disconnected user from the activeUsers array and update any UI elements that display user presence. Ensure no references to the user remain in the DOM or memory.",
             "status": "done",
             "testStrategy": "Integration test connect/disconnect cycles to verify that frontend memory is stable and no leaks occur during repeated user joins and leaves.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:16:04.616Z"
           },
           {
@@ -1964,7 +1872,6 @@
             "details": "Add a startPeriodicCleanup function that runs every minute to scan for and remove orphaned objects, such as unused PIXI elements or stale data structures. Integrate this into the application's main loop. Conduct a 24-hour session test to monitor memory usage and confirm no gradual leaks occur under sustained load.",
             "status": "done",
             "testStrategy": "Run a 24-hour session test to ensure no memory growth, combined with memory profiling to detect any leaks during periodic cleanup operations.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:16:05.909Z"
           }
         ],
@@ -1981,7 +1888,7 @@
         "testStrategy": "Unit test deletion and bulk operations. Memory profiling test to confirm no leaks after deletions. Integration test to verify objects are removed across clients.",
         "priority": "medium",
         "dependencies": [
-          "7"
+          7
         ],
         "status": "done",
         "subtasks": [
@@ -1992,8 +1899,7 @@
             "dependencies": [],
             "details": "In the deleteObject function, use obj.destroy with options to destroy children but preserve shared textures. Remove the object from both objects and selectedObjects maps. For bulk delete, process an array of IDs, perform deletions, and broadcast the deletions once to avoid multiple broadcasts. Ensure no orphaned PIXI objects remain in the scene graph.",
             "status": "done",
-            "testStrategy": "Unit tests for deleteObject and bulkDelete functions to verify objects are removed from maps and destroyed correctly. Integration tests to confirm broadcasts are sent properly for bulk operations.",
-            "parentId": "undefined"
+            "testStrategy": "Unit tests for deleteObject and bulkDelete functions to verify objects are removed from maps and destroyed correctly. Integration tests to confirm broadcasts are sent properly for bulk operations."
           },
           {
             "id": 2,
@@ -2004,8 +1910,7 @@
             ],
             "details": "After deletion, implement checks to ensure PIXI objects are not retained in memory. Use memory profiling tools or custom checks to confirm textures are managed properly (shared ones kept, others released). Add logging or assertions to detect orphaned objects. Integrate with the deletion logic to run verifications post-deletion.",
             "status": "done",
-            "testStrategy": "Memory profiling tests using tools like Chrome DevTools to confirm no leaks after deletions. Unit tests for verification functions to ensure they detect potential issues. Integration tests to verify no orphaned objects in the PIXI stage after bulk deletions.",
-            "parentId": "undefined"
+            "testStrategy": "Memory profiling tests using tools like Chrome DevTools to confirm no leaks after deletions. Unit tests for verification functions to ensure they detect potential issues. Integration tests to verify no orphaned objects in the PIXI stage after bulk deletions."
           }
         ],
         "complexity": 5,
@@ -2029,8 +1934,7 @@
             "dependencies": [],
             "details": "On the backend, define a rate-limiter struct that tracks message counts within a time window. Implement the check-rate-limit function to enforce a maximum of 100 messages per second, automatically resetting the window when the time period expires. Ensure thread-safety for concurrent access.",
             "status": "done",
-            "testStrategy": "Unit test the rate limiter to verify it correctly allows up to 100 messages per second and resets the window appropriately.",
-            "parentId": "undefined"
+            "testStrategy": "Unit test the rate limiter to verify it correctly allows up to 100 messages per second and resets the window appropriately."
           },
           {
             "id": 2,
@@ -2039,8 +1943,7 @@
             "dependencies": [],
             "details": "Add validation functions on the backend to check bounds for object updates and canvas states. These functions should verify that provided values are within acceptable ranges, such as position coordinates, sizes, and other properties, to prevent invalid data from being processed.",
             "status": "done",
-            "testStrategy": "Unit test the validation functions to ensure they correctly identify and flag invalid inputs based on defined bounds.",
-            "parentId": "undefined"
+            "testStrategy": "Unit test the validation functions to ensure they correctly identify and flag invalid inputs based on defined bounds."
           },
           {
             "id": 3,
@@ -2051,8 +1954,7 @@
             ],
             "details": "Set up load tests that attempt to exceed the rate limits by sending high volumes of messages. Monitor the system to ensure the rate limiter blocks excessive requests and prevents DoS conditions. Use tools to simulate concurrent high-traffic scenarios.",
             "status": "done",
-            "testStrategy": "Load test to attempt DoS and verify that limits are enforced, preventing system overload.",
-            "parentId": "undefined"
+            "testStrategy": "Load test to attempt DoS and verify that limits are enforced, preventing system overload."
           },
           {
             "id": 4,
@@ -2063,8 +1965,7 @@
             ],
             "details": "Integrate error responses into the validation functions so that when invalid data is detected, the system rejects it and sends back clear error messages indicating what was wrong (e.g., out-of-bounds values). Ensure errors are logged and communicated properly without exposing sensitive information.",
             "status": "done",
-            "testStrategy": "Integration test to verify that invalid inputs are rejected with appropriate error messages.",
-            "parentId": "undefined"
+            "testStrategy": "Integration test to verify that invalid inputs are rejected with appropriate error messages."
           }
         ],
         "complexity": 7,
@@ -2089,7 +1990,6 @@
             "details": "Create a db-pool struct with 10 connections and ensure thread-safe access using bt:make-lock. Implement the with-db-connection macro to allow reusing connections from the pool, preventing connection exhaustion and improving concurrency.",
             "status": "done",
             "testStrategy": "Unit test connection pooling for reuse and thread-safety, verifying that connections are properly acquired and released without leaks.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:24:32.583Z"
           },
           {
@@ -2100,7 +2000,6 @@
             "details": "Add SQL indexes on canvas_id, session_id, user_id, and email columns in the relevant database tables. This will reduce query execution time by allowing faster searches and joins on these fields.",
             "status": "done",
             "testStrategy": "Performance test query execution times after indexing to ensure they remain under 10ms, comparing before and after metrics.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:24:33.878Z"
           },
           {
@@ -2111,7 +2010,6 @@
             "details": "Modify save-canvas-state-optimized to use database transactions for atomic operations and employ INSERT OR REPLACE statements to handle updates and inserts efficiently, minimizing overhead and ensuring data consistency.",
             "status": "done",
             "testStrategy": "Unit test the transaction logic to verify atomicity and correctness of INSERT OR REPLACE operations under various scenarios.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:24:35.189Z"
           },
           {
@@ -2122,7 +2020,6 @@
             "details": "Execute load tests on database operations to confirm there is no contention, connection leaks, or performance degradation. Monitor query times to maintain sub-10ms performance even under high concurrency.",
             "status": "done",
             "testStrategy": "Load test database operations to confirm no contention or leaks, and performance test query execution times to ensure they stay under 10ms with simulated high-load conditions.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:24:36.586Z"
           }
         ],
@@ -2139,9 +2036,9 @@
         "testStrategy": "Unit test latency tracking. Integration test with message sending to verify stats accuracy. Performance profiling to ensure monitoring adds minimal overhead.",
         "priority": "medium",
         "dependencies": [
-          "1",
-          "2",
-          "3"
+          1,
+          2,
+          3
         ],
         "status": "done",
         "subtasks": [
@@ -2153,7 +2050,6 @@
             "details": "Initialize the class with a Map or array to store message IDs and their start times. Include a history array to record completed latencies. Set up any necessary imports for performance.now().",
             "status": "done",
             "testStrategy": "Unit test the class instantiation and basic properties.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:29:30.329Z"
           },
           {
@@ -2166,7 +2062,6 @@
             "details": "Create a startLatency(messageId) method that records the current performance.now() timestamp associated with the messageId in the tracking map.",
             "status": "done",
             "testStrategy": "Unit test the startLatency method to verify timestamps are recorded correctly.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:29:31.795Z"
           },
           {
@@ -2179,7 +2074,6 @@
             "details": "Create an endLatency(messageId) method that calculates the latency by subtracting the start time from current performance.now(), removes the entry from tracking map, and pushes the latency to the history array.",
             "status": "done",
             "testStrategy": "Unit test the endLatency method to ensure accurate latency calculation and recording.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:29:33.524Z"
           },
           {
@@ -2192,7 +2086,6 @@
             "details": "In the endLatency method or a separate check, compare the calculated latency against 100ms and log a warning if exceeded. Use console.warn or a custom logging mechanism.",
             "status": "done",
             "testStrategy": "Unit test the warning logic by simulating latencies above and below 100ms.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:29:35.440Z"
           },
           {
@@ -2205,7 +2098,6 @@
             "details": "Implement getStats() to sort the history array, calculate the percentiles using appropriate formulas (e.g., for p50, median; for p95, 95th percentile), and return an object with p50, p95, p99 values.",
             "status": "done",
             "testStrategy": "Unit test getStats with sample latency data to verify correct percentile calculations.",
-            "parentId": "undefined",
             "updatedAt": "2025-10-14T16:29:36.829Z"
           }
         ],
@@ -2217,21 +2109,21 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-10-14T16:29:36.830Z",
+      "lastModified": "2025-10-16T20:18:53.900Z",
       "taskCount": 11,
-      "completedCount": 10,
+      "completedCount": 11,
       "tags": [
         "perf"
       ],
       "created": "2025-10-14T16:32:33.526Z",
       "description": "Tasks for perf context",
-      "updated": "2025-10-14T16:32:33.527Z"
+      "updated": "2025-10-16T20:18:53.900Z"
     }
   },
   "pixi-upgrade": {
     "tasks": [
       {
-        "id": "1",
+        "id": 1,
         "title": "Backup Current Codebase",
         "description": "Verify the current codebase backup on the 'pixi-upgrade' branch and commit any pending changes before starting the upgrade.",
         "status": "done",
@@ -2246,9 +2138,8 @@
             "description": "Verify that we are on the correct 'pixi-upgrade' branch in the worktree and that the repository is in a clean state ready for the upgrade work.",
             "dependencies": [],
             "details": "Run 'git status' to check if there are any uncommitted changes, confirm the current branch is 'pixi-upgrade', and ensure we are in the dedicated worktree.",
-            "status": "pending",
-            "testStrategy": "Ensure no uncommitted changes are present, the branch is 'pixi-upgrade', and we are in the correct worktree.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Ensure no uncommitted changes are present, the branch is 'pixi-upgrade', and we are in the correct worktree."
           },
           {
             "id": 2,
@@ -2258,9 +2149,8 @@
               1
             ],
             "details": "If there are uncommitted changes, stage them with 'git add .' and commit with 'git commit -m \"Commit before upgrade\"'.",
-            "status": "pending",
-            "testStrategy": "Run 'git status' again to confirm no changes are pending.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run 'git status' again to confirm no changes are pending."
           },
           {
             "id": 3,
@@ -2270,9 +2160,8 @@
               2
             ],
             "details": "Run 'git log --oneline' to verify the branch history and ensure the codebase is intact.",
-            "status": "pending",
-            "testStrategy": "Attempt to build or run a basic check on the branch to ensure no issues.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Attempt to build or run a basic check on the branch to ensure no issues."
           }
         ],
         "complexity": 2,
@@ -2281,14 +2170,14 @@
         "updatedAt": "2025-10-15T20:44:31.501Z"
       },
       {
-        "id": "2",
+        "id": 2,
         "title": "Update Package Dependencies",
         "description": "Update package.json to use PixiJS v8 and remove individual sub-packages.",
         "details": "Remove all @pixi/* dependencies from package.json. Add a single 'pixi.js': '^8.x.x'. Run npm install to update node_modules.",
         "testStrategy": "Check package.json for correct dependencies and ensure npm install completes without errors.",
         "priority": "high",
         "dependencies": [
-          "1"
+          1
         ],
         "status": "done",
         "subtasks": [
@@ -2298,9 +2187,8 @@
             "description": "Create a backup of the current package.json file to allow for easy rollback if needed.",
             "dependencies": [],
             "details": "Make a copy of package.json in the project root, naming it package.json.backup or similar, to preserve the original state before modifications.",
-            "status": "pending",
-            "testStrategy": "Verify that the backup file exists and matches the original package.json content.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Verify that the backup file exists and matches the original package.json content."
           },
           {
             "id": 2,
@@ -2310,9 +2198,8 @@
               1
             ],
             "details": "Open package.json and delete all lines or entries for packages starting with @pixi/, such as @pixi/app, @pixi/graphics, etc., ensuring no remnants are left.",
-            "status": "pending",
-            "testStrategy": "Check package.json to confirm no @pixi/* entries remain in the dependencies or devDependencies sections.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Check package.json to confirm no @pixi/* entries remain in the dependencies or devDependencies sections."
           },
           {
             "id": 3,
@@ -2322,9 +2209,8 @@
               2
             ],
             "details": "In the dependencies section of package.json, add a new entry: \"pixi.js\": \"^8.x.x\", ensuring it is properly formatted as valid JSON.",
-            "status": "pending",
-            "testStrategy": "Inspect package.json to verify the 'pixi.js' entry is present with the correct version specifier.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Inspect package.json to verify the 'pixi.js' entry is present with the correct version specifier."
           },
           {
             "id": 4,
@@ -2334,9 +2220,8 @@
               3
             ],
             "details": "After editing, save the file in the project root, ensuring the JSON syntax is valid by running a quick validation if possible.",
-            "status": "pending",
-            "testStrategy": "Use a JSON validator or attempt to parse the file to confirm it is syntactically correct.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Use a JSON validator or attempt to parse the file to confirm it is syntactically correct."
           },
           {
             "id": 5,
@@ -2346,9 +2231,8 @@
               4
             ],
             "details": "In the terminal, navigate to the project root and run 'npm install', waiting for the command to complete successfully without errors.",
-            "status": "pending",
-            "testStrategy": "Check that npm install finishes without errors, and verify that node_modules contains the updated pixi.js package.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Check that npm install finishes without errors, and verify that node_modules contains the updated pixi.js package."
           }
         ],
         "complexity": 3,
@@ -2357,14 +2241,14 @@
         "updatedAt": "2025-10-15T20:59:48.115Z"
       },
       {
-        "id": "3",
+        "id": 3,
         "title": "Refactor Imports Across Codebase",
         "description": "Change all PixiJS imports from individual sub-packages to single 'pixi.js' import.",
         "details": "Search and replace all imports like 'import { Application } from '@pixi/app'' with 'import { Application } from 'pixi.js''. Update in main.js, canvas.js, and any other files using PixiJS.",
         "testStrategy": "Run the application and check for import errors in the console. Ensure no @pixi/* imports remain.",
         "priority": "high",
         "dependencies": [
-          "2"
+          2
         ],
         "status": "done",
         "subtasks": [
@@ -2374,9 +2258,8 @@
             "description": "Update all PixiJS imports in main.js from individual sub-packages to the single 'pixi.js' import.",
             "dependencies": [],
             "details": "Locate all import statements in main.js that use '@pixi/*' sub-packages, such as 'import { Application } from '@pixi/app'', and replace them with 'import { Application } from 'pixi.js''. Ensure all necessary exports are available from the single import.",
-            "status": "pending",
-            "testStrategy": "Run the application and check the console for any import errors related to PixiJS in main.js.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run the application and check the console for any import errors related to PixiJS in main.js."
           },
           {
             "id": 2,
@@ -2384,9 +2267,8 @@
             "description": "Update all PixiJS imports in canvas.js from individual sub-packages to the single 'pixi.js' import.",
             "dependencies": [],
             "details": "Search for and replace all imports in canvas.js that reference '@pixi/*' packages, like 'import { Graphics } from '@pixi/graphics'', with 'import { Graphics } from 'pixi.js''. Verify that the file compiles without import issues after changes.",
-            "status": "pending",
-            "testStrategy": "Execute the app and inspect the console for import-related errors in canvas.js, ensuring PixiJS objects are accessible.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Execute the app and inspect the console for import-related errors in canvas.js, ensuring PixiJS objects are accessible."
           },
           {
             "id": 3,
@@ -2394,9 +2276,8 @@
             "description": "Update PixiJS imports in any remaining files across the codebase that use individual sub-packages.",
             "dependencies": [],
             "details": "Perform a global search across the project for any files importing from '@pixi/*' packages and replace them with imports from 'pixi.js'. This includes checking all JavaScript or TypeScript files not covered in main.js or canvas.js to ensure complete refactoring.",
-            "status": "pending",
-            "testStrategy": "Run the application and monitor the console for any remaining @pixi/* import errors, confirming all PixiJS imports are now from 'pixi.js'.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run the application and monitor the console for any remaining @pixi/* import errors, confirming all PixiJS imports are now from 'pixi.js'."
           }
         ],
         "complexity": 5,
@@ -2405,14 +2286,14 @@
         "updatedAt": "2025-10-15T20:59:50.717Z"
       },
       {
-        "id": "4",
+        "id": 4,
         "title": "Implement Asynchronous Initialization",
         "description": "Refactor main.js to use async initialization for PixiJS Application.",
         "details": "Convert the main function to async. Separate Application constructor from init(). Await app.init() with options before creating PixiJS objects.",
         "testStrategy": "Run the app and verify it initializes without errors. Check console for async-related issues.",
         "priority": "high",
         "dependencies": [
-          "3"
+          3
         ],
         "status": "done",
         "subtasks": [
@@ -2422,9 +2303,8 @@
             "description": "Review the existing main.js file to understand the current synchronous initialization of the PixiJS Application, identifying where the Application constructor is called and how PixiJS objects are created.",
             "dependencies": [],
             "details": "Examine the code in main.js to map out the current flow, noting any synchronous calls to Application() and the sequence of object creation. This will provide a baseline for refactoring.",
-            "status": "pending",
-            "testStrategy": "Manually inspect the code and document the current structure in comments or a separate note.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Manually inspect the code and document the current structure in comments or a separate note."
           },
           {
             "id": 2,
@@ -2434,9 +2314,8 @@
               1
             ],
             "details": "Change the function declaration from 'function main()' or similar to 'async function main()' in main.js. Ensure the function signature is updated correctly to allow awaiting promises inside it.",
-            "status": "pending",
-            "testStrategy": "Run a syntax check or linter to verify the async keyword is properly applied without syntax errors.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run a syntax check or linter to verify the async keyword is properly applied without syntax errors."
           },
           {
             "id": 3,
@@ -2446,9 +2325,8 @@
               2
             ],
             "details": "Locate the Application constructor call in main.js and separate it from any immediate initialization. Store the app instance in a variable, ensuring no objects are created until after init() is awaited.",
-            "status": "pending",
-            "testStrategy": "Execute the code up to this point and confirm that the Application is instantiated but not yet initialized, checking for any runtime errors.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Execute the code up to this point and confirm that the Application is instantiated but not yet initialized, checking for any runtime errors."
           },
           {
             "id": 4,
@@ -2458,9 +2336,8 @@
               3
             ],
             "details": "After the Application constructor, insert 'await app.init(options);' where options include any required configuration like canvas settings. Ensure this is placed before any PixiJS object creation to comply with PixiJS v8 async requirements.",
-            "status": "pending",
-            "testStrategy": "Run the application and monitor the console for successful initialization messages or errors related to async init.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run the application and monitor the console for successful initialization messages or errors related to async init."
           },
           {
             "id": 5,
@@ -2470,9 +2347,8 @@
               4
             ],
             "details": "Review and adjust the code in main.js so that any creation of PixiJS objects, such as adding children to the stage or setting up viewports, occurs only after app.init() has resolved. This prevents initialization issues in PixiJS v8.",
-            "status": "pending",
-            "testStrategy": "Run the app and verify it initializes without errors, checking console for async-related issues and ensuring PixiJS objects render correctly.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run the app and verify it initializes without errors, checking console for async-related issues and ensuring PixiJS objects render correctly."
           }
         ],
         "complexity": 5,
@@ -2481,14 +2357,14 @@
         "updatedAt": "2025-10-15T20:59:53.678Z"
       },
       {
-        "id": "5",
+        "id": 5,
         "title": "Replace app.view with app.canvas",
         "description": "Update all references to app.view to use app.canvas instead.",
         "details": "Search for app.view in the codebase and replace with app.canvas, primarily in main.js and canvas.js.",
         "testStrategy": "Inspect the DOM to ensure the canvas element is correctly referenced. Test canvas rendering.",
         "priority": "medium",
         "dependencies": [
-          "4"
+          4
         ],
         "status": "done",
         "subtasks": [
@@ -2498,9 +2374,8 @@
             "description": "Perform a comprehensive search across the entire codebase to locate every instance of 'app.view' that needs to be replaced.",
             "dependencies": [],
             "details": "Use grep or a code search tool to find all occurrences of 'app.view' in files, noting the exact lines and files for replacement. Focus on main.js and canvas.js as primary targets, but check all files to ensure completeness.",
-            "status": "pending",
-            "testStrategy": "Verify the search results by manually checking a few files to confirm no instances are missed.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Verify the search results by manually checking a few files to confirm no instances are missed."
           },
           {
             "id": 2,
@@ -2510,9 +2385,8 @@
               1
             ],
             "details": "Open main.js and replace each instance of 'app.view' with 'app.canvas'. Ensure the replacement is done accurately without affecting surrounding code. Save the file after changes.",
-            "status": "pending",
-            "testStrategy": "Run a diff or search in main.js to confirm all 'app.view' have been replaced and no new instances remain.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run a diff or search in main.js to confirm all 'app.view' have been replaced and no new instances remain."
           },
           {
             "id": 3,
@@ -2522,9 +2396,8 @@
               1
             ],
             "details": "Open canvas.js and replace each instance of 'app.view' with 'app.canvas'. Carefully check for any context-specific usages to avoid breaking functionality. Save the file after changes.",
-            "status": "pending",
-            "testStrategy": "Run a diff or search in canvas.js to confirm all 'app.view' have been replaced and no new instances remain.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run a diff or search in canvas.js to confirm all 'app.view' have been replaced and no new instances remain."
           },
           {
             "id": 4,
@@ -2534,9 +2407,8 @@
               1
             ],
             "details": "From the search results, identify any files beyond main.js and canvas.js that have 'app.view'. Replace them with 'app.canvas' in each file, ensuring consistency across the codebase.",
-            "status": "pending",
-            "testStrategy": "Perform another search post-replacement to ensure no 'app.view' instances are left in any file.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Perform another search post-replacement to ensure no 'app.view' instances are left in any file."
           },
           {
             "id": 5,
@@ -2548,9 +2420,8 @@
               4
             ],
             "details": "Run the application and inspect the DOM to ensure the canvas element is correctly referenced. Test canvas rendering functionality to confirm no errors or broken behaviors due to the replacements.",
-            "status": "pending",
-            "testStrategy": "Use browser developer tools to inspect the DOM for correct canvas references and perform visual checks on rendering.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Use browser developer tools to inspect the DOM for correct canvas references and perform visual checks on rendering."
           }
         ],
         "complexity": 3,
@@ -2559,14 +2430,14 @@
         "updatedAt": "2025-10-15T20:59:56.060Z"
       },
       {
-        "id": "6",
+        "id": 6,
         "title": "Migrate Graphics API to Builder Pattern",
         "description": "Refactor all Graphics drawing logic to use the new builder pattern.",
         "details": "Change from beginFill/drawShape/endFill to shape().fill().stroke(). Update functions like createRectangle and createCircle in canvas.js.",
         "testStrategy": "Create shapes and verify they render correctly without visual artifacts.",
         "priority": "high",
         "dependencies": [
-          "4"
+          4
         ],
         "status": "done",
         "subtasks": [
@@ -2576,9 +2447,8 @@
             "description": "Refactor the createRectangle function in canvas.js to use the new builder pattern, changing from beginFill/drawShape/endFill to shape().fill().stroke().",
             "dependencies": [],
             "details": "Locate the createRectangle function in canvas.js. Replace the old API calls with the new builder pattern syntax, ensuring the rectangle is created using shape().rect().fill().stroke(). Update any related parameters and ensure compatibility with PixiJS v8.",
-            "status": "pending",
-            "testStrategy": "Create a rectangle shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking dimensions and fill/stroke properties.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Create a rectangle shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking dimensions and fill/stroke properties."
           },
           {
             "id": 2,
@@ -2586,9 +2456,8 @@
             "description": "Refactor the createCircle function in canvas.js to use the new builder pattern, changing from beginFill/drawShape/endFill to shape().fill().stroke().",
             "dependencies": [],
             "details": "Locate the createCircle function in canvas.js. Replace the old API calls with the new builder pattern syntax, ensuring the circle is created using shape().circle().fill().stroke(). Update any related parameters and ensure compatibility with PixiJS v8.",
-            "status": "pending",
-            "testStrategy": "Create a circle shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking radius and fill/stroke properties.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Create a circle shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking radius and fill/stroke properties."
           },
           {
             "id": 3,
@@ -2596,9 +2465,8 @@
             "description": "Refactor the createTriangle function in canvas.js to use the new builder pattern, changing from beginFill/drawShape/endFill to shape().fill().stroke().",
             "dependencies": [],
             "details": "Locate the createTriangle function in canvas.js. Replace the old API calls with the new builder pattern syntax, ensuring the triangle is created using shape().polygon().fill().stroke() with appropriate vertices. Update any related parameters and ensure compatibility with PixiJS v8.",
-            "status": "pending",
-            "testStrategy": "Create a triangle shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking vertices and fill/stroke properties.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Create a triangle shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking vertices and fill/stroke properties."
           },
           {
             "id": 4,
@@ -2606,9 +2474,8 @@
             "description": "Refactor the createLine function in canvas.js to use the new builder pattern, changing from beginFill/drawShape/endFill to shape().fill().stroke().",
             "dependencies": [],
             "details": "Locate the createLine function in canvas.js. Replace the old API calls with the new builder pattern syntax, ensuring the line is created using shape().moveTo().lineTo().stroke(). Update any related parameters and ensure compatibility with PixiJS v8.",
-            "status": "pending",
-            "testStrategy": "Create a line shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking start/end points and stroke properties.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Create a line shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking start/end points and stroke properties."
           }
         ],
         "complexity": 7,
@@ -2617,14 +2484,14 @@
         "updatedAt": "2025-10-15T20:59:58.456Z"
       },
       {
-        "id": "7",
+        "id": 7,
         "title": "Update Shape Function Names",
         "description": "Rename drawShape methods to their v8 equivalents.",
         "details": "Replace drawRect with rect, drawCircle with circle, etc., in all Graphics usage.",
         "testStrategy": "Test drawing various shapes and confirm they appear as expected.",
         "priority": "medium",
         "dependencies": [
-          "6"
+          6
         ],
         "status": "done",
         "subtasks": [
@@ -2634,9 +2501,8 @@
             "description": "Search the codebase to find all files that import or use the Graphics class from PixiJS.",
             "dependencies": [],
             "details": "Use grep or a code search tool to locate files containing 'Graphics' and method calls like drawRect, drawCircle, etc. Compile a list of affected files.",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Basic verification: run and ensure no errors."
           },
           {
             "id": 2,
@@ -2646,9 +2512,8 @@
               1
             ],
             "details": "In each identified file, perform a find-and-replace operation to change drawRect() to rect(). Ensure the parameters remain compatible.",
-            "status": "pending",
-            "testStrategy": "Verify that rectangles are drawn correctly after replacement.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Verify that rectangles are drawn correctly after replacement."
           },
           {
             "id": 3,
@@ -2658,9 +2523,8 @@
               1
             ],
             "details": "In each identified file, perform a find-and-replace operation to change drawCircle() to circle(). Check parameter compatibility.",
-            "status": "pending",
-            "testStrategy": "Verify that circles are drawn correctly after replacement.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Verify that circles are drawn correctly after replacement."
           },
           {
             "id": 4,
@@ -2670,9 +2534,8 @@
               1
             ],
             "details": "Identify and replace methods such as drawEllipse with ellipse, drawPolygon with polygon, etc. Ensure all Graphics shape drawing methods are updated.",
-            "status": "pending",
-            "testStrategy": "Test rendering of ellipses, polygons, and other shapes to confirm they appear as expected.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Test rendering of ellipses, polygons, and other shapes to confirm they appear as expected."
           },
           {
             "id": 5,
@@ -2684,9 +2547,8 @@
               4
             ],
             "details": "Execute the project's test suite, particularly focusing on rendering tests. Manually check that shapes are drawn without errors in the application.",
-            "status": "pending",
-            "testStrategy": "Run automated tests and perform visual checks on shape rendering in the app.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run automated tests and perform visual checks on shape rendering in the app."
           }
         ],
         "complexity": 4,
@@ -2695,14 +2557,14 @@
         "updatedAt": "2025-10-15T21:00:09.432Z"
       },
       {
-        "id": "8",
+        "id": 8,
         "title": "Use Style Objects for Fills and Strokes",
         "description": "Update fill() and stroke() calls to use style objects where applicable.",
         "details": "Change calls like fill(color) to fill({color: color}) and stroke(width, color) to stroke({width: width, color: color}).",
         "testStrategy": "Render shapes with fills and strokes and check for correct styling.",
         "priority": "medium",
         "dependencies": [
-          "7"
+          7
         ],
         "status": "done",
         "subtasks": [
@@ -2714,9 +2576,8 @@
               7
             ],
             "details": "Use grep or search tools to locate all instances of fill( and stroke( in the project files, ensuring to cover all shape creation code.",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Basic verification: run and ensure no errors."
           },
           {
             "id": 2,
@@ -2726,9 +2587,8 @@
               1
             ],
             "details": "For each identified fill call, modify the parameters to pass an object with the color property, ensuring compatibility with PixiJS v8 API.",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Basic verification: run and ensure no errors."
           },
           {
             "id": 3,
@@ -2738,9 +2598,8 @@
               1
             ],
             "details": "For each stroke call, update to use an object with width and color properties, matching the new PixiJS v8 style object structure.",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Basic verification: run and ensure no errors."
           },
           {
             "id": 4,
@@ -2751,9 +2610,8 @@
               3
             ],
             "details": "Ensure all changes are syntactically correct, handle any edge cases like multiple parameters or conditional calls, and verify no errors introduced.",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Basic verification: run and ensure no errors."
           },
           {
             "id": 5,
@@ -2763,9 +2621,8 @@
               4
             ],
             "details": "Run the application, render various shapes with fills and strokes, and visually inspect to confirm correct styling and no visual regressions.",
-            "status": "pending",
-            "testStrategy": "Render shapes with fills and strokes and check for correct styling.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Render shapes with fills and strokes and check for correct styling."
           }
         ],
         "complexity": 4,
@@ -2774,14 +2631,14 @@
         "updatedAt": "2025-10-15T21:00:12.099Z"
       },
       {
-        "id": "9",
+        "id": 9,
         "title": "Replace updateTransform with onRender",
         "description": "Update custom logic using updateTransform to use the new onRender hook.",
         "details": "Create an _onRender method and bind it in the constructor. Replace updateTransform calls with onRender.",
         "testStrategy": "Test custom rendering logic to ensure it executes correctly during render cycles.",
         "priority": "medium",
         "dependencies": [
-          "4"
+          4
         ],
         "status": "done",
         "subtasks": [
@@ -2791,9 +2648,8 @@
             "description": "Locate all classes in the codebase that currently use the updateTransform method to understand the scope of refactoring needed.",
             "dependencies": [],
             "details": "Search the codebase for 'updateTransform' calls using grep or IDE search tools. Document the classes, methods, and contexts where it's used to prepare for replacement.",
-            "status": "pending",
-            "testStrategy": "Verify that all instances are identified by cross-checking with code review.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Verify that all instances are identified by cross-checking with code review."
           },
           {
             "id": 2,
@@ -2803,9 +2659,8 @@
               1
             ],
             "details": "In each identified class, define a new private method named _onRender that encapsulates the logic previously in updateTransform. Ensure the method signature matches the onRender hook requirements.",
-            "status": "pending",
-            "testStrategy": "Check that the _onRender method is syntactically correct and compiles without errors.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Check that the _onRender method is syntactically correct and compiles without errors."
           },
           {
             "id": 3,
@@ -2815,9 +2670,8 @@
               2
             ],
             "details": "In the constructor of each class, add a binding statement like this._onRender = this._onRender.bind(this); to maintain the correct 'this' context when the method is used as a hook.",
-            "status": "pending",
-            "testStrategy": "Run unit tests to confirm that the binding works and the method can be called without context errors.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run unit tests to confirm that the binding works and the method can be called without context errors."
           },
           {
             "id": 4,
@@ -2827,9 +2681,8 @@
               3
             ],
             "details": "Replace each updateTransform() call with the appropriate onRender hook invocation, ensuring that the _onRender method is passed or registered as needed in the PixiJS application lifecycle.",
-            "status": "pending",
-            "testStrategy": "Test that the application renders correctly and that custom logic executes during render cycles by observing visual output and console logs.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Test that the application renders correctly and that custom logic executes during render cycles by observing visual output and console logs."
           },
           {
             "id": 5,
@@ -2839,9 +2692,8 @@
               4
             ],
             "details": "Run the full application, check for any runtime errors, and validate that rendering behavior matches the original functionality. Use debugging tools to step through render cycles.",
-            "status": "pending",
-            "testStrategy": "Conduct integration tests focusing on render cycle execution, including edge cases like multiple objects and performance benchmarks.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Conduct integration tests focusing on render cycle execution, including edge cases like multiple objects and performance benchmarks."
           }
         ],
         "complexity": 5,
@@ -2850,14 +2702,14 @@
         "updatedAt": "2025-10-15T21:00:14.776Z"
       },
       {
-        "id": "10",
+        "id": 10,
         "title": "Update getBounds Usage",
         "description": "Refactor getBounds() calls to use the new return format.",
         "details": "Change container.getBounds() to container.getBounds().rectangle where a PIXI.Rectangle is expected.",
         "testStrategy": "Test bounding box calculations for containers and ensure selections work.",
         "priority": "medium",
         "dependencies": [
-          "4"
+          4
         ],
         "status": "done",
         "subtasks": [
@@ -2867,9 +2719,8 @@
             "description": "Search the codebase to locate every instance where getBounds() is called on containers, ensuring a comprehensive list for refactoring.",
             "dependencies": [],
             "details": "Use grep or IDE search tools to find all occurrences of .getBounds() in the project files, excluding comments and documentation. Document the file paths and line numbers for each call.",
-            "status": "pending",
-            "testStrategy": "Verify the list by manually checking a sample of files to ensure no calls are missed.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Verify the list by manually checking a sample of files to ensure no calls are missed."
           },
           {
             "id": 2,
@@ -2879,9 +2730,8 @@
               1
             ],
             "details": "For each call site identified in subtask 1, change container.getBounds() to container.getBounds().rectangle. Ensure the context confirms PIXI.Rectangle is expected, and handle any necessary imports or type checks.",
-            "status": "pending",
-            "testStrategy": "Compile the code after changes and check for TypeScript errors or runtime issues related to rectangle access.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Compile the code after changes and check for TypeScript errors or runtime issues related to rectangle access."
           },
           {
             "id": 3,
@@ -2891,9 +2741,8 @@
               1
             ],
             "details": "Review the identified call sites for scenarios like conditional checks, loops, or assignments. Adjust the code to properly access .rectangle in these cases, ensuring the logic remains intact.",
-            "status": "pending",
-            "testStrategy": "Run unit tests on affected components to confirm edge cases behave as expected.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run unit tests on affected components to confirm edge cases behave as expected."
           },
           {
             "id": 4,
@@ -2903,9 +2752,8 @@
               2
             ],
             "details": "Locate and modify code that performs operations on the getBounds() result, such as width/height calculations or intersection checks, to use the rectangle properties correctly.",
-            "status": "pending",
-            "testStrategy": "Test bounding box calculations manually or via automated tests to ensure accuracy.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Test bounding box calculations manually or via automated tests to ensure accuracy."
           },
           {
             "id": 5,
@@ -2917,9 +2765,8 @@
               4
             ],
             "details": "Execute the project's test suite, focusing on rendering, selections, and any features relying on bounding boxes. Manually test UI interactions that depend on getBounds() to confirm no regressions.",
-            "status": "pending",
-            "testStrategy": "Use visual inspections and automated tests to validate that shapes, containers, and selections render and behave correctly with the new format.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Use visual inspections and automated tests to validate that shapes, containers, and selections render and behave correctly with the new format."
           }
         ],
         "complexity": 4,
@@ -2928,14 +2775,14 @@
         "updatedAt": "2025-10-15T21:00:17.386Z"
       },
       {
-        "id": "11",
+        "id": 11,
         "title": "Update Ticker Callback",
         "description": "Adjust Ticker callback to use ticker.deltaTime instead of direct deltaTime.",
         "details": "Modify Ticker.shared.add() callback to access deltaTime via ticker.deltaTime.",
         "testStrategy": "Test animations and updates that rely on ticker to ensure smooth performance.",
         "priority": "medium",
         "dependencies": [
-          "4"
+          4
         ],
         "status": "done",
         "subtasks": [
@@ -2945,9 +2792,8 @@
             "description": "Search the codebase for all instances of Ticker.shared.add() callbacks that use direct deltaTime.",
             "dependencies": [],
             "details": "Use grep or IDE search to find all Ticker.shared.add() calls and note where deltaTime is accessed directly instead of via ticker.deltaTime. This ensures we identify all locations needing updates.",
-            "status": "pending",
-            "testStrategy": "Verify that all identified callbacks are listed and none are missed by cross-checking with code review.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Verify that all identified callbacks are listed and none are missed by cross-checking with code review."
           },
           {
             "id": 2,
@@ -2957,9 +2803,8 @@
               1
             ],
             "details": "For each identified callback, change the function signature to include 'ticker' as the first parameter, and replace any direct deltaTime references with ticker.deltaTime. Ensure the callback is properly bound if necessary.",
-            "status": "pending",
-            "testStrategy": "Compile the code and check for syntax errors in the modified callbacks.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Compile the code and check for syntax errors in the modified callbacks."
           },
           {
             "id": 3,
@@ -2969,9 +2814,8 @@
               2
             ],
             "details": "Review and adjust the Ticker.shared.add() calls to ensure they are registering the updated callbacks properly. If the callback was previously anonymous, consider making it a named function for clarity.",
-            "status": "pending",
-            "testStrategy": "Run the application and confirm that callbacks are registered without errors, checking console logs for any Ticker-related warnings.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run the application and confirm that callbacks are registered without errors, checking console logs for any Ticker-related warnings."
           },
           {
             "id": 4,
@@ -2981,9 +2825,8 @@
               3
             ],
             "details": "Execute unit tests or manual tests for animations and updates that rely on the ticker. Measure frame rates and ensure deltaTime calculations are accurate, preventing issues like variable time steps.",
-            "status": "pending",
-            "testStrategy": "Use performance profiling tools to monitor frame times and deltaTime values during animation playback.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Use performance profiling tools to monitor frame times and deltaTime values during animation playback."
           },
           {
             "id": 5,
@@ -2993,9 +2836,8 @@
               4
             ],
             "details": "Perform a code review to ensure all Ticker callbacks now use ticker.deltaTime consistently. Run a full test suite to confirm no regressions in animation or update logic.",
-            "status": "pending",
-            "testStrategy": "Integrate with CI/CD pipeline to run automated tests, ensuring the changes pass all existing test cases related to rendering and updates.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Integrate with CI/CD pipeline to run automated tests, ensuring the changes pass all existing test cases related to rendering and updates."
           }
         ],
         "complexity": 3,
@@ -3004,14 +2846,14 @@
         "updatedAt": "2025-10-15T21:00:19.870Z"
       },
       {
-        "id": "12",
+        "id": 12,
         "title": "Replace PIXI.utils Imports",
         "description": "Update all PIXI.utils.* calls to direct imports from 'pixi.js'.",
         "details": "Change imports like PIXI.utils.isMobile to import { isMobile } from 'pixi.js'.",
         "testStrategy": "Run the app and check for any utils-related errors or warnings.",
         "priority": "medium",
         "dependencies": [
-          "3"
+          3
         ],
         "status": "done",
         "subtasks": [
@@ -3021,9 +2863,8 @@
             "description": "Scan the entire codebase to find all files that contain PIXI.utils.* calls or imports.",
             "dependencies": [],
             "details": "Use grep or a code search tool to locate all instances of PIXI.utils in the project files, including JavaScript, TypeScript, and any other relevant files. Document the list of files and specific lines for reference.",
-            "status": "pending",
-            "testStrategy": "Verify the list by manually checking a few files to ensure no instances are missed.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Verify the list by manually checking a few files to ensure no instances are missed."
           },
           {
             "id": 2,
@@ -3033,9 +2874,8 @@
               1
             ],
             "details": "For each file from subtask 1, change statements like 'import PIXI from 'pixi.js';' followed by PIXI.utils usage, to direct imports such as 'import { isMobile } from 'pixi.js';'. Ensure all necessary utils functions are imported.",
-            "status": "pending",
-            "testStrategy": "Check the import sections of updated files to confirm they match the new direct import pattern.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Check the import sections of updated files to confirm they match the new direct import pattern."
           },
           {
             "id": 3,
@@ -3045,9 +2885,8 @@
               2
             ],
             "details": "Go through each file and replace usages like PIXI.utils.isMobile() with isMobile(), ensuring the function is imported directly. Handle any potential naming conflicts or scope issues.",
-            "status": "pending",
-            "testStrategy": "Run a linter or static analysis tool to detect any undefined references or syntax errors after replacements.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run a linter or static analysis tool to detect any undefined references or syntax errors after replacements."
           },
           {
             "id": 4,
@@ -3057,9 +2896,8 @@
               3
             ],
             "details": "Re-scan the codebase using the same search method as in subtask 1 to confirm zero instances of PIXI.utils. Review any build or compilation logs for related warnings.",
-            "status": "pending",
-            "testStrategy": "Attempt to build the project and check for any errors related to missing PIXI.utils imports.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Attempt to build the project and check for any errors related to missing PIXI.utils imports."
           },
           {
             "id": 5,
@@ -3069,9 +2907,8 @@
               4
             ],
             "details": "Start the app, interact with features that use the updated utils (e.g., mobile detection), and monitor for runtime errors. Ensure rendering and logic dependent on these utils perform as expected.",
-            "status": "pending",
-            "testStrategy": "Run the app and check console for any utils-related errors or warnings, as per the parent task's test strategy.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run the app and check console for any utils-related errors or warnings, as per the parent task's test strategy."
           }
         ],
         "complexity": 4,
@@ -3080,14 +2917,14 @@
         "updatedAt": "2025-10-15T21:00:30.253Z"
       },
       {
-        "id": "13",
+        "id": 13,
         "title": "Implement CullerPlugin for Performance",
         "description": "Add and configure the CullerPlugin for automatic culling.",
         "details": "Import { extensions, CullerPlugin } from 'pixi.js' and add extensions.add(CullerPlugin). Set cullable = true on the main viewport container.",
         "testStrategy": "Monitor FPS during scene rendering with many objects to ensure culling improves performance.",
         "priority": "medium",
         "dependencies": [
-          "4"
+          4
         ],
         "status": "done",
         "subtasks": [
@@ -3097,9 +2934,8 @@
             "description": "Import the CullerPlugin and extensions from the pixi.js library to prepare for plugin addition.",
             "dependencies": [],
             "details": "In the main application file, add the import statement: import { extensions, CullerPlugin } from 'pixi.js';. Ensure this is done after the PixiJS application is initialized.",
-            "status": "pending",
-            "testStrategy": "Verify that the import does not cause any syntax errors or runtime issues during application startup.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Verify that the import does not cause any syntax errors or runtime issues during application startup."
           },
           {
             "id": 2,
@@ -3109,9 +2945,8 @@
               1
             ],
             "details": "After importing, add the plugin by calling extensions.add(CullerPlugin);. This should be done in the initialization phase of the application, ensuring it happens before creating any renderable objects.",
-            "status": "pending",
-            "testStrategy": "Check the console for any errors related to plugin registration and confirm that the plugin is listed in the extensions.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Check the console for any errors related to plugin registration and confirm that the plugin is listed in the extensions."
           },
           {
             "id": 3,
@@ -3121,9 +2956,8 @@
               2
             ],
             "details": "Locate the main viewport container in the code and set its cullable property: viewport.cullable = true;. This enables culling for objects within this container, improving performance by not rendering off-screen elements.",
-            "status": "pending",
-            "testStrategy": "Inspect the viewport object in the debugger to confirm the cullable property is set to true.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Inspect the viewport object in the debugger to confirm the cullable property is set to true."
           },
           {
             "id": 4,
@@ -3133,9 +2967,8 @@
               3
             ],
             "details": "Verify that the CullerPlugin is active during the application's update and render cycles. This may involve checking that the plugin hooks into the ticker or render events appropriately.",
-            "status": "pending",
-            "testStrategy": "Run the application and observe that culling is occurring by checking for reduced draw calls in performance tools.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run the application and observe that culling is occurring by checking for reduced draw calls in performance tools."
           },
           {
             "id": 5,
@@ -3145,9 +2978,8 @@
               4
             ],
             "details": "Use performance monitoring tools to measure FPS before and after enabling culling. Load a scene with numerous objects and compare rendering times, ensuring the plugin reduces unnecessary computations.",
-            "status": "pending",
-            "testStrategy": "Monitor FPS during scene rendering with many objects using browser dev tools or a performance monitor, verifying that culling improves performance without introducing errors.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Monitor FPS during scene rendering with many objects using browser dev tools or a performance monitor, verifying that culling improves performance without introducing errors."
           }
         ],
         "complexity": 5,
@@ -3156,14 +2988,14 @@
         "updatedAt": "2025-10-15T21:08:50.754Z"
       },
       {
-        "id": "14",
+        "id": 14,
         "title": "Optimize Event System",
         "description": "Review and set interactiveChildren to false on non-interactive containers.",
         "details": "Identify containers like grid backgrounds and set interactiveChildren = false to reduce event traversal.",
         "testStrategy": "Test interaction with interactive elements and ensure non-interactive ones don't interfere.",
         "priority": "low",
         "dependencies": [
-          "4"
+          4
         ],
         "status": "done",
         "subtasks": [
@@ -3175,9 +3007,8 @@
               4
             ],
             "details": "Use grep or manual search in files like main.js, canvas.js, and other relevant files to find all container declarations and usages. Document their locations and types.",
-            "status": "pending",
-            "testStrategy": "Verify the list of identified containers matches expected structures in the code.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Verify the list of identified containers matches expected structures in the code."
           },
           {
             "id": 2,
@@ -3187,9 +3018,8 @@
               1
             ],
             "details": "Examine the purpose of each container, such as grid backgrounds being non-interactive. Categorize them based on whether they handle user events or not.",
-            "status": "pending",
-            "testStrategy": "Cross-check classifications with code comments or usage patterns to ensure accuracy.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Cross-check classifications with code comments or usage patterns to ensure accuracy."
           },
           {
             "id": 3,
@@ -3199,9 +3029,8 @@
               2
             ],
             "details": "Modify the code in the relevant files to add or set interactiveChildren = false on the identified non-interactive containers, ensuring no interactive children are affected.",
-            "status": "pending",
-            "testStrategy": "Run the application and check that no errors occur during initialization or rendering.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Run the application and check that no errors occur during initialization or rendering."
           },
           {
             "id": 4,
@@ -3211,9 +3040,8 @@
               3
             ],
             "details": "Interact with buttons, clickable areas, or other interactive components in the app to ensure they trigger events as expected after the changes.",
-            "status": "pending",
-            "testStrategy": "Use manual testing or automated scripts to simulate interactions and log event firings.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Use manual testing or automated scripts to simulate interactions and log event firings."
           },
           {
             "id": 5,
@@ -3223,9 +3051,8 @@
               4
             ],
             "details": "Monitor event handling performance, perhaps by adding temporary logging or using browser dev tools to check event propagation paths and ensure efficiency improvements.",
-            "status": "pending",
-            "testStrategy": "Compare event logs or performance metrics before and after changes to quantify the optimization.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Compare event logs or performance metrics before and after changes to quantify the optimization."
           }
         ],
         "complexity": 3,
@@ -3234,23 +3061,23 @@
         "updatedAt": "2025-10-15T21:10:30.101Z"
       },
       {
-        "id": "15",
+        "id": 15,
         "title": "Conduct Functional and Performance Testing",
         "description": "Run full testing suite including functional checks and performance benchmarks.",
         "details": "Execute QA checklist for user stories. Run performance tests using PerformanceMonitor, comparing to v7 baseline. Ensure FPS meets criteria.",
         "testStrategy": "Validate all acceptance criteria: no errors, tests pass, performance met, no deprecations.",
         "priority": "high",
         "dependencies": [
-          "5",
-          "6",
-          "7",
-          "8",
-          "9",
-          "10",
-          "11",
-          "12",
-          "13",
-          "14"
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14
         ],
         "status": "done",
         "subtasks": [
@@ -3271,9 +3098,8 @@
               14
             ],
             "details": "Go through each user story in the QA checklist, perform functional tests to check for correct behavior, error handling, and compliance with requirements. Document any issues found and ensure all tests are passing before proceeding.",
-            "status": "pending",
-            "testStrategy": "Validate all acceptance criteria including no errors and tests passing.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Validate all acceptance criteria including no errors and tests passing."
           },
           {
             "id": 2,
@@ -3292,9 +3118,8 @@
               14
             ],
             "details": "Set up and run PerformanceMonitor on the application, measure FPS and other key metrics during benchmarks, compare results directly to the v7 baseline data, and verify that performance thresholds are met or exceeded.",
-            "status": "pending",
-            "testStrategy": "Monitor FPS and other performance metrics, ensuring they meet or exceed the v7 baseline criteria.",
-            "parentId": "undefined"
+            "status": "done",
+            "testStrategy": "Monitor FPS and other performance metrics, ensuring they meet or exceed the v7 baseline criteria."
           }
         ],
         "complexity": 6,
@@ -3305,12 +3130,161 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-10-15T21:10:30.102Z",
+      "lastModified": "2025-10-16T20:18:53.900Z",
       "taskCount": 15,
       "completedCount": 15,
       "tags": [
         "pixi-upgrade"
       ]
+    }
+  },
+  "auth0": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Set up Auth0 configuration and environment variables",
+        "description": "Configure Auth0 domain, client ID, client secret, callback URL, and audience in the application configuration to enable OAuth2 integration.",
+        "details": "Create a configuration file or module (e.g., src/auth0-config.lisp) with parameters like *auth0-domain*, *auth0-client-id*, etc., using environment variables. Implement helper functions such as auth0-authorize-url, auth0-token-url, auth0-userinfo-url, and auth0-logout-url as specified in the PRD. Ensure secure handling of secrets and validate that all required environment variables are set.",
+        "testStrategy": "Unit test the configuration functions to verify correct URL generation and parameter inclusion. Mock environment variables and check for proper error handling if variables are missing.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Update database schema to support Auth0 fields",
+        "description": "Modify the users table to include Auth0-specific fields like auth0_sub, display_name, avatar_url, email_verified, and last_login_at, making password_hash nullable.",
+        "details": "Execute the SQL schema changes as provided in the PRD, recreating the users table with new columns and copying existing data. Add indexes for auth0_sub, email, and username. Ensure backward compatibility by keeping password_hash nullable for legacy users.",
+        "testStrategy": "Integration test by running the schema migration on a test database, verifying that existing data is preserved and new columns are added correctly. Check for no data loss and proper indexing.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Implement OAuth2 authorization flow initiation",
+        "description": "Create the handler to redirect users to Auth0's authorization endpoint with proper state parameter for CSRF protection.",
+        "details": "Implement handle-auth0-login function in src/auth0-oauth.lisp, generating a secure state token, storing it temporarily, and redirecting to the Auth0 authorize URL. Include state expiry mechanism using threads for cleanup after 5 minutes.",
+        "testStrategy": "Unit test the handler to ensure correct redirect URL generation and state storage. Simulate requests and verify state validation in subsequent steps.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Implement OAuth2 callback and token exchange",
+        "description": "Handle the Auth0 callback, validate state, exchange authorization code for tokens, and process the response.",
+        "details": "Implement handle-auth0-callback function, checking for errors and state validity, then calling exchange-code-for-tokens to POST to Auth0's token endpoint. Parse the response for access_token and id_token. Handle errors gracefully with logging.",
+        "testStrategy": "Integration test by mocking the callback request with valid/invalid codes and states. Verify token exchange via HTTP calls to a test Auth0 endpoint and check error responses.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Implement JWT ID token decoding and validation",
+        "description": "Decode the ID token, validate its signature, issuer, audience, and expiration, and extract user claims.",
+        "details": "Implement decode-id-token and validate-jwt-signature functions, fetching JWKS from Auth0 for signature verification using RS256. Cache JWKS for 24 hours. Validate claims as per OAuth2 standards and return user info like sub, email, name, etc.",
+        "testStrategy": "Unit test with mock JWTs, verifying signature validation, claim checks, and error handling for expired or invalid tokens. Use test JWKS data to simulate Auth0 responses.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Implement user finding and creation from OAuth data",
+        "description": "Check for existing users by auth0_sub or email, update or create new users, and handle linking for legacy accounts.",
+        "details": "Implement find-or-create-user-from-oauth, get-user-by-auth0-sub, update-user-from-oauth, link-auth0-to-user, and create-user-from-oauth functions. Use database transactions for safety. Generate usernames from emails if needed.",
+        "testStrategy": "Unit test the functions with mock OAuth user info, verifying user creation, updates, and linking. Integration test by inserting test data and checking database state after operations.",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Implement session creation and cookie management",
+        "description": "Create user sessions upon successful OAuth authentication and set secure session cookies.",
+        "details": "After validating tokens and finding/creating users, call create-session-for-user and set-session-cookie with HttpOnly, Secure, SameSite=strict flags, and 24-hour expiry. Ensure sessions are stored securely.",
+        "testStrategy": "Integration test the full flow, checking cookie setting and session retrieval. Verify cookie security attributes and session validity across requests.",
+        "priority": "medium",
+        "dependencies": [
+          5,
+          6
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Update frontend for Auth0 login integration",
+        "description": "Modify the frontend to include Auth0 login buttons, handle redirects, and support dual-mode authentication during transition.",
+        "details": "Update frontend/src/auth.js with AuthManager class, adding loginWithAuth0, loginWithGoogle, loginWithGithub methods. Modify UI in login page to show Auth0 and social login options, keeping legacy login for transition.",
+        "testStrategy": "Manual testing in browser: click login buttons, verify redirects to Auth0, and successful callback. Check UI rendering and error handling for failed logins.",
+        "priority": "medium",
+        "dependencies": [
+          3,
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Implement user migration and linking flow",
+        "description": "Allow existing users to link their Auth0 accounts to legacy profiles during Phase 2.",
+        "details": "Implement handle-link-auth0-account function, requiring legacy login first, then initiating OAuth with metadata to link. Update user records with auth0_sub upon successful linking. Add UI banners and email campaigns as per PRD.",
+        "testStrategy": "Integration test the linking flow: simulate legacy login, initiate link, complete OAuth, and verify database updates. Manual test with real users to ensure no disruption.",
+        "priority": "medium",
+        "dependencies": [
+          6,
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Implement monitoring, testing, and deprecation of legacy auth",
+        "description": "Add metrics collection, comprehensive testing, and gradual removal of legacy authentication in Phase 3.",
+        "details": "Implement get-auth-metrics for monitoring key stats. Conduct unit, integration, and manual tests as outlined. Add feature flags for Auth0 enablement and deprecate legacy endpoints after migration thresholds.",
+        "testStrategy": "Run full test suite including OAuth flow simulations, social logins, and migration. Monitor metrics for errors and usage. Manual checklist verification for security and functionality.",
+        "priority": "low",
+        "dependencies": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-10-16T04:58:43.781Z",
+      "updated": "2025-10-16T20:18:53.900Z",
+      "description": "Tasks for auth0 context"
     }
   }
 }
