@@ -392,3 +392,17 @@
            "INSERT INTO users (email, username, auth0_sub, display_name, avatar_url, email_verified, last_login_at)
             VALUES (?, ?, ?, ?, ?, ?, datetime('now'))"
            email final-username auth0-sub display-name avatar-url (if email-verified 1 0))))))
+
+(defun link-auth0-to-existing-user (user-id auth0-sub email display-name avatar-url)
+  "Link Auth0 account to existing user (for migration)"
+  (execute-non-query
+   "UPDATE users 
+    SET auth0_sub = ?, 
+        display_name = COALESCE(?, display_name),
+        avatar_url = COALESCE(?, avatar_url),
+        email_verified = 1,
+        last_login_at = datetime('now')
+    WHERE id = ?"
+   auth0-sub display-name avatar-url user-id)
+  (format t "[INFO] Successfully linked Auth0 account ~A to user ~A~%" auth0-sub user-id)
+  user-id)

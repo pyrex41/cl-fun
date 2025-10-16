@@ -30,6 +30,13 @@
   (hunchentoot:define-easy-handler (auth0-callback :uri "/auth0/callback") ()
     (handle-auth0-callback))
 
+  (hunchentoot:define-easy-handler (auth0-link :uri "/auth0/link") ()
+    (handle-auth0-link))
+
+  ;; Auth metrics
+  (hunchentoot:define-easy-handler (auth-metrics :uri "/api/auth/metrics") ()
+    (handle-auth-metrics))
+
   (hunchentoot:define-easy-handler (register-handler :uri "/api/register") ()
     (set-cors-headers)
     (if (eq (hunchentoot:request-method*) :options)
