@@ -1,0 +1,35 @@
+#!/bin/sh
+#|-*- mode:lisp -*-|#
+#|
+exec ros -Q -- $0 "$@"
+|#
+(progn ;;init forms
+  (ros:ensure-asdf)
+  #+quicklisp(ql:quickload '(:trivial-formatter) :silent t))
+
+(defpackage :ros.script.format-lisp
+  (:use :cl))
+(in-package :ros.script.format-lisp)
+
+(defun main (&rest argv)
+  "Format Lisp source files using trivial-formatter"
+  (unless argv
+    (format *error-output* "Usage: format-lisp.ros FILE [FILE...]~%")
+    (ros:quit 1))
+
+  (dolist (file argv)
+    (let ((path (probe-file file)))
+      (if path
+          (handler-case
+              (progn
+                ;; Convert pathname to namestring for trivial-formatter
+                (trivial-formatter:fmt (namestring path))
+                (format t "Formatted: ~A~%" file))
+            (error (e)
+              (format *error-output* "Error formatting ~A: ~A~%" file e)
+              (ros:quit 1)))
+          (progn
+            (format *error-output* "File not found: ~A~%" file)
+            (ros:quit 1)))))
+
+  (ros:quit 0))

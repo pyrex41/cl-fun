@@ -1,0 +1,23 @@
+;; SBlint Configuration for CollabCanvas
+
+(
+ ;; Ignore certain warnings
+ :ignore-warnings (
+   "IMPLICIT-GENERIC"  ;; Allow implicit generic functions
+   "STYLE-WARNING"     ;; Suppress style warnings for now
+ )
+
+ ;; Enable specific checks
+ :enable-checks (
+   :unused-variable
+   :undefined-function
+   :undefined-variable
+   :duplicate-key
+ )
+
+ ;; Directories/files to exclude from linting
+ :exclude-patterns (
+   "tests/"           ;; Don't lint tests for now
+   "*.asd"           ;; Skip ASDF system definitions
+ )
+)
