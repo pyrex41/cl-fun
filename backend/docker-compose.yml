@@ -1,0 +1,59 @@
+# docker-compose.yml for CollabCanvas with Woo
+# Local development and testing environment
+
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: collabcanvas:latest
+    container_name: collabcanvas
+    ports:
+      - "5000:5000"
+    environment:
+      # Server configuration
+      - PORT=5000
+
+      # CORS configuration (use specific origin in production)
+      - CORS_ORIGIN=*
+
+      # Session timeout (seconds)
+      - SESSION_TIMEOUT=86400
+
+      # Enable debug mode for local development
+      - DEBUG=false
+    volumes:
+      # Persist database
+      - ./data:/app/data
+
+      # Optional: mount source code for development
+      # Uncomment to enable live code reloading
+      # - ./src:/app/src:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - collabcanvas-network
+    # Resource limits (adjust based on your needs)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+networks:
+  collabcanvas-network:
+    driver: bridge
+
+volumes:
+  data:
+    driver: local

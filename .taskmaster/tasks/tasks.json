@@ -2231,5 +2231,792 @@
       "description": "Tasks for perf context",
       "updated": "2025-10-14T16:32:33.527Z"
     }
+  },
+  "woo": {
+    "tasks": [
+      {
+        "id": "1",
+        "title": "Add Clack/Woo Dependencies to ASD File",
+        "description": "Update collabcanvas.asd to include new dependencies like clack, woo, lack, lack-middleware-static, lack-middleware-cors, and websocket-driver.",
+        "details": "Modify the :depends-on section in collabcanvas.asd to add the required libraries: :clack, :woo, :lack, :lack-middleware-static, :lack-middleware-cors, :websocket-driver. Ensure compatibility with existing dependencies. Use Quicklisp for loading.",
+        "testStrategy": "Run (ql:quickload :collabcanvas) and verify no errors occur during loading.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Backup the current collabcanvas.asd file",
+            "description": "Create a backup copy of the existing collabcanvas.asd file to ensure we can revert changes if needed.",
+            "dependencies": [],
+            "details": "Use a file copy command or editor to duplicate collabcanvas.asd, naming it something like collabcanvas.asd.backup, to preserve the original state before modifications.",
+            "status": "pending",
+            "testStrategy": "Verify the backup file exists and matches the original content.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Review existing dependencies in collabcanvas.asd",
+            "description": "Examine the current :depends-on section to understand what dependencies are already listed.",
+            "dependencies": [
+              1
+            ],
+            "details": "Open collabcanvas.asd and locate the :depends-on list. Note down all current dependencies to check for potential conflicts with the new ones being added.",
+            "status": "pending",
+            "testStrategy": "Manually inspect the file and confirm the list of existing dependencies.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Add new Clack/Woo dependencies to the ASD file",
+            "description": "Insert the required libraries into the :depends-on section of collabcanvas.asd.",
+            "dependencies": [
+              2
+            ],
+            "details": "Edit the :depends-on list to include :clack, :woo, :lack, :lack-middleware-static, :lack-middleware-cors, and :websocket-driver. Ensure they are added in a logical order and formatted correctly.",
+            "status": "pending",
+            "testStrategy": "Check the file syntax after editing to ensure it's valid Lisp code.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Verify compatibility with existing dependencies",
+            "description": "Check for any conflicts or incompatibilities between new and existing dependencies.",
+            "dependencies": [
+              3
+            ],
+            "details": "Review Quicklisp documentation or run a quick compatibility check by attempting to load the updated ASD file. Ensure no version conflicts or missing prerequisites.",
+            "status": "pending",
+            "testStrategy": "Attempt a dry-run load or check Quicklisp for dependency resolution.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Test loading the updated ASD file with Quicklisp",
+            "description": "Run Quicklisp to load the project and verify all dependencies are resolved without errors.",
+            "dependencies": [
+              4
+            ],
+            "details": "Execute (ql:quickload :collabcanvas) in a Lisp REPL and monitor for any loading errors. Confirm that all new dependencies are successfully loaded.",
+            "status": "pending",
+            "testStrategy": "Run the quickload command and assert no errors are thrown during the process.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 2,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this is a straightforward file modification.",
+        "updatedAt": "2025-10-15T21:34:18.711Z"
+      },
+      {
+        "id": "2",
+        "title": "Install and Test New Dependencies",
+        "description": "Install the new Quicklisp libraries and test basic functionality, with explicit mandatory libev installation as a prerequisite for Woo.",
+        "status": "done",
+        "dependencies": [
+          "1"
+        ],
+        "priority": "high",
+        "details": "CRITICAL: libev is a REQUIRED system dependency for Woo (not optional). Install libev BEFORE attempting to load Woo. Platform-specific instructions: Linux: sudo apt-get update; sudo apt-get install -y libev-dev gcc libc6-dev. macOS: brew install libev. Verify libev is installed by checking for /usr/include/ev.h (Linux) or /usr/local/include/ev.h (macOS); if missing, Woo will fail to compile with cryptic errors. Note: Windows is NOT supported by Woo due to libev; use WSL2 or Docker for Windows development. Only after libev is confirmed installed: ros -e '(ql:quickload :woo)'; ros -e '(ql:quickload :clack)'; ros -e '(ql:quickload :lack)'; ros -e '(ql:quickload :websocket-driver)'; ros -e '(ql:quickload :fast-http)'; ros -e '(ql:quickload :quri)'.",
+        "testStrategy": "Check that each library loads without errors and basic functions like (clack:clackup) are available. Test basic functionality by checking that (find-package :woo) returns non-nil.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Install Individual Dependencies Separately",
+            "description": "Install libev as a mandatory prerequisite, then install each new Quicklisp dependency one by one, including system-level packages like libev and Quicklisp libraries such as woo, clack, lack, websocket-driver, fast-http, and quri.",
+            "dependencies": [],
+            "details": "First, install libev on the system: For Linux, run 'sudo apt-get update; sudo apt-get install -y libev-dev gcc libc6-dev'. For macOS, run 'brew install libev'. Verify libev is installed by checking for /usr/include/ev.h (Linux) or /usr/local/include/ev.h (macOS); if missing, Woo will fail to compile with cryptic errors. Note: Windows is NOT supported by Woo due to libev; use WSL2 or Docker for Windows development. Only after libev is confirmed installed, use ros commands to quickload each Quicklisp library individually: (ql:quickload :woo), (ql:quickload :clack), (ql:quickload :lack), (ql:quickload :websocket-driver), (ql:quickload :fast-http), (ql:quickload :quri). Ensure each loads without errors before proceeding to the next.",
+            "status": "pending",
+            "testStrategy": "Verify each quickload command completes successfully without throwing errors in the REPL, and confirm libev installation via file existence checks.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Test Installed Dependencies Collectively",
+            "description": "Perform collective testing of all installed dependencies to ensure they work together and basic functionality is available.",
+            "dependencies": [
+              1
+            ],
+            "details": "After installing all dependencies, run a collective test by attempting to load the project with (ql:quickload :collabcanvas) and check for basic functions like (clack:clackup) being available. Verify that no compatibility issues arise when loading multiple libraries simultaneously. Test basic functionality by checking that (find-package :woo) returns non-nil.",
+            "status": "pending",
+            "testStrategy": "Execute (ql:quickload :collabcanvas) and confirm no errors; test basic Clack functions in a REPL to ensure they are callable without issues; verify (find-package :woo) returns non-nil.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Break down into subtasks for installing each dependency separately and then testing them collectively.",
+        "updatedAt": "2025-10-15T21:35:41.143Z"
+      },
+      {
+        "id": "3",
+        "title": "Create New Source Files",
+        "description": "Create src/app.lisp, src/websocket-adapter.lisp, and src/server.lisp with initial structures.",
+        "details": "Create app.lisp with make-app function using lack:builder. Create websocket-adapter.lisp with ws-connection struct and handler stubs. Create server.lisp with start-server, stop-server functions. Keep old files intact.",
+        "testStrategy": "Verify files compile without syntax errors using (compile-file).",
+        "priority": "high",
+        "dependencies": [
+          "2"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Ensure src directory exists",
+            "description": "Check and create the src directory if it does not exist to hold the new Lisp source files.",
+            "dependencies": [],
+            "details": "Verify the existence of the src directory in the project root. If it does not exist, create it using mkdir or equivalent command to prepare for file creation.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Create src/app.lisp with make-app function",
+            "description": "Create the app.lisp file in the src directory, implementing the make-app function using lack:builder.",
+            "dependencies": [
+              1
+            ],
+            "details": "In src/app.lisp, define a package and export the make-app function. Use lack:builder to construct the application with initial middleware stubs. Ensure the file follows Lisp syntax and includes necessary imports.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Create src/websocket-adapter.lisp with ws-connection struct",
+            "description": "Create the websocket-adapter.lisp file with the ws-connection struct and handler stubs.",
+            "dependencies": [
+              1
+            ],
+            "details": "In src/websocket-adapter.lisp, define a package, create the ws-connection struct with fields like id, socket, etc., and add placeholder functions for handlers such as on-open, on-message, on-close. Include necessary imports for websocket-driver.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Create src/server.lisp with start-server and stop-server functions",
+            "description": "Create the server.lisp file implementing start-server and stop-server functions.",
+            "dependencies": [
+              1
+            ],
+            "details": "In src/server.lisp, define a package and implement start-server to initialize and run the Clack server with Woo, and stop-server to gracefully shut it down. Include error handling and ensure integration with the app from app.lisp.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Compile all new source files to verify syntax",
+            "description": "Compile the newly created Lisp files to ensure they have no syntax errors.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Use (compile-file) on each of src/app.lisp, src/websocket-adapter.lisp, and src/server.lisp. Check for any compilation errors or warnings. This step confirms the initial structures are syntactically correct before further development.",
+            "status": "pending",
+            "testStrategy": "Run (compile-file) on each file and verify no errors are reported in the output.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as creating initial file structures is straightforward.",
+        "updatedAt": "2025-10-15T21:39:30.824Z"
+      },
+      {
+        "id": "4",
+        "title": "Verify Woo Server Startup with Minimal App",
+        "description": "Test starting Woo with a simple 'hello world' Clack app.",
+        "details": "Create a minimal Clack app that returns a simple response. Use clack:clackup with :server :woo to start on a test port. Check server logs for successful startup.",
+        "testStrategy": "Start the server, make a curl request to the endpoint, and verify response. Stop server and confirm no errors.",
+        "priority": "medium",
+        "dependencies": [
+          "3"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Minimal Clack App",
+            "description": "Develop a simple 'hello world' Clack application that returns a basic response.",
+            "dependencies": [],
+            "details": "Write a minimal Clack app using defun make-app that defines a route returning a simple string like 'Hello, World!'. Ensure it uses standard Clack structure.",
+            "status": "pending",
+            "testStrategy": "Verify the app can be loaded without errors in the Lisp environment.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Configure Woo Server Integration",
+            "description": "Set up the Clack app to use Woo as the server backend.",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify the clack:clackup call to include :server :woo parameter. Ensure Woo is properly loaded as a dependency.",
+            "status": "pending",
+            "testStrategy": "Check that the configuration does not throw errors when initializing.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Start Server on Test Port",
+            "description": "Launch the Woo server on a designated test port.",
+            "dependencies": [
+              2
+            ],
+            "details": "Use clack:clackup with the configured app and specify a test port (e.g., 8080). Handle any startup parameters appropriately.",
+            "status": "pending",
+            "testStrategy": "Monitor for successful server initialization without exceptions.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Check Server Logs for Startup Success",
+            "description": "Examine server logs to confirm the Woo server started successfully.",
+            "dependencies": [
+              3
+            ],
+            "details": "After starting the server, review the output logs for indicators of successful startup, such as 'Server started' messages or absence of errors.",
+            "status": "pending",
+            "testStrategy": "Parse logs programmatically or manually to assert startup confirmation.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Perform Curl Request and Verify Response",
+            "description": "Make an HTTP request to the server and validate the response.",
+            "dependencies": [
+              3
+            ],
+            "details": "Use curl to send a GET request to the test port endpoint and check that the response matches the expected 'hello world' output. Stop the server afterward.",
+            "status": "pending",
+            "testStrategy": "Automate the curl request in a test script and assert the response body and status code.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 3,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this is a focused testing task.",
+        "updatedAt": "2025-10-15T21:41:39.667Z"
+      },
+      {
+        "id": "5",
+        "title": "Convert HTTP Handlers to Clack Format",
+        "description": "Port handle-register, handle-login, handle-logout, handle-session-check, handle-canvas-state, and handle-health to accept env and return values.",
+        "details": "For each handler, change signature to (defun handler (env)), use getf to access env data, parse body with parse-request-body, and return (values status headers body). Update route-handler to call these.",
+        "testStrategy": "Unit test each handler with mock env plist, checking status and body.",
+        "priority": "high",
+        "dependencies": [
+          "4"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Convert Authentication Handlers to Clack Format",
+            "description": "Port handle-register, handle-login, and handle-logout to accept env parameter and return values in Clack format.",
+            "dependencies": [],
+            "details": "For each handler (handle-register, handle-login, handle-logout), change the function signature to (defun handler (env)), use getf to access data from the env plist, parse the request body using parse-request-body, and return (values status headers body). Ensure all authentication logic remains intact.",
+            "status": "pending",
+            "testStrategy": "Unit test each handler with a mock env plist, verifying correct status codes and response bodies for various inputs.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Convert Utility Handlers to Clack Format",
+            "description": "Port handle-session-check, handle-canvas-state, and handle-health to accept env parameter and return values in Clack format.",
+            "dependencies": [],
+            "details": "For each handler (handle-session-check, handle-canvas-state, handle-health), change the function signature to (defun handler (env)), use getf to access data from the env plist, parse the request body using parse-request-body where applicable, and return (values status headers body). Maintain existing functionality for session checks, canvas state, and health endpoints.",
+            "status": "pending",
+            "testStrategy": "Unit test each handler with a mock env plist, checking status codes, headers, and body content for expected behaviors.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Integrate Handlers into Route Handler",
+            "description": "Update the route-handler function to call the newly formatted handlers and handle their return values.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Modify the route-handler to invoke the updated handler functions (handle-register, handle-login, handle-logout, handle-session-check, handle-canvas-state, handle-health) with the env parameter, and properly process the returned (values status headers body) to construct the full HTTP response. Ensure routing logic directs requests correctly to each handler.",
+            "status": "pending",
+            "testStrategy": "Integration test by simulating route-handler calls with mock env data, verifying that responses are correctly formatted and match expected outputs for all endpoints.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Expand into subtasks for each handler (e.g., one for handle-register, one for handle-login, etc.) and a final integration subtask.",
+        "updatedAt": "2025-10-15T21:44:01.230Z"
+      },
+      {
+        "id": "6",
+        "title": "Create Utility Functions for Request Parsing",
+        "description": "Implement parse-request-body and json-response functions.",
+        "details": "Define parse-request-body to read from (getf env :raw-body) and parse JSON. Define json-response to return proper values with to-json-string. Integrate into handlers.",
+        "testStrategy": "Test parse-request-body with sample JSON input and verify output. Test json-response with data and check HTTP response format.",
+        "priority": "medium",
+        "dependencies": [
+          "5"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define parse-request-body function",
+            "description": "Implement the parse-request-body function to read and parse JSON from the request body.",
+            "dependencies": [],
+            "details": "Create a function named parse-request-body that takes an environment (env) and uses (getf env :raw-body) to retrieve the raw body, then parses it as JSON using appropriate Lisp JSON parsing library.",
+            "status": "pending",
+            "testStrategy": "Test with sample JSON strings to ensure correct parsing and error handling for invalid JSON.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Define json-response function",
+            "description": "Implement the json-response function to format and return JSON responses.",
+            "dependencies": [],
+            "details": "Create a function named json-response that takes data and uses to-json-string to convert it to JSON, then returns it in a proper HTTP response format with appropriate headers.",
+            "status": "pending",
+            "testStrategy": "Test with various data types and verify the output is valid JSON and includes correct Content-Type header.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Integrate parse-request-body into request handlers",
+            "description": "Update existing request handlers to use the new parse-request-body function for parsing incoming JSON data.",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify the handler functions in the application to call parse-request-body instead of manual parsing, ensuring it handles the env parameter correctly and integrates seamlessly with the request processing flow.",
+            "status": "pending",
+            "testStrategy": "Simulate requests with JSON bodies and check that handlers correctly parse and process the data.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Integrate json-response into response handlers",
+            "description": "Update existing response handlers to use the new json-response function for formatting outgoing JSON responses.",
+            "dependencies": [
+              2
+            ],
+            "details": "Modify the response generation parts of handlers to use json-response, ensuring it sets proper status codes, headers, and body content for JSON API responses.",
+            "status": "pending",
+            "testStrategy": "Test API endpoints by sending requests and verifying that responses are properly formatted JSON with correct HTTP status.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Test overall integration and error handling",
+            "description": "Perform end-to-end testing of the utility functions integrated into the handlers.",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "Run comprehensive tests including valid and invalid JSON inputs, edge cases like empty bodies, and ensure error handling is robust, logging any issues appropriately in the server logs.",
+            "status": "pending",
+            "testStrategy": "Use curl or similar tools to make requests to the server, check logs for errors, and validate response formats.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as implementing two utility functions is contained.",
+        "updatedAt": "2025-10-15T21:44:31.053Z"
+      },
+      {
+        "id": "7",
+        "title": "Test All HTTP Endpoints",
+        "description": "Test migrated HTTP routes with curl or integration tests.",
+        "details": "Start Clack server, send requests to /api/register, /api/login, /health, etc., using curl. Verify responses match expected JSON and status codes.",
+        "testStrategy": "Integration test: Start server, perform full HTTP flow (register, login), stop server. Check logs for no errors.",
+        "priority": "medium",
+        "dependencies": [
+          "6"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Test Individual HTTP Endpoints",
+            "description": "Test each HTTP endpoint separately using curl to verify correct responses, status codes, and JSON formats for routes like /api/register, /api/login, /health, etc.",
+            "dependencies": [],
+            "details": "Start the Clack server on a test port. For each endpoint, send curl requests with appropriate data (e.g., POST for register/login). Check response status codes (e.g., 200 for success, 400 for errors) and JSON body content. Document any mismatches and ensure no server errors in logs.",
+            "status": "pending",
+            "testStrategy": "Manual curl testing: Send requests and manually verify outputs against expected results.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Perform Combined Integration Test",
+            "description": "Execute a full integration test simulating user flow: register, login, and other interactions to ensure the entire HTTP system works cohesively.",
+            "dependencies": [
+              1
+            ],
+            "details": "Start the Clack server. Perform a sequence of requests: register a new user, then login with those credentials, check session, and test other endpoints like /health. Verify the full flow succeeds without errors, checking logs for any issues. Stop the server after testing.",
+            "status": "pending",
+            "testStrategy": "Integration test: Automate or manually run the full HTTP flow, validate responses, and ensure no errors in server logs.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 5,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Break down into subtasks for testing individual endpoints and a combined integration test.",
+        "updatedAt": "2025-10-15T21:45:59.751Z"
+      },
+      {
+        "id": "8",
+        "title": "Implement WebSocket Upgrade Handler",
+        "description": "Add WebSocket middleware to Clack app and implement handle-websocket-upgrade.",
+        "details": "In make-app, add (:websocket ...) middleware. Implement handle-websocket-upgrade to validate canvas-id, create ws-connection, register pending connection, and return 101.",
+        "testStrategy": "Unit test handle-websocket-upgrade with mock env, checking status 101 for valid canvas-id and 400 for invalid.",
+        "priority": "high",
+        "dependencies": [
+          "7"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add WebSocket Middleware to Clack App",
+            "description": "Integrate WebSocket middleware into the Clack application setup to enable WebSocket upgrade handling.",
+            "dependencies": [],
+            "details": "In the make-app function, add the (:websocket ...) middleware to the middleware stack. Ensure it is properly configured to handle WebSocket connections and upgrades.",
+            "status": "pending",
+            "testStrategy": "Verify that the middleware is loaded and the app starts without errors, checking for WebSocket support in the app configuration.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement handle-websocket-upgrade Function",
+            "description": "Create the handle-websocket-upgrade function to process WebSocket upgrade requests, validate inputs, and manage connections.",
+            "dependencies": [],
+            "details": "Implement handle-websocket-upgrade to validate the canvas-id from the request, create a ws-connection object, register it as a pending connection, and return a 101 status code for successful upgrades. Handle invalid canvas-ids by returning 400.",
+            "status": "pending",
+            "testStrategy": "Unit test with mock environment, asserting 101 status for valid canvas-id and 400 for invalid ones, ensuring proper connection registration.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Expand into subtasks for adding middleware and implementing the handler logic separately.",
+        "updatedAt": "2025-10-15T21:50:46.211Z"
+      },
+      {
+        "id": "9",
+        "title": "Convert Canvas Room to Use New Connection Objects",
+        "description": "Update room management to use ws-connection structs instead of Hunchensocket objects.",
+        "details": "Modify room structures to store ws-connection instances. Update functions like add-connection-to-room, remove-connection-from-room to work with new structs.",
+        "testStrategy": "Unit test room operations: create room, add/remove connections, verify counts and broadcasts.",
+        "priority": "high",
+        "dependencies": [
+          "8"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update Room Structures to Use ws-connection Objects",
+            "description": "Modify the room data structures in the canvas application to store ws-connection instances instead of Hunchensocket objects, ensuring compatibility with the new connection handling system.",
+            "dependencies": [],
+            "details": "Locate the room struct or class definitions in the codebase (likely in room.lisp or similar). Change the fields that previously held Hunchensocket objects to now hold ws-connection structs. Update any initialization code to create or assign ws-connection instances. Ensure that the room can handle multiple connections properly.",
+            "status": "pending",
+            "testStrategy": "Unit test room creation and initialization to verify that ws-connection objects are stored correctly and room counts are accurate.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Modify Room Management Functions for New Connection Objects",
+            "description": "Update the functions responsible for adding and removing connections from rooms to operate with ws-connection structs instead of Hunchensocket objects.",
+            "dependencies": [
+              1
+            ],
+            "details": "Identify and modify functions such as add-connection-to-room and remove-connection-from-room. Change their parameters and logic to work with ws-connection structs, including updating any broadcasting or messaging mechanisms. Ensure error handling for invalid connections and maintain thread safety if applicable.",
+            "status": "pending",
+            "testStrategy": "Unit test the add and remove functions with mock ws-connection objects, verifying correct addition/removal, updated room counts, and proper broadcasting of messages to remaining connections.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Break down into subtasks for updating room structures and modifying management functions.",
+        "updatedAt": "2025-10-15T21:51:05.530Z"
+      },
+      {
+        "id": "10",
+        "title": "Port WebSocket Message Handlers",
+        "description": "Implement handle-websocket-message, handle-auth-message, and dispatch-message for new API.",
+        "details": "In handle-websocket-message, parse JSON, check auth, dispatch to handlers. Implement send-to-socket and broadcast-to-room using websocket-driver:send. Port cursor-update, object-create/update/delete handlers.",
+        "testStrategy": "Integration test: Connect WebSocket client, send auth message, verify auth-success. Send updates and check broadcasts to multiple clients.",
+        "priority": "high",
+        "dependencies": [
+          "9"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement WebSocket Message Parsing",
+            "description": "Parse incoming JSON messages in the handle-websocket-message function to extract message type and payload.",
+            "dependencies": [
+              10
+            ],
+            "details": "Modify handle-websocket-message to use a JSON parsing library (e.g., cl-json) to decode the incoming WebSocket message string into a Lisp object, extracting fields like 'type' and 'data'. Ensure error handling for malformed JSON by sending appropriate error responses back to the client. This sets the foundation for further processing in auth and dispatch steps.",
+            "status": "pending",
+            "testStrategy": "Unit test with mock WebSocket messages to verify correct parsing of valid JSON and error handling for invalid JSON.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement Authentication Message Handling",
+            "description": "Add authentication checks in handle-auth-message to validate user credentials and manage session state.",
+            "dependencies": [
+              10
+            ],
+            "details": "In handle-auth-message, verify the auth token or credentials from the parsed message against the canvas access rules. If valid, update the ws-connection struct with auth status and user info; if invalid, send an auth-failure message. Integrate with existing auth logic from the old system, ensuring compatibility with canvas-id validation.",
+            "status": "pending",
+            "testStrategy": "Unit test handle-auth-message with mock auth data, checking for correct auth-success or auth-failure responses.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Implement Message Dispatching and Port Handlers",
+            "description": "Dispatch parsed messages to appropriate handlers and port cursor-update, object-create/update/delete handlers using websocket-driver.",
+            "dependencies": [
+              10
+            ],
+            "details": "Implement dispatch-message to route messages based on type (e.g., cursor-update, object-create). Port the handlers from the old API, adapting them to use websocket-driver:send for send-to-socket and broadcast-to-room functions. Ensure broadcasting sends updates to all clients in the room except the sender, and handle object CRUD operations with proper state synchronization.",
+            "status": "pending",
+            "testStrategy": "Integration test: Simulate WebSocket connections, send various message types, and verify correct dispatching, handler execution, and broadcasts to multiple clients.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Expand into subtasks for implementing message parsing, auth handling, and dispatching/porting specific handlers.",
+        "updatedAt": "2025-10-15T21:52:45.089Z"
+      },
+      {
+        "id": "11",
+        "title": "Tune Woo for Production Workload",
+        "description": "Configure Woo parameters, add metrics, and optimize for concurrency based on Fukamachi's best practices, including production clackup configuration, Linux kernel tuning, SBCL runtime tuning, connection monitoring, performance testing, and database pool thread safety.",
+        "status": "done",
+        "dependencies": [
+          "10"
+        ],
+        "priority": "medium",
+        "details": "Configure Woo with production-optimized parameters: (clack:clackup app :server :woo :address \"0.0.0.0\" :port 8080 :debug nil :worker-num 1 :backlog 4096 :max-request-per-child nil :use-thread nil). Use single worker due to SQLite limitations. Add Linux kernel tuning: ulimit -n 65535; sysctl -w net.core.somaxconn=4096; sysctl -w net.ipv4.tcp_max_syn_backlog=4096. Include SBCL runtime tuning: (sb-ext:gc :full t); (setf (sb-ext:bytes-consed-between-gcs) 67108864); (setf sb-thread:*deadlock-detection* t). Implement real-time connection monitoring with stats logging every 60 seconds. Ensure SQLite connection pool is thread-safe. Load test with wrk and thor, targeting HTTP 5000+ req/sec, WebSocket 100+ connections with <10ms latency, memory <500MB, CPU <30%.",
+        "testStrategy": "Performance test using wrk for HTTP (wrk -t4 -c100 -d30s http://localhost:8080/health) and thor for WebSocket (thor ws://localhost:8080/ws/test-canvas --amount 100 --messages 1000). Measure and document metrics in performance report: latency <10ms, memory <500MB for 100 connections (<5MB per connection), messages/sec >10,000, CPU <30%. Compare to Fukamachi's benchmarks aligning with Go's performance.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Configure Woo Parameters",
+            "description": "Set up the clackup options for Woo server including worker number, backlog, threading settings, and additional production optimizations. Ensure the database pool is thread-safe for SQLite.",
+            "dependencies": [],
+            "details": "In the server configuration, set :server :woo, :address \"0.0.0.0\", :port 8080, :debug nil, :worker-num 1, :backlog 4096, :max-request-per-child nil, :use-thread nil. Add Linux kernel tuning in deployment scripts: ulimit -n 65535; sysctl -w net.core.somaxconn=4096; sysctl -w net.ipv4.tcp_max_syn_backlog=4096. Include SBCL runtime tuning: (sb-ext:gc :full t); (setf (sb-ext:bytes-consed-between-gcs) 67108864); (setf sb-thread:*deadlock-detection* t). Ensure SQLite connection pool uses single connection with write serialization or mutex locks for thread safety.",
+            "status": "pending",
+            "testStrategy": "Verify server starts without errors with the new settings, kernel tunings applied, and SBCL optimizations in place.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Add Connection Stats Monitoring",
+            "description": "Implement real-time monitoring for connection statistics in the Woo server, following Fukamachi's pattern.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement get-connection-stats function to track :timestamp, :total-connections (hash-table-count *ws-connections*), :total-rooms (hash-table-count *canvas-rooms*), :memory-mb (/ (sb-ext:dynamic-space-size) 1048576), :threads (length (bt:all-threads)). Create a background thread to log stats every 60 seconds using (bt:make-thread ... :name \"stats-logger\"). Integrate into Woo event loop for real-time metrics.",
+            "status": "pending",
+            "testStrategy": "Check that metrics are logged correctly every 60 seconds during server operation, including connection counts, memory usage, and thread info.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Perform Load Testing",
+            "description": "Conduct comprehensive load testing on the Woo server to ensure it handles production workloads efficiently, aligning with Fukamachi's benchmarks.",
+            "dependencies": [
+              2
+            ],
+            "details": "Use wrk for HTTP load testing (wrk -t4 -c100 -d30s http://localhost:8080/health) and thor for WebSocket testing (thor ws://localhost:8080/ws/test-canvas --amount 100 --messages 1000). Simulate 100+ concurrent connections and measure latency, memory usage, message throughput, and CPU. Aim for HTTP 5000+ req/sec, WebSocket <10ms latency, memory <500MB (<5MB per connection), CPU <30%. Document all metrics in a performance report comparing to Go's web server performance.",
+            "status": "pending",
+            "testStrategy": "Run load tests and verify metrics meet targets: HTTP 5000+ req/sec with 100 concurrent connections, WebSocket 100+ connections with <10ms latency, memory <500MB, CPU <30%. Generate performance report with detailed comparisons.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Break down into subtasks for configuration, adding metrics, and performance/load testing.",
+        "updatedAt": "2025-10-15T21:55:51.763Z"
+      },
+      {
+        "id": "12",
+        "title": "Perform Cutover and Cleanup",
+        "description": "Update main.lisp to use new server, remove Hunchentoot code, update docs, and deploy.",
+        "details": "Change main.lisp to call start-server from server.lisp. Delete old setup-routes, hunchensocket classes. Remove old deps from ASD. Update README, architecture docs. Test end-to-end, deploy to staging/production.",
+        "testStrategy": "Full integration test: Run application, connect clients, verify all features. Monitor for 24 hours in staging, check metrics against targets.",
+        "priority": "high",
+        "dependencies": [
+          "11"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update main.lisp to integrate new server",
+            "description": "Modify main.lisp to call the start-server function from server.lisp instead of the old Hunchentoot setup.",
+            "dependencies": [],
+            "details": "Locate main.lisp in the project root, replace any direct Hunchentoot server initialization with a call to (start-server) from server.lisp. Ensure the file compiles without errors and integrates properly with the new server architecture.",
+            "status": "pending",
+            "testStrategy": "Compile main.lisp and verify it loads without errors using (load \"main.lisp\").",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Remove old Hunchentoot code and dependencies",
+            "description": "Delete obsolete Hunchentoot-related code and remove old dependencies from the ASD file.",
+            "dependencies": [
+              1
+            ],
+            "details": "In main.lisp, delete old setup-routes functions and hunchensocket classes. Edit collabcanvas.asd to remove old dependencies like Hunchentoot from the :depends-on section. Ensure the project still loads correctly after removals.",
+            "status": "pending",
+            "testStrategy": "Run (ql:quickload :collabcanvas) after changes and check for any loading errors or missing dependencies.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Update README and architecture documentation",
+            "description": "Revise the README and architecture docs to reflect the new server setup and removal of Hunchentoot.",
+            "dependencies": [
+              2
+            ],
+            "details": "Update README.md to describe the new Clack/Woo server instead of Hunchentoot, including setup instructions. Modify architecture docs to explain the new server.lisp, app.lisp, and websocket-adapter.lisp components. Ensure docs are accurate and up-to-date.",
+            "status": "pending",
+            "testStrategy": "Review updated docs for clarity and accuracy, and verify links or references to old code are removed.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Conduct end-to-end testing and deploy to staging/production",
+            "description": "Perform full integration testing and deploy the updated application to staging and production environments.",
+            "dependencies": [
+              3
+            ],
+            "details": "Run the application, connect clients, and verify all features work as expected. Monitor in staging for 24 hours, checking metrics against targets. If successful, deploy to production following standard procedures.",
+            "status": "pending",
+            "testStrategy": "Full integration test: Run application, connect clients, verify all features. Monitor for 24 hours in staging, check metrics against targets.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Expand into subtasks for updating main.lisp, removing old code, updating docs, and deployment/testing.",
+        "updatedAt": "2025-10-15T21:59:24.500Z"
+      },
+      {
+        "id": "13",
+        "title": "Create Production-Ready Docker Configuration for CollabCanvas with Woo",
+        "description": "Implement a production-ready Docker setup based on Fukamachi's battle-tested template, including Dockerfile, entrypoint script, and supporting files to containerize CollabCanvas with Woo server for deployment.",
+        "details": "Following Fukamachi's proven Docker pattern for Lisp applications, create a Dockerfile starting from fukamachi/sbcl base image with environment variable PORT set to 5000. Include RUN commands to update apt and install necessary dependencies like libev-dev, gcc, libc6-dev, and SQLite-related packages (e.g., libsqlite3-dev), then clean up package lists. Set WORKDIR to /app and COPY entrypoint.sh to /srv. Install Clack and Woo via Roswell (ros install clack woo). Set ENTRYPOINT to /srv/entrypoint.sh and CMD to [\"app.lisp\"]. For entrypoint.sh, create an executable bash script that executes clackup with Woo server, debug nil, address 0.0.0.0, port from $PORT, and passes additional arguments. To integrate frontend, use a multi-stage build: first stage builds frontend with Vite (npm run build) and copies dist to a scratch stage, then copies to the final image. Ensure SQLite is installed for database operations, and add logic in entrypoint.sh to initialize database schema on first run if needed (e.g., check for DB file and run migration script). Handle SIGTERM gracefully by trapping signals and calling stop-server if applicable. Support environment variables like PORT, DATABASE_URL, etc. Create .dockerignore to exclude node_modules, .git, etc. Provide docker-compose.yml for local testing with services for app and possibly database. Include documentation in README or separate file on building (docker build -t collabcanvas .), running (docker run -p 5000:5000 collabcanvas), and environment setup. Adhere to best practices: use non-root user, minimize layers, leverage Docker caching, and ensure compatibility with Woo's production tuning from Task 11.",
+        "testStrategy": "Build the Docker image with 'docker build -t collabcanvas .' and verify no errors occur. Run the container with 'docker run -p 5000:5000 collabcanvas' and check that the server starts successfully by monitoring logs for Woo startup messages. Perform health checks by curling the /health endpoint and confirming a 200 response with expected JSON. Test frontend asset serving by accessing static files via HTTP and verifying they load correctly. Validate WebSocket functionality by connecting a client (e.g., via wscat) to the /ws endpoint and sending/receiving messages, ensuring connections persist through the container. Test graceful shutdown by sending SIGTERM (docker stop) and confirming the process exits cleanly without errors in logs. Use docker-compose up for integrated testing, including database initialization if applicable, and run performance checks with tools like wrk for HTTP load and thor for WebSocket stress to ensure metrics align with production expectations (e.g., latency <10ms under load). Document all test results and any issues resolved.",
+        "status": "done",
+        "dependencies": [
+          "11"
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create backend/Dockerfile following Fukamachi's template",
+            "description": "Develop a Dockerfile based on Fukamachi's battle-tested template for Lisp applications, using the fukamachi/sbcl base image, installing necessary dependencies like libev-dev, gcc, libc6-dev, and SQLite packages, setting up Roswell to install Clack and Woo, copying application files, and implementing a multi-stage build to include frontend assets for a production-ready container.",
+            "dependencies": [],
+            "details": "Start with FROM fukamachi/sbcl and set ENV PORT=5000. Include RUN apt-get update && apt-get install -y libev-dev gcc libc6-dev libsqlite3-dev && rm -rf /var/lib/apt/lists/*. Set WORKDIR /app. COPY entrypoint.sh /srv. RUN ros install clack woo. COPY collabcanvas.asd src/ /app/. For multi-stage: Use a builder stage for frontend (FROM node:alpine, COPY package.json, RUN npm install, COPY ., RUN npm run build). Then FROM scratch, COPY --from=builder /app/dist /app/static. Finally, set ENTRYPOINT /srv/entrypoint.sh and CMD [\"app.lisp\"]. Ensure non-root user and minimize layers.",
+            "status": "pending",
+            "testStrategy": "Build the image with docker build -t collabcanvas . and verify it completes without errors, checking layer sizes for optimization.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Create backend/entrypoint.sh with initialization logic",
+            "description": "Create an executable entrypoint script that handles database initialization, environment variables, graceful shutdown, and starts the Woo server via clackup.",
+            "dependencies": [
+              1
+            ],
+            "details": "Write a bash script as entrypoint.sh, make it executable with chmod +x. Include logic to check for database file and run schema initialization if needed (e.g., if [ ! -f $DB_PATH ]; then sqlite3 $DB_PATH < schema.sql; fi). Handle environment variables like PORT, DATABASE_URL, DEBUG. Trap SIGTERM for graceful shutdown (trap 'stop-server' TERM). Use exec clackup --server woo --debug nil --address 0.0.0.0 --port $PORT app.lisp. Log startup info like 'Starting CollabCanvas on port $PORT'. Ensure it passes additional arguments if any.",
+            "status": "pending",
+            "testStrategy": "Test the script manually by running it in a container and checking logs for initialization messages, database creation, and proper server startup.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Create backend/.dockerignore",
+            "description": "Create a .dockerignore file to exclude unnecessary files from the Docker build context, improving build efficiency and security.",
+            "dependencies": [],
+            "details": "List exclusions such as .git/, node_modules/, *.fasl, test/, data/, and development artifacts. Ensure to include necessary files like src/, collabcanvas.asd, db/schema.sql, and entrypoint.sh. This prevents sensitive or large files from being copied into the image, reducing build time and image size.",
+            "status": "pending",
+            "testStrategy": "After creating, run docker build and verify that excluded files are not present in the build context by checking the build output or inspecting the image layers.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Create docker-compose.yml for local testing",
+            "description": "Develop a docker-compose.yml file to define services for local development and testing, including the CollabCanvas app and any necessary databases.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Define a service named collabcanvas with build context from ., ports mapping like 8080:8080, environment variables (PORT=8080, DATABASE_URL=sqlite:///app/data/db.sqlite), volumes for mounting source code or data. Optionally add a database service if needed. Include healthcheck with test curl command. Ensure it supports development workflow with hot reloading if possible.",
+            "status": "pending",
+            "testStrategy": "Run docker-compose up and verify the service starts, ports are exposed, and health checks pass by accessing the app via browser or curl.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Test Docker build and run locally",
+            "description": "Perform local testing of the Docker setup by building the image, running the container, and verifying functionality including health endpoints, WebSocket connections, and graceful shutdown.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Execute docker build -t collabcanvas:latest . to build the image. Then run docker run -p 5000:5000 collabcanvas. Test with curl to /health endpoint. Check WebSocket functionality. Verify frontend assets are served. Test shutdown with docker stop and ensure no errors. Also test with docker-compose up for integrated testing.",
+            "status": "pending",
+            "testStrategy": "Monitor logs during build and run for errors. Use curl for HTTP requests, a WebSocket client for connections, and check response times and data integrity.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Document Docker deployment process",
+            "description": "Create comprehensive documentation for building, running, and deploying the Dockerized CollabCanvas application, including environment setup and troubleshooting.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "details": "Add a Docker section to README.md or create a separate docs/docker.md. Document environment variables (PORT, DATABASE_URL, etc.). Provide build commands (docker build -t collabcanvas .), run commands (docker run -p 5000:5000 collabcanvas), and docker-compose usage. Include troubleshooting for common issues like port conflicts or dependency errors. Add notes for production deployment on platforms like Fly.io, emphasizing Woo's tuning from Task 11.",
+            "status": "pending",
+            "testStrategy": "Review the documentation for completeness by following the steps manually and ensuring all commands work as described, updating based on any discrepancies found.",
+            "parentId": "undefined"
+          }
+        ],
+        "updatedAt": "2025-10-15T22:01:59.328Z"
+      }
+    ],
+    "metadata": {
+      "version": "1.0.0",
+      "lastModified": "2025-10-15T22:01:59.330Z",
+      "taskCount": 13,
+      "completedCount": 13,
+      "tags": [
+        "woo"
+      ]
+    }
   }
 }

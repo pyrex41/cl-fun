@@ -1,0 +1,68 @@
+# .dockerignore for CollabCanvas backend
+
+# Version control
+.git
+.gitignore
+.github
+
+# Documentation
+*.md
+!README.md
+docs/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test files and directories
+tests/
+*.test.lisp
+test-*.lisp
+
+# Build artifacts and caches
+*.fasl
+*.fas
+*.lib
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+.fasls/
+.cache/
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+
+# Database files (will be created in container)
+*.db
+*.db-shm
+*.db-wal
+data/*.db*
+
+# Backup files
+*.bak
+*~
+.*.swp
+
+# Node modules (if frontend is in same repo)
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.circleci/
+.travis.yml
+.gitlab-ci.yml

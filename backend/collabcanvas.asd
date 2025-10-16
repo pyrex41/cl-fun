@@ -1,13 +1,21 @@
-;;;; collabcanvas.asd - ASDF system definition for CollabCanvas
+;;;; collabcanvas.asd - ASDF system definition for CollabCanvas (Woo Edition)
 
 (defsystem "collabcanvas"
-  :description "Real-time collaborative design tool with WebSocket synchronization"
+  :description "Real-time collaborative design tool with WebSocket synchronization (Woo/Clack backend)"
   :author "CollabCanvas Team"
   :license "MIT"
-  :version "0.1.0"
+  :version "0.2.0"
   :serial t
-  :depends-on (:hunchentoot
-               :hunchensocket
+  :depends-on (;; Web framework and server
+               :clack
+               :woo
+               :lack
+               :lack-middleware-static
+               :lack-middleware-cors
+               :websocket-driver
+               :fast-http
+               :quri
+               ;; Utilities and libraries (kept from original)
                :jonathan
                :ironclad
                :bordeaux-threads
@@ -23,8 +31,10 @@
                  (:file "database" :depends-on ("package" "config" "utils"))
                  (:file "auth" :depends-on ("package" "database" "utils"))
                  (:file "canvas-state" :depends-on ("package" "database"))
-                 (:file "websocket" :depends-on ("package" "auth" "canvas-state"))
-                 (:file "main" :depends-on ("package" "config" "database" "auth" "websocket" "canvas-state")))))
+                 (:file "websocket-adapter" :depends-on ("package" "auth" "canvas-state"))
+                 (:file "app" :depends-on ("package" "websocket-adapter" "auth" "canvas-state"))
+                 (:file "server" :depends-on ("package" "app" "database"))
+                 (:file "main" :depends-on ("package" "server" "auth")))))
   :in-order-to ((test-op (test-op "collabcanvas/tests"))))
 
 (defsystem "collabcanvas/tests"
