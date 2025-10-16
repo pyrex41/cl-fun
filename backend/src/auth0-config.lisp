@@ -35,7 +35,7 @@
       (when (> i 0) (princ sep out))
       (princ (elt items i) out))))
 
-(defun auth0-authorize-url (&key state scope)
+(defun auth0-authorize-url (&key state scope connection)
   "Build the Auth0 /authorize URL with required parameters"
   (let* ((base (format nil "~A/authorize" (auth0-base-url)))
          (params (remove nil
@@ -44,7 +44,8 @@
                                (cons "redirect_uri" *auth0-callback-url*)
                                (cons "scope" (or scope "openid profile email"))
                                (cons "state" state)
-                               (when *auth0-audience* (cons "audience" *auth0-audience*)))))
+                               (when *auth0-audience* (cons "audience" *auth0-audience*))
+                               (when connection (cons "connection" connection)))))
          (encoded-params (mapcar (lambda (pair)
                                    (format nil "~A=~A"
                                            (hunchentoot:url-encode (car pair))

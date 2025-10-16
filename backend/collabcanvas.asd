@@ -29,7 +29,8 @@
                  (:file "auth" :depends-on ("package" "database" "utils"))
                  (:file "canvas-state" :depends-on ("package" "database"))
                  (:file "websocket" :depends-on ("package" "auth" "canvas-state"))
-                 (:file "main" :depends-on ("package" "config" "database" "auth" "auth0-config" "auth0-oauth" "websocket" "canvas-state")))))
+                 (:file "auth-metrics" :depends-on ("package" "database" "utils"))
+                 (:file "main" :depends-on ("package" "config" "database" "auth" "auth0-config" "auth0-oauth" "auth-metrics" "websocket" "canvas-state")))))
   :in-order-to ((test-op (test-op "collabcanvas/tests"))))
 
 (defsystem "collabcanvas/tests"

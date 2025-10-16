@@ -31,10 +31,20 @@ export class AuthManager {
             await this.handleRegister()
         })
 
-        // Auth0 buttons
+        // OAuth buttons
         const auth0LoginBtn = document.getElementById('auth0-login-btn')
         if (auth0LoginBtn) {
             auth0LoginBtn.addEventListener('click', () => this.loginWithAuth0())
+        }
+
+        const googleLoginBtn = document.getElementById('google-login-btn')
+        if (googleLoginBtn) {
+            googleLoginBtn.addEventListener('click', () => this.loginWithGoogle())
+        }
+
+        const githubLoginBtn = document.getElementById('github-login-btn')
+        if (githubLoginBtn) {
+            githubLoginBtn.addEventListener('click', () => this.loginWithGithub())
         }
     }
 
@@ -67,12 +77,18 @@ export class AuthManager {
     }
 
     loginWithAuth0() {
-        if (!this.auth0Domain || !this.auth0ClientId) {
-            console.error('Auth0 not configured')
-            return
-        }
         // Redirect to backend OAuth initiation
         window.location.href = '/auth0/login'
+    }
+
+    loginWithGoogle() {
+        // Redirect to backend OAuth with Google connection
+        window.location.href = '/auth0/login?connection=google-oauth2'
+    }
+
+    loginWithGithub() {
+        // Redirect to backend OAuth with GitHub connection
+        window.location.href = '/auth0/login?connection=github'
     }
 
     checkAuthCallback() {
