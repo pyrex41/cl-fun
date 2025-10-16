@@ -71,11 +71,14 @@
 ;;; Session validation
 (defun validate-session (session-id)
   "Validate a session and return user info"
+  (format t "[AUTH] validate-session called with session-id: ~A~%" session-id)
   (when session-id
     (cleanup-expired-sessions) ; Clean up expired sessions periodically
     (let ((session (get-session session-id)))
+      (format t "[AUTH] get-session returned: ~A~%" session)
       (when (and session
                  (not (expired-p (cdr (assoc :expires-at session)))))
+        (format t "[AUTH] Session is valid and not expired~%")
         `((:valid . t)
           (:user-id . ,(cdr (assoc :user-id session)))
           (:username . ,(cdr (assoc :username session)))
@@ -87,87 +90,5 @@
   (delete-session session-id)
   '((:success . t)))
 
-;;; HTTP Handlers for authentication
-(defun handle-register ()
-  "Handle user registration endpoint"
-  (set-cors-headers)
-  (let ((data (get-json-body)))
-    (unless data
-      (return-from handle-register (error-response "Invalid request body")))
-
-    (let ((email (cdr (assoc :email data)))
-          (username (cdr (assoc :username data)))
-          (password (cdr (assoc :password data))))
-
-      (unless (and email username password)
-        (return-from handle-register
-          (error-response "Email, username, and password are required")))
-
-      (handler-case
-          (let ((result (register-user email username password)))
-            (success-response result))
-        (error (e)
-          (error-response (format nil "~A" e)))))))
-
-(defun handle-login ()
-  "Handle user login endpoint"
-  (set-cors-headers)
-  (let ((data (get-json-body)))
-    (unless data
-      (return-from handle-login (error-response "Invalid request body")))
-
-    (let ((email-or-username (or (cdr (assoc :email data))
-                                 (cdr (assoc :username data))))
-          (password (cdr (assoc :password data))))
-
-      (unless (and email-or-username password)
-        (return-from handle-login
-          (error-response "Email/username and password are required")))
-
-      (handler-case
-          (let ((result (login-user email-or-username password)))
-            ;; Set session cookie
-            (hunchentoot:set-cookie *session-cookie-name*
-                                   :value (cdr (assoc :session-id result))
-                                   :path "/"
-                                   :http-only t
-                                   :secure nil ; Set to t in production with HTTPS
-                                   :max-age *session-timeout*)
-            (success-response result))
-        (error (e)
-          (error-response (format nil "~A" e)))))))
-
-(defun handle-logout ()
-  "Handle user logout endpoint"
-  (set-cors-headers)
-  (let ((session-id (or (hunchentoot:cookie-in *session-cookie-name*)
-                        (hunchentoot:header-in* :authorization))))
-    (if session-id
-        (progn
-          (logout-user session-id)
-          ;; Clear session cookie
-          (hunchentoot:set-cookie *session-cookie-name*
-                                 :value ""
-                                 :path "/"
-                                 :max-age 0)
-          (success-response '((:message . "Logged out successfully"))))
-        (error-response "No active session" :status 401))))
-
-(defun handle-session-check ()
-  "Check if current session is valid"
-  (set-cors-headers)
-  (let ((session-id (or (hunchentoot:cookie-in *session-cookie-name*)
-                        (hunchentoot:header-in* :authorization))))
-    (if-let ((session (validate-session session-id)))
-      (success-response session)
-      (error-response "Invalid or expired session" :status 401))))
-
-;;; Middleware for protected routes
-(defun require-auth ()
-  "Middleware to require authentication"
-  (let ((session-id (or (hunchentoot:cookie-in *session-cookie-name*)
-                        (hunchentoot:header-in* :authorization))))
-    (unless (validate-session session-id)
-      (setf (hunchentoot:return-code*) 401)
-      (hunchentoot:abort-request-handler
-       (error-response "Authentication required" :status 401)))))
+;;; Note: HTTP handlers have been moved to app.lisp for Clack compatibility
+;;; This file now contains only core authentication logic

@@ -50,7 +50,9 @@
             "id": 4,
             "title": "Install frontend dependencies",
             "description": "Ensure all frontend dependencies are installed, focusing on PixiJS v7 and any additional tools required for the project.",
-            "dependencies": [],
+            "dependencies": [
+              3
+            ],
             "details": "After initializing the Vite project, install PixiJS v7 and confirm that the package.json includes all necessary dependencies for vanilla JS ES6+ development. Check for any peer dependencies and resolve them.",
             "status": "done",
             "testStrategy": "Check that npm install completes without errors and that PixiJS can be imported in a test JS file.",
@@ -63,7 +65,9 @@
             "description": "Create a Docker setup using Debian base image to containerize the project, ensuring both backend and frontend can run within the container.",
             "dependencies": [
               1,
-              2
+              2,
+              3,
+              4
             ],
             "details": "Write a Dockerfile with Debian base image. Include instructions to install SBCL, Roswell, Node.js, and other necessary tools. Copy project files and set up commands to run the backend and frontend. Ensure the container can build and run the application.",
             "status": "done",
@@ -2228,140 +2232,128 @@
       "updated": "2025-10-14T16:32:33.527Z"
     }
   },
-  "pixi-upgrade": {
+  "woo": {
     "tasks": [
       {
         "id": "1",
-        "title": "Backup Current Codebase",
-        "description": "Verify the current codebase backup on the 'pixi-upgrade' branch and commit any pending changes before starting the upgrade.",
-        "status": "done",
-        "dependencies": [],
+        "title": "Add Clack/Woo Dependencies to ASD File",
+        "description": "Update collabcanvas.asd to include new dependencies like clack, woo, lack, lack-middleware-static, lack-middleware-cors, and websocket-driver.",
+        "details": "Modify the :depends-on section in collabcanvas.asd to add the required libraries: :clack, :woo, :lack, :lack-middleware-static, :lack-middleware-cors, :websocket-driver. Ensure compatibility with existing dependencies. Use Quicklisp for loading.",
+        "testStrategy": "Run (ql:quickload :collabcanvas) and verify no errors occur during loading.",
         "priority": "high",
-        "details": "We are already on a separate branch 'pixi-upgrade' in a dedicated worktree. Verify repository status and commit any pending changes before starting the upgrade.",
-        "testStrategy": "Verify that we are on the 'pixi-upgrade' branch and no uncommitted changes remain.",
+        "dependencies": [],
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
-            "title": "Verify Branch and Repository State",
-            "description": "Verify that we are on the correct 'pixi-upgrade' branch in the worktree and that the repository is in a clean state ready for the upgrade work.",
+            "title": "Backup the current collabcanvas.asd file",
+            "description": "Create a backup copy of the existing collabcanvas.asd file to ensure we can revert changes if needed.",
             "dependencies": [],
-            "details": "Run 'git status' to check if there are any uncommitted changes, confirm the current branch is 'pixi-upgrade', and ensure we are in the dedicated worktree.",
+            "details": "Use a file copy command or editor to duplicate collabcanvas.asd, naming it something like collabcanvas.asd.backup, to preserve the original state before modifications.",
             "status": "pending",
-            "testStrategy": "Ensure no uncommitted changes are present, the branch is 'pixi-upgrade', and we are in the correct worktree.",
+            "testStrategy": "Verify the backup file exists and matches the original content.",
             "parentId": "undefined"
           },
           {
             "id": 2,
-            "title": "Commit Pending Changes",
-            "description": "Commit any outstanding changes to the repository before starting the upgrade.",
+            "title": "Review existing dependencies in collabcanvas.asd",
+            "description": "Examine the current :depends-on section to understand what dependencies are already listed.",
             "dependencies": [
               1
             ],
-            "details": "If there are uncommitted changes, stage them with 'git add .' and commit with 'git commit -m \"Commit before upgrade\"'.",
+            "details": "Open collabcanvas.asd and locate the :depends-on list. Note down all current dependencies to check for potential conflicts with the new ones being added.",
             "status": "pending",
-            "testStrategy": "Run 'git status' again to confirm no changes are pending.",
+            "testStrategy": "Manually inspect the file and confirm the list of existing dependencies.",
             "parentId": "undefined"
           },
           {
             "id": 3,
-            "title": "Verify Backup Integrity",
-            "description": "Confirm the backup on the 'pixi-upgrade' branch is intact and contains the codebase.",
+            "title": "Add new Clack/Woo dependencies to the ASD file",
+            "description": "Insert the required libraries into the :depends-on section of collabcanvas.asd.",
             "dependencies": [
               2
             ],
-            "details": "Run 'git log --oneline' to verify the branch history and ensure the codebase is intact.",
+            "details": "Edit the :depends-on list to include :clack, :woo, :lack, :lack-middleware-static, :lack-middleware-cors, and :websocket-driver. Ensure they are added in a logical order and formatted correctly.",
             "status": "pending",
-            "testStrategy": "Attempt to build or run a basic check on the branch to ensure no issues.",
+            "testStrategy": "Check the file syntax after editing to ensure it's valid Lisp code.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Verify compatibility with existing dependencies",
+            "description": "Check for any conflicts or incompatibilities between new and existing dependencies.",
+            "dependencies": [
+              3
+            ],
+            "details": "Review Quicklisp documentation or run a quick compatibility check by attempting to load the updated ASD file. Ensure no version conflicts or missing prerequisites.",
+            "status": "pending",
+            "testStrategy": "Attempt a dry-run load or check Quicklisp for dependency resolution.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Test loading the updated ASD file with Quicklisp",
+            "description": "Run Quicklisp to load the project and verify all dependencies are resolved without errors.",
+            "dependencies": [
+              4
+            ],
+            "details": "Execute (ql:quickload :collabcanvas) in a Lisp REPL and monitor for any loading errors. Confirm that all new dependencies are successfully loaded.",
+            "status": "pending",
+            "testStrategy": "Run the quickload command and assert no errors are thrown during the process.",
             "parentId": "undefined"
           }
         ],
         "complexity": 2,
         "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this is a straightforward Git operation.",
-        "updatedAt": "2025-10-15T20:44:31.501Z"
+        "expansionPrompt": "No expansion needed as this is a straightforward file modification.",
+        "updatedAt": "2025-10-15T21:34:18.711Z"
       },
       {
         "id": "2",
-        "title": "Update Package Dependencies",
-        "description": "Update package.json to use PixiJS v8 and remove individual sub-packages.",
-        "details": "Remove all @pixi/* dependencies from package.json. Add a single 'pixi.js': '^8.x.x'. Run npm install to update node_modules.",
-        "testStrategy": "Check package.json for correct dependencies and ensure npm install completes without errors.",
-        "priority": "high",
+        "title": "Install and Test New Dependencies",
+        "description": "Install the new Quicklisp libraries and test basic functionality, with explicit mandatory libev installation as a prerequisite for Woo.",
+        "status": "done",
         "dependencies": [
           "1"
         ],
-        "status": "done",
+        "priority": "high",
+        "details": "CRITICAL: libev is a REQUIRED system dependency for Woo (not optional). Install libev BEFORE attempting to load Woo. Platform-specific instructions: Linux: sudo apt-get update; sudo apt-get install -y libev-dev gcc libc6-dev. macOS: brew install libev. Verify libev is installed by checking for /usr/include/ev.h (Linux) or /usr/local/include/ev.h (macOS); if missing, Woo will fail to compile with cryptic errors. Note: Windows is NOT supported by Woo due to libev; use WSL2 or Docker for Windows development. Only after libev is confirmed installed: ros -e '(ql:quickload :woo)'; ros -e '(ql:quickload :clack)'; ros -e '(ql:quickload :lack)'; ros -e '(ql:quickload :websocket-driver)'; ros -e '(ql:quickload :fast-http)'; ros -e '(ql:quickload :quri)'.",
+        "testStrategy": "Check that each library loads without errors and basic functions like (clack:clackup) are available. Test basic functionality by checking that (find-package :woo) returns non-nil.",
         "subtasks": [
           {
             "id": 1,
-            "title": "Backup current package.json",
-            "description": "Create a backup of the current package.json file to allow for easy rollback if needed.",
+            "title": "Install Individual Dependencies Separately",
+            "description": "Install libev as a mandatory prerequisite, then install each new Quicklisp dependency one by one, including system-level packages like libev and Quicklisp libraries such as woo, clack, lack, websocket-driver, fast-http, and quri.",
             "dependencies": [],
-            "details": "Make a copy of package.json in the project root, naming it package.json.backup or similar, to preserve the original state before modifications.",
+            "details": "First, install libev on the system: For Linux, run 'sudo apt-get update; sudo apt-get install -y libev-dev gcc libc6-dev'. For macOS, run 'brew install libev'. Verify libev is installed by checking for /usr/include/ev.h (Linux) or /usr/local/include/ev.h (macOS); if missing, Woo will fail to compile with cryptic errors. Note: Windows is NOT supported by Woo due to libev; use WSL2 or Docker for Windows development. Only after libev is confirmed installed, use ros commands to quickload each Quicklisp library individually: (ql:quickload :woo), (ql:quickload :clack), (ql:quickload :lack), (ql:quickload :websocket-driver), (ql:quickload :fast-http), (ql:quickload :quri). Ensure each loads without errors before proceeding to the next.",
             "status": "pending",
-            "testStrategy": "Verify that the backup file exists and matches the original package.json content.",
+            "testStrategy": "Verify each quickload command completes successfully without throwing errors in the REPL, and confirm libev installation via file existence checks.",
             "parentId": "undefined"
           },
           {
             "id": 2,
-            "title": "Remove @pixi/* dependencies",
-            "description": "Remove all individual @pixi/* package dependencies from the package.json file.",
+            "title": "Test Installed Dependencies Collectively",
+            "description": "Perform collective testing of all installed dependencies to ensure they work together and basic functionality is available.",
             "dependencies": [
               1
             ],
-            "details": "Open package.json and delete all lines or entries for packages starting with @pixi/, such as @pixi/app, @pixi/graphics, etc., ensuring no remnants are left.",
+            "details": "After installing all dependencies, run a collective test by attempting to load the project with (ql:quickload :collabcanvas) and check for basic functions like (clack:clackup) being available. Verify that no compatibility issues arise when loading multiple libraries simultaneously. Test basic functionality by checking that (find-package :woo) returns non-nil.",
             "status": "pending",
-            "testStrategy": "Check package.json to confirm no @pixi/* entries remain in the dependencies or devDependencies sections.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Add pixi.js v8 dependency",
-            "description": "Add the single 'pixi.js' dependency with version '^8.x.x' to package.json.",
-            "dependencies": [
-              2
-            ],
-            "details": "In the dependencies section of package.json, add a new entry: \"pixi.js\": \"^8.x.x\", ensuring it is properly formatted as valid JSON.",
-            "status": "pending",
-            "testStrategy": "Inspect package.json to verify the 'pixi.js' entry is present with the correct version specifier.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Save updated package.json",
-            "description": "Save the modified package.json file after removing old dependencies and adding the new one.",
-            "dependencies": [
-              3
-            ],
-            "details": "After editing, save the file in the project root, ensuring the JSON syntax is valid by running a quick validation if possible.",
-            "status": "pending",
-            "testStrategy": "Use a JSON validator or attempt to parse the file to confirm it is syntactically correct.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Run npm install",
-            "description": "Execute npm install to update node_modules with the new PixiJS v8 dependency.",
-            "dependencies": [
-              4
-            ],
-            "details": "In the terminal, navigate to the project root and run 'npm install', waiting for the command to complete successfully without errors.",
-            "status": "pending",
-            "testStrategy": "Check that npm install finishes without errors, and verify that node_modules contains the updated pixi.js package.",
+            "testStrategy": "Execute (ql:quickload :collabcanvas) and confirm no errors; test basic Clack functions in a REPL to ensure they are callable without issues; verify (find-package :woo) returns non-nil.",
             "parentId": "undefined"
           }
         ],
-        "complexity": 3,
-        "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this involves editing a single file and running a command.",
-        "updatedAt": "2025-10-15T20:59:48.115Z"
+        "complexity": 4,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Break down into subtasks for installing each dependency separately and then testing them collectively.",
+        "updatedAt": "2025-10-15T21:35:41.143Z"
       },
       {
         "id": "3",
-        "title": "Refactor Imports Across Codebase",
-        "description": "Change all PixiJS imports from individual sub-packages to single 'pixi.js' import.",
-        "details": "Search and replace all imports like 'import { Application } from '@pixi/app'' with 'import { Application } from 'pixi.js''. Update in main.js, canvas.js, and any other files using PixiJS.",
-        "testStrategy": "Run the application and check for import errors in the console. Ensure no @pixi/* imports remain.",
+        "title": "Create New Source Files",
+        "description": "Create src/app.lisp, src/websocket-adapter.lisp, and src/server.lisp with initial structures.",
+        "details": "Create app.lisp with make-app function using lack:builder. Create websocket-adapter.lisp with ws-connection struct and handler stubs. Create server.lisp with start-server, stop-server functions. Keep old files intact.",
+        "testStrategy": "Verify files compile without syntax errors using (compile-file).",
         "priority": "high",
         "dependencies": [
           "2"
@@ -2370,47 +2362,77 @@
         "subtasks": [
           {
             "id": 1,
-            "title": "Refactor PixiJS Imports in main.js",
-            "description": "Update all PixiJS imports in main.js from individual sub-packages to the single 'pixi.js' import.",
+            "title": "Ensure src directory exists",
+            "description": "Check and create the src directory if it does not exist to hold the new Lisp source files.",
             "dependencies": [],
-            "details": "Locate all import statements in main.js that use '@pixi/*' sub-packages, such as 'import { Application } from '@pixi/app'', and replace them with 'import { Application } from 'pixi.js''. Ensure all necessary exports are available from the single import.",
+            "details": "Verify the existence of the src directory in the project root. If it does not exist, create it using mkdir or equivalent command to prepare for file creation.",
             "status": "pending",
-            "testStrategy": "Run the application and check the console for any import errors related to PixiJS in main.js.",
+            "testStrategy": null,
             "parentId": "undefined"
           },
           {
             "id": 2,
-            "title": "Refactor PixiJS Imports in canvas.js",
-            "description": "Update all PixiJS imports in canvas.js from individual sub-packages to the single 'pixi.js' import.",
-            "dependencies": [],
-            "details": "Search for and replace all imports in canvas.js that reference '@pixi/*' packages, like 'import { Graphics } from '@pixi/graphics'', with 'import { Graphics } from 'pixi.js''. Verify that the file compiles without import issues after changes.",
+            "title": "Create src/app.lisp with make-app function",
+            "description": "Create the app.lisp file in the src directory, implementing the make-app function using lack:builder.",
+            "dependencies": [
+              1
+            ],
+            "details": "In src/app.lisp, define a package and export the make-app function. Use lack:builder to construct the application with initial middleware stubs. Ensure the file follows Lisp syntax and includes necessary imports.",
             "status": "pending",
-            "testStrategy": "Execute the app and inspect the console for import-related errors in canvas.js, ensuring PixiJS objects are accessible.",
+            "testStrategy": null,
             "parentId": "undefined"
           },
           {
             "id": 3,
-            "title": "Refactor PixiJS Imports in Other Files",
-            "description": "Update PixiJS imports in any remaining files across the codebase that use individual sub-packages.",
-            "dependencies": [],
-            "details": "Perform a global search across the project for any files importing from '@pixi/*' packages and replace them with imports from 'pixi.js'. This includes checking all JavaScript or TypeScript files not covered in main.js or canvas.js to ensure complete refactoring.",
+            "title": "Create src/websocket-adapter.lisp with ws-connection struct",
+            "description": "Create the websocket-adapter.lisp file with the ws-connection struct and handler stubs.",
+            "dependencies": [
+              1
+            ],
+            "details": "In src/websocket-adapter.lisp, define a package, create the ws-connection struct with fields like id, socket, etc., and add placeholder functions for handlers such as on-open, on-message, on-close. Include necessary imports for websocket-driver.",
             "status": "pending",
-            "testStrategy": "Run the application and monitor the console for any remaining @pixi/* import errors, confirming all PixiJS imports are now from 'pixi.js'.",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Create src/server.lisp with start-server and stop-server functions",
+            "description": "Create the server.lisp file implementing start-server and stop-server functions.",
+            "dependencies": [
+              1
+            ],
+            "details": "In src/server.lisp, define a package and implement start-server to initialize and run the Clack server with Woo, and stop-server to gracefully shut it down. Include error handling and ensure integration with the app from app.lisp.",
+            "status": "pending",
+            "testStrategy": null,
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Compile all new source files to verify syntax",
+            "description": "Compile the newly created Lisp files to ensure they have no syntax errors.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Use (compile-file) on each of src/app.lisp, src/websocket-adapter.lisp, and src/server.lisp. Check for any compilation errors or warnings. This step confirms the initial structures are syntactically correct before further development.",
+            "status": "pending",
+            "testStrategy": "Run (compile-file) on each file and verify no errors are reported in the output.",
             "parentId": "undefined"
           }
         ],
-        "complexity": 5,
-        "recommendedSubtasks": 3,
-        "expansionPrompt": "Generate subtasks for searching and replacing imports in each specific file (e.g., main.js, canvas.js, and any other PixiJS-using files).",
-        "updatedAt": "2025-10-15T20:59:50.717Z"
+        "complexity": 3,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as creating initial file structures is straightforward.",
+        "updatedAt": "2025-10-15T21:39:30.824Z"
       },
       {
         "id": "4",
-        "title": "Implement Asynchronous Initialization",
-        "description": "Refactor main.js to use async initialization for PixiJS Application.",
-        "details": "Convert the main function to async. Separate Application constructor from init(). Await app.init() with options before creating PixiJS objects.",
-        "testStrategy": "Run the app and verify it initializes without errors. Check console for async-related issues.",
-        "priority": "high",
+        "title": "Verify Woo Server Startup with Minimal App",
+        "description": "Test starting Woo with a simple 'hello world' Clack app.",
+        "details": "Create a minimal Clack app that returns a simple response. Use clack:clackup with :server :woo to start on a test port. Check server logs for successful startup.",
+        "testStrategy": "Start the server, make a curl request to the endpoint, and verify response. Stop server and confirm no errors.",
+        "priority": "medium",
         "dependencies": [
           "3"
         ],
@@ -2418,152 +2440,74 @@
         "subtasks": [
           {
             "id": 1,
-            "title": "Analyze Current main.js Structure",
-            "description": "Review the existing main.js file to understand the current synchronous initialization of the PixiJS Application, identifying where the Application constructor is called and how PixiJS objects are created.",
+            "title": "Create Minimal Clack App",
+            "description": "Develop a simple 'hello world' Clack application that returns a basic response.",
             "dependencies": [],
-            "details": "Examine the code in main.js to map out the current flow, noting any synchronous calls to Application() and the sequence of object creation. This will provide a baseline for refactoring.",
+            "details": "Write a minimal Clack app using defun make-app that defines a route returning a simple string like 'Hello, World!'. Ensure it uses standard Clack structure.",
             "status": "pending",
-            "testStrategy": "Manually inspect the code and document the current structure in comments or a separate note.",
+            "testStrategy": "Verify the app can be loaded without errors in the Lisp environment.",
             "parentId": "undefined"
           },
           {
             "id": 2,
-            "title": "Convert Main Function to Async",
-            "description": "Modify the main function in main.js to be declared as an async function to support asynchronous operations.",
+            "title": "Configure Woo Server Integration",
+            "description": "Set up the Clack app to use Woo as the server backend.",
             "dependencies": [
               1
             ],
-            "details": "Change the function declaration from 'function main()' or similar to 'async function main()' in main.js. Ensure the function signature is updated correctly to allow awaiting promises inside it.",
+            "details": "Modify the clack:clackup call to include :server :woo parameter. Ensure Woo is properly loaded as a dependency.",
             "status": "pending",
-            "testStrategy": "Run a syntax check or linter to verify the async keyword is properly applied without syntax errors.",
+            "testStrategy": "Check that the configuration does not throw errors when initializing.",
             "parentId": "undefined"
           },
           {
             "id": 3,
-            "title": "Separate Application Constructor from Init",
-            "description": "Refactor the code to create the PixiJS Application instance without immediately initializing it, preparing for a separate init call.",
+            "title": "Start Server on Test Port",
+            "description": "Launch the Woo server on a designated test port.",
             "dependencies": [
               2
             ],
-            "details": "Locate the Application constructor call in main.js and separate it from any immediate initialization. Store the app instance in a variable, ensuring no objects are created until after init() is awaited.",
+            "details": "Use clack:clackup with the configured app and specify a test port (e.g., 8080). Handle any startup parameters appropriately.",
             "status": "pending",
-            "testStrategy": "Execute the code up to this point and confirm that the Application is instantiated but not yet initialized, checking for any runtime errors.",
+            "testStrategy": "Monitor for successful server initialization without exceptions.",
             "parentId": "undefined"
           },
           {
             "id": 4,
-            "title": "Await app.init() with Options",
-            "description": "Add an await call to app.init() with the necessary options before proceeding to create PixiJS objects.",
+            "title": "Check Server Logs for Startup Success",
+            "description": "Examine server logs to confirm the Woo server started successfully.",
             "dependencies": [
               3
             ],
-            "details": "After the Application constructor, insert 'await app.init(options);' where options include any required configuration like canvas settings. Ensure this is placed before any PixiJS object creation to comply with PixiJS v8 async requirements.",
+            "details": "After starting the server, review the output logs for indicators of successful startup, such as 'Server started' messages or absence of errors.",
             "status": "pending",
-            "testStrategy": "Run the application and monitor the console for successful initialization messages or errors related to async init.",
+            "testStrategy": "Parse logs programmatically or manually to assert startup confirmation.",
             "parentId": "undefined"
           },
           {
             "id": 5,
-            "title": "Create PixiJS Objects After Init",
-            "description": "Move or ensure that all PixiJS object creation (like sprites, containers) happens after the awaited app.init() call.",
+            "title": "Perform Curl Request and Verify Response",
+            "description": "Make an HTTP request to the server and validate the response.",
             "dependencies": [
-              4
+              3
             ],
-            "details": "Review and adjust the code in main.js so that any creation of PixiJS objects, such as adding children to the stage or setting up viewports, occurs only after app.init() has resolved. This prevents initialization issues in PixiJS v8.",
+            "details": "Use curl to send a GET request to the test port endpoint and check that the response matches the expected 'hello world' output. Stop the server afterward.",
             "status": "pending",
-            "testStrategy": "Run the app and verify it initializes without errors, checking console for async-related issues and ensuring PixiJS objects render correctly.",
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 5,
-        "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this focuses on refactoring a single file's initialization logic.",
-        "updatedAt": "2025-10-15T20:59:53.678Z"
-      },
-      {
-        "id": "5",
-        "title": "Replace app.view with app.canvas",
-        "description": "Update all references to app.view to use app.canvas instead.",
-        "details": "Search for app.view in the codebase and replace with app.canvas, primarily in main.js and canvas.js.",
-        "testStrategy": "Inspect the DOM to ensure the canvas element is correctly referenced. Test canvas rendering.",
-        "priority": "medium",
-        "dependencies": [
-          "4"
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Search for all app.view references in the codebase",
-            "description": "Perform a comprehensive search across the entire codebase to locate every instance of 'app.view' that needs to be replaced.",
-            "dependencies": [],
-            "details": "Use grep or a code search tool to find all occurrences of 'app.view' in files, noting the exact lines and files for replacement. Focus on main.js and canvas.js as primary targets, but check all files to ensure completeness.",
-            "status": "pending",
-            "testStrategy": "Verify the search results by manually checking a few files to confirm no instances are missed.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Replace app.view in main.js",
-            "description": "Update all references to app.view with app.canvas in the main.js file.",
-            "dependencies": [
-              1
-            ],
-            "details": "Open main.js and replace each instance of 'app.view' with 'app.canvas'. Ensure the replacement is done accurately without affecting surrounding code. Save the file after changes.",
-            "status": "pending",
-            "testStrategy": "Run a diff or search in main.js to confirm all 'app.view' have been replaced and no new instances remain.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Replace app.view in canvas.js",
-            "description": "Update all references to app.view with app.canvas in the canvas.js file.",
-            "dependencies": [
-              1
-            ],
-            "details": "Open canvas.js and replace each instance of 'app.view' with 'app.canvas'. Carefully check for any context-specific usages to avoid breaking functionality. Save the file after changes.",
-            "status": "pending",
-            "testStrategy": "Run a diff or search in canvas.js to confirm all 'app.view' have been replaced and no new instances remain.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Check and replace app.view in other files if any",
-            "description": "Review search results for any additional files containing app.view and perform replacements.",
-            "dependencies": [
-              1
-            ],
-            "details": "From the search results, identify any files beyond main.js and canvas.js that have 'app.view'. Replace them with 'app.canvas' in each file, ensuring consistency across the codebase.",
-            "status": "pending",
-            "testStrategy": "Perform another search post-replacement to ensure no 'app.view' instances are left in any file.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Test canvas rendering after replacements",
-            "description": "Verify that the app functions correctly with app.canvas references.",
-            "dependencies": [
-              2,
-              3,
-              4
-            ],
-            "details": "Run the application and inspect the DOM to ensure the canvas element is correctly referenced. Test canvas rendering functionality to confirm no errors or broken behaviors due to the replacements.",
-            "status": "pending",
-            "testStrategy": "Use browser developer tools to inspect the DOM for correct canvas references and perform visual checks on rendering.",
+            "testStrategy": "Automate the curl request in a test script and assert the response body and status code.",
             "parentId": "undefined"
           }
         ],
         "complexity": 3,
         "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this is a simple find-and-replace operation.",
-        "updatedAt": "2025-10-15T20:59:56.060Z"
+        "expansionPrompt": "No expansion needed as this is a focused testing task.",
+        "updatedAt": "2025-10-15T21:41:39.667Z"
       },
       {
-        "id": "6",
-        "title": "Migrate Graphics API to Builder Pattern",
-        "description": "Refactor all Graphics drawing logic to use the new builder pattern.",
-        "details": "Change from beginFill/drawShape/endFill to shape().fill().stroke(). Update functions like createRectangle and createCircle in canvas.js.",
-        "testStrategy": "Create shapes and verify they render correctly without visual artifacts.",
+        "id": "5",
+        "title": "Convert HTTP Handlers to Clack Format",
+        "description": "Port handle-register, handle-login, handle-logout, handle-session-check, handle-canvas-state, and handle-health to accept env and return values.",
+        "details": "For each handler, change signature to (defun handler (env)), use getf to access env data, parse body with parse-request-body, and return (values status headers body). Update route-handler to call these.",
+        "testStrategy": "Unit test each handler with mock env plist, checking status and body.",
         "priority": "high",
         "dependencies": [
           "4"
@@ -2572,56 +2516,124 @@
         "subtasks": [
           {
             "id": 1,
-            "title": "Update createRectangle function to builder pattern",
-            "description": "Refactor the createRectangle function in canvas.js to use the new builder pattern, changing from beginFill/drawShape/endFill to shape().fill().stroke().",
+            "title": "Convert Authentication Handlers to Clack Format",
+            "description": "Port handle-register, handle-login, and handle-logout to accept env parameter and return values in Clack format.",
             "dependencies": [],
-            "details": "Locate the createRectangle function in canvas.js. Replace the old API calls with the new builder pattern syntax, ensuring the rectangle is created using shape().rect().fill().stroke(). Update any related parameters and ensure compatibility with PixiJS v8.",
+            "details": "For each handler (handle-register, handle-login, handle-logout), change the function signature to (defun handler (env)), use getf to access data from the env plist, parse the request body using parse-request-body, and return (values status headers body). Ensure all authentication logic remains intact.",
             "status": "pending",
-            "testStrategy": "Create a rectangle shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking dimensions and fill/stroke properties.",
+            "testStrategy": "Unit test each handler with a mock env plist, verifying correct status codes and response bodies for various inputs.",
             "parentId": "undefined"
           },
           {
             "id": 2,
-            "title": "Update createCircle function to builder pattern",
-            "description": "Refactor the createCircle function in canvas.js to use the new builder pattern, changing from beginFill/drawShape/endFill to shape().fill().stroke().",
+            "title": "Convert Utility Handlers to Clack Format",
+            "description": "Port handle-session-check, handle-canvas-state, and handle-health to accept env parameter and return values in Clack format.",
             "dependencies": [],
-            "details": "Locate the createCircle function in canvas.js. Replace the old API calls with the new builder pattern syntax, ensuring the circle is created using shape().circle().fill().stroke(). Update any related parameters and ensure compatibility with PixiJS v8.",
+            "details": "For each handler (handle-session-check, handle-canvas-state, handle-health), change the function signature to (defun handler (env)), use getf to access data from the env plist, parse the request body using parse-request-body where applicable, and return (values status headers body). Maintain existing functionality for session checks, canvas state, and health endpoints.",
             "status": "pending",
-            "testStrategy": "Create a circle shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking radius and fill/stroke properties.",
+            "testStrategy": "Unit test each handler with a mock env plist, checking status codes, headers, and body content for expected behaviors.",
             "parentId": "undefined"
           },
           {
             "id": 3,
-            "title": "Update createTriangle function to builder pattern",
-            "description": "Refactor the createTriangle function in canvas.js to use the new builder pattern, changing from beginFill/drawShape/endFill to shape().fill().stroke().",
-            "dependencies": [],
-            "details": "Locate the createTriangle function in canvas.js. Replace the old API calls with the new builder pattern syntax, ensuring the triangle is created using shape().polygon().fill().stroke() with appropriate vertices. Update any related parameters and ensure compatibility with PixiJS v8.",
+            "title": "Integrate Handlers into Route Handler",
+            "description": "Update the route-handler function to call the newly formatted handlers and handle their return values.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Modify the route-handler to invoke the updated handler functions (handle-register, handle-login, handle-logout, handle-session-check, handle-canvas-state, handle-health) with the env parameter, and properly process the returned (values status headers body) to construct the full HTTP response. Ensure routing logic directs requests correctly to each handler.",
             "status": "pending",
-            "testStrategy": "Create a triangle shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking vertices and fill/stroke properties.",
+            "testStrategy": "Integration test by simulating route-handler calls with mock env data, verifying that responses are correctly formatted and match expected outputs for all endpoints.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Expand into subtasks for each handler (e.g., one for handle-register, one for handle-login, etc.) and a final integration subtask.",
+        "updatedAt": "2025-10-15T21:44:01.230Z"
+      },
+      {
+        "id": "6",
+        "title": "Create Utility Functions for Request Parsing",
+        "description": "Implement parse-request-body and json-response functions.",
+        "details": "Define parse-request-body to read from (getf env :raw-body) and parse JSON. Define json-response to return proper values with to-json-string. Integrate into handlers.",
+        "testStrategy": "Test parse-request-body with sample JSON input and verify output. Test json-response with data and check HTTP response format.",
+        "priority": "medium",
+        "dependencies": [
+          "5"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define parse-request-body function",
+            "description": "Implement the parse-request-body function to read and parse JSON from the request body.",
+            "dependencies": [],
+            "details": "Create a function named parse-request-body that takes an environment (env) and uses (getf env :raw-body) to retrieve the raw body, then parses it as JSON using appropriate Lisp JSON parsing library.",
+            "status": "pending",
+            "testStrategy": "Test with sample JSON strings to ensure correct parsing and error handling for invalid JSON.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Define json-response function",
+            "description": "Implement the json-response function to format and return JSON responses.",
+            "dependencies": [],
+            "details": "Create a function named json-response that takes data and uses to-json-string to convert it to JSON, then returns it in a proper HTTP response format with appropriate headers.",
+            "status": "pending",
+            "testStrategy": "Test with various data types and verify the output is valid JSON and includes correct Content-Type header.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Integrate parse-request-body into request handlers",
+            "description": "Update existing request handlers to use the new parse-request-body function for parsing incoming JSON data.",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify the handler functions in the application to call parse-request-body instead of manual parsing, ensuring it handles the env parameter correctly and integrates seamlessly with the request processing flow.",
+            "status": "pending",
+            "testStrategy": "Simulate requests with JSON bodies and check that handlers correctly parse and process the data.",
             "parentId": "undefined"
           },
           {
             "id": 4,
-            "title": "Update createLine function to builder pattern",
-            "description": "Refactor the createLine function in canvas.js to use the new builder pattern, changing from beginFill/drawShape/endFill to shape().fill().stroke().",
-            "dependencies": [],
-            "details": "Locate the createLine function in canvas.js. Replace the old API calls with the new builder pattern syntax, ensuring the line is created using shape().moveTo().lineTo().stroke(). Update any related parameters and ensure compatibility with PixiJS v8.",
+            "title": "Integrate json-response into response handlers",
+            "description": "Update existing response handlers to use the new json-response function for formatting outgoing JSON responses.",
+            "dependencies": [
+              2
+            ],
+            "details": "Modify the response generation parts of handlers to use json-response, ensuring it sets proper status codes, headers, and body content for JSON API responses.",
             "status": "pending",
-            "testStrategy": "Create a line shape using the updated function and verify it renders correctly on the canvas without visual artifacts, checking start/end points and stroke properties.",
+            "testStrategy": "Test API endpoints by sending requests and verifying that responses are properly formatted JSON with correct HTTP status.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Test overall integration and error handling",
+            "description": "Perform end-to-end testing of the utility functions integrated into the handlers.",
+            "dependencies": [
+              3,
+              4
+            ],
+            "details": "Run comprehensive tests including valid and invalid JSON inputs, edge cases like empty bodies, and ensure error handling is robust, logging any issues appropriately in the server logs.",
+            "status": "pending",
+            "testStrategy": "Use curl or similar tools to make requests to the server, check logs for errors, and validate response formats.",
             "parentId": "undefined"
           }
         ],
-        "complexity": 7,
-        "recommendedSubtasks": 4,
-        "expansionPrompt": "Generate subtasks for updating each drawing function (e.g., createRectangle, createCircle) to the new builder pattern, including testing each shape individually.",
-        "updatedAt": "2025-10-15T20:59:58.456Z"
+        "complexity": 4,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as implementing two utility functions is contained.",
+        "updatedAt": "2025-10-15T21:44:31.053Z"
       },
       {
         "id": "7",
-        "title": "Update Shape Function Names",
-        "description": "Rename drawShape methods to their v8 equivalents.",
-        "details": "Replace drawRect with rect, drawCircle with circle, etc., in all Graphics usage.",
-        "testStrategy": "Test drawing various shapes and confirm they appear as expected.",
+        "title": "Test All HTTP Endpoints",
+        "description": "Test migrated HTTP routes with curl or integration tests.",
+        "details": "Start Clack server, send requests to /api/register, /api/login, /health, etc., using curl. Verify responses match expected JSON and status codes.",
+        "testStrategy": "Integration test: Start server, perform full HTTP flow (register, login), stop server. Check logs for no errors.",
         "priority": "medium",
         "dependencies": [
           "6"
@@ -2630,77 +2642,39 @@
         "subtasks": [
           {
             "id": 1,
-            "title": "Identify all Graphics usage files",
-            "description": "Search the codebase to find all files that import or use the Graphics class from PixiJS.",
+            "title": "Test Individual HTTP Endpoints",
+            "description": "Test each HTTP endpoint separately using curl to verify correct responses, status codes, and JSON formats for routes like /api/register, /api/login, /health, etc.",
             "dependencies": [],
-            "details": "Use grep or a code search tool to locate files containing 'Graphics' and method calls like drawRect, drawCircle, etc. Compile a list of affected files.",
+            "details": "Start the Clack server on a test port. For each endpoint, send curl requests with appropriate data (e.g., POST for register/login). Check response status codes (e.g., 200 for success, 400 for errors) and JSON body content. Document any mismatches and ensure no server errors in logs.",
             "status": "pending",
-            "testStrategy": null,
+            "testStrategy": "Manual curl testing: Send requests and manually verify outputs against expected results.",
             "parentId": "undefined"
           },
           {
             "id": 2,
-            "title": "Replace drawRect with rect",
-            "description": "Update all instances of drawRect method calls to use rect instead.",
+            "title": "Perform Combined Integration Test",
+            "description": "Execute a full integration test simulating user flow: register, login, and other interactions to ensure the entire HTTP system works cohesively.",
             "dependencies": [
               1
             ],
-            "details": "In each identified file, perform a find-and-replace operation to change drawRect() to rect(). Ensure the parameters remain compatible.",
+            "details": "Start the Clack server. Perform a sequence of requests: register a new user, then login with those credentials, check session, and test other endpoints like /health. Verify the full flow succeeds without errors, checking logs for any issues. Stop the server after testing.",
             "status": "pending",
-            "testStrategy": "Verify that rectangles are drawn correctly after replacement.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Replace drawCircle with circle",
-            "description": "Update all instances of drawCircle method calls to use circle instead.",
-            "dependencies": [
-              1
-            ],
-            "details": "In each identified file, perform a find-and-replace operation to change drawCircle() to circle(). Check parameter compatibility.",
-            "status": "pending",
-            "testStrategy": "Verify that circles are drawn correctly after replacement.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Replace other drawShape methods",
-            "description": "Update remaining drawShape methods like drawEllipse, drawPolygon, etc., to their v8 equivalents.",
-            "dependencies": [
-              1
-            ],
-            "details": "Identify and replace methods such as drawEllipse with ellipse, drawPolygon with polygon, etc. Ensure all Graphics shape drawing methods are updated.",
-            "status": "pending",
-            "testStrategy": "Test rendering of ellipses, polygons, and other shapes to confirm they appear as expected.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Verify and test all Graphics updates",
-            "description": "Run tests to ensure all shape drawing works correctly after renaming methods.",
-            "dependencies": [
-              2,
-              3,
-              4
-            ],
-            "details": "Execute the project's test suite, particularly focusing on rendering tests. Manually check that shapes are drawn without errors in the application.",
-            "status": "pending",
-            "testStrategy": "Run automated tests and perform visual checks on shape rendering in the app.",
+            "testStrategy": "Integration test: Automate or manually run the full HTTP flow, validate responses, and ensure no errors in server logs.",
             "parentId": "undefined"
           }
         ],
-        "complexity": 4,
-        "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this is a rename operation across Graphics usage.",
-        "updatedAt": "2025-10-15T21:00:09.432Z"
+        "complexity": 5,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Break down into subtasks for testing individual endpoints and a combined integration test.",
+        "updatedAt": "2025-10-15T21:45:59.751Z"
       },
       {
         "id": "8",
-        "title": "Use Style Objects for Fills and Strokes",
-        "description": "Update fill() and stroke() calls to use style objects where applicable.",
-        "details": "Change calls like fill(color) to fill({color: color}) and stroke(width, color) to stroke({width: width, color: color}).",
-        "testStrategy": "Render shapes with fills and strokes and check for correct styling.",
-        "priority": "medium",
+        "title": "Implement WebSocket Upgrade Handler",
+        "description": "Add WebSocket middleware to Clack app and implement handle-websocket-upgrade.",
+        "details": "In make-app, add (:websocket ...) middleware. Implement handle-websocket-upgrade to validate canvas-id, create ws-connection, register pending connection, and return 101.",
+        "testStrategy": "Unit test handle-websocket-upgrade with mock env, checking status 101 for valid canvas-id and 400 for invalid.",
+        "priority": "high",
         "dependencies": [
           "7"
         ],
@@ -2708,608 +2682,340 @@
         "subtasks": [
           {
             "id": 1,
-            "title": "Identify Files with Fill and Stroke Calls",
-            "description": "Scan the codebase to find all files that use fill() or stroke() methods.",
-            "dependencies": [
-              7
-            ],
-            "details": "Use grep or search tools to locate all instances of fill( and stroke( in the project files, ensuring to cover all shape creation code.",
+            "title": "Add WebSocket Middleware to Clack App",
+            "description": "Integrate WebSocket middleware into the Clack application setup to enable WebSocket upgrade handling.",
+            "dependencies": [],
+            "details": "In the make-app function, add the (:websocket ...) middleware to the middleware stack. Ensure it is properly configured to handle WebSocket connections and upgrades.",
             "status": "pending",
-            "testStrategy": null,
+            "testStrategy": "Verify that the middleware is loaded and the app starts without errors, checking for WebSocket support in the app configuration.",
             "parentId": "undefined"
           },
           {
             "id": 2,
-            "title": "Convert Fill Calls to Style Objects",
-            "description": "Change all fill(color) calls to fill({color: color}) format.",
-            "dependencies": [
-              1
-            ],
-            "details": "For each identified fill call, modify the parameters to pass an object with the color property, ensuring compatibility with PixiJS v8 API.",
+            "title": "Implement handle-websocket-upgrade Function",
+            "description": "Create the handle-websocket-upgrade function to process WebSocket upgrade requests, validate inputs, and manage connections.",
+            "dependencies": [],
+            "details": "Implement handle-websocket-upgrade to validate the canvas-id from the request, create a ws-connection object, register it as a pending connection, and return a 101 status code for successful upgrades. Handle invalid canvas-ids by returning 400.",
             "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Convert Stroke Calls to Style Objects",
-            "description": "Change stroke(width, color) calls to stroke({width: width, color: color}) format.",
-            "dependencies": [
-              1
-            ],
-            "details": "For each stroke call, update to use an object with width and color properties, matching the new PixiJS v8 style object structure.",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Review and Fix Edge Cases",
-            "description": "Check for any complex fill or stroke usages that need special handling.",
-            "dependencies": [
-              2,
-              3
-            ],
-            "details": "Ensure all changes are syntactically correct, handle any edge cases like multiple parameters or conditional calls, and verify no errors introduced.",
-            "status": "pending",
-            "testStrategy": null,
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Test Shape Rendering with New Styles",
-            "description": "Render shapes and verify fills and strokes appear correctly.",
-            "dependencies": [
-              4
-            ],
-            "details": "Run the application, render various shapes with fills and strokes, and visually inspect to confirm correct styling and no visual regressions.",
-            "status": "pending",
-            "testStrategy": "Render shapes with fills and strokes and check for correct styling.",
+            "testStrategy": "Unit test with mock environment, asserting 101 status for valid canvas-id and 400 for invalid ones, ensuring proper connection registration.",
             "parentId": "undefined"
           }
         ],
-        "complexity": 4,
-        "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this updates API calls in shape creation.",
-        "updatedAt": "2025-10-15T21:00:12.099Z"
+        "complexity": 7,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Expand into subtasks for adding middleware and implementing the handler logic separately.",
+        "updatedAt": "2025-10-15T21:50:46.211Z"
       },
       {
         "id": "9",
-        "title": "Replace updateTransform with onRender",
-        "description": "Update custom logic using updateTransform to use the new onRender hook.",
-        "details": "Create an _onRender method and bind it in the constructor. Replace updateTransform calls with onRender.",
-        "testStrategy": "Test custom rendering logic to ensure it executes correctly during render cycles.",
-        "priority": "medium",
-        "dependencies": [
-          "4"
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Identify classes using updateTransform",
-            "description": "Locate all classes in the codebase that currently use the updateTransform method to understand the scope of refactoring needed.",
-            "dependencies": [],
-            "details": "Search the codebase for 'updateTransform' calls using grep or IDE search tools. Document the classes, methods, and contexts where it's used to prepare for replacement.",
-            "status": "pending",
-            "testStrategy": "Verify that all instances are identified by cross-checking with code review.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Create _onRender method in identified classes",
-            "description": "Add a new _onRender method to each class that previously used updateTransform, implementing the custom logic.",
-            "dependencies": [
-              1
-            ],
-            "details": "In each identified class, define a new private method named _onRender that encapsulates the logic previously in updateTransform. Ensure the method signature matches the onRender hook requirements.",
-            "status": "pending",
-            "testStrategy": "Check that the _onRender method is syntactically correct and compiles without errors.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Bind _onRender in constructors",
-            "description": "Bind the _onRender method in the constructor of each affected class to ensure proper context.",
-            "dependencies": [
-              2
-            ],
-            "details": "In the constructor of each class, add a binding statement like this._onRender = this._onRender.bind(this); to maintain the correct 'this' context when the method is used as a hook.",
-            "status": "pending",
-            "testStrategy": "Run unit tests to confirm that the binding works and the method can be called without context errors.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Replace updateTransform calls with onRender",
-            "description": "Update all calls to updateTransform to use the new onRender hook instead.",
-            "dependencies": [
-              3
-            ],
-            "details": "Replace each updateTransform() call with the appropriate onRender hook invocation, ensuring that the _onRender method is passed or registered as needed in the PixiJS application lifecycle.",
-            "status": "pending",
-            "testStrategy": "Test that the application renders correctly and that custom logic executes during render cycles by observing visual output and console logs.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Verify and test the refactoring",
-            "description": "Perform comprehensive testing to ensure the refactoring from updateTransform to onRender works as expected.",
-            "dependencies": [
-              4
-            ],
-            "details": "Run the full application, check for any runtime errors, and validate that rendering behavior matches the original functionality. Use debugging tools to step through render cycles.",
-            "status": "pending",
-            "testStrategy": "Conduct integration tests focusing on render cycle execution, including edge cases like multiple objects and performance benchmarks.",
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 5,
-        "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this refactors custom logic in specific classes.",
-        "updatedAt": "2025-10-15T21:00:14.776Z"
-      },
-      {
-        "id": "10",
-        "title": "Update getBounds Usage",
-        "description": "Refactor getBounds() calls to use the new return format.",
-        "details": "Change container.getBounds() to container.getBounds().rectangle where a PIXI.Rectangle is expected.",
-        "testStrategy": "Test bounding box calculations for containers and ensure selections work.",
-        "priority": "medium",
-        "dependencies": [
-          "4"
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Identify all getBounds() call sites",
-            "description": "Search the codebase to locate every instance where getBounds() is called on containers, ensuring a comprehensive list for refactoring.",
-            "dependencies": [],
-            "details": "Use grep or IDE search tools to find all occurrences of .getBounds() in the project files, excluding comments and documentation. Document the file paths and line numbers for each call.",
-            "status": "pending",
-            "testStrategy": "Verify the list by manually checking a sample of files to ensure no calls are missed.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Update getBounds() calls to use .rectangle",
-            "description": "Modify each identified getBounds() call to append .rectangle where a PIXI.Rectangle is expected, based on the new return format.",
-            "dependencies": [
-              1
-            ],
-            "details": "For each call site identified in subtask 1, change container.getBounds() to container.getBounds().rectangle. Ensure the context confirms PIXI.Rectangle is expected, and handle any necessary imports or type checks.",
-            "status": "pending",
-            "testStrategy": "Compile the code after changes and check for TypeScript errors or runtime issues related to rectangle access.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Handle edge cases and conditional usages",
-            "description": "Address any conditional or complex usages of getBounds() that might require special handling in the refactoring.",
-            "dependencies": [
-              1
-            ],
-            "details": "Review the identified call sites for scenarios like conditional checks, loops, or assignments. Adjust the code to properly access .rectangle in these cases, ensuring the logic remains intact.",
-            "status": "pending",
-            "testStrategy": "Run unit tests on affected components to confirm edge cases behave as expected.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Update related bounding box calculations",
-            "description": "Adjust any calculations or operations that depend on the getBounds() return value to work with the new .rectangle format.",
-            "dependencies": [
-              2
-            ],
-            "details": "Locate and modify code that performs operations on the getBounds() result, such as width/height calculations or intersection checks, to use the rectangle properties correctly.",
-            "status": "pending",
-            "testStrategy": "Test bounding box calculations manually or via automated tests to ensure accuracy.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Verify and test overall functionality",
-            "description": "Run comprehensive tests to ensure the refactored getBounds() usages work correctly and selections or bounding boxes function as intended.",
-            "dependencies": [
-              2,
-              3,
-              4
-            ],
-            "details": "Execute the project's test suite, focusing on rendering, selections, and any features relying on bounding boxes. Manually test UI interactions that depend on getBounds() to confirm no regressions.",
-            "status": "pending",
-            "testStrategy": "Use visual inspections and automated tests to validate that shapes, containers, and selections render and behave correctly with the new format.",
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 4,
-        "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this adjusts getBounds calls to new format.",
-        "updatedAt": "2025-10-15T21:00:17.386Z"
-      },
-      {
-        "id": "11",
-        "title": "Update Ticker Callback",
-        "description": "Adjust Ticker callback to use ticker.deltaTime instead of direct deltaTime.",
-        "details": "Modify Ticker.shared.add() callback to access deltaTime via ticker.deltaTime.",
-        "testStrategy": "Test animations and updates that rely on ticker to ensure smooth performance.",
-        "priority": "medium",
-        "dependencies": [
-          "4"
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Locate Ticker Callbacks",
-            "description": "Search the codebase for all instances of Ticker.shared.add() callbacks that use direct deltaTime.",
-            "dependencies": [],
-            "details": "Use grep or IDE search to find all Ticker.shared.add() calls and note where deltaTime is accessed directly instead of via ticker.deltaTime. This ensures we identify all locations needing updates.",
-            "status": "pending",
-            "testStrategy": "Verify that all identified callbacks are listed and none are missed by cross-checking with code review.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Modify Callback Signatures",
-            "description": "Update the callback functions to accept the ticker parameter and access deltaTime via ticker.deltaTime.",
-            "dependencies": [
-              1
-            ],
-            "details": "For each identified callback, change the function signature to include 'ticker' as the first parameter, and replace any direct deltaTime references with ticker.deltaTime. Ensure the callback is properly bound if necessary.",
-            "status": "pending",
-            "testStrategy": "Compile the code and check for syntax errors in the modified callbacks.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Update Ticker Registration",
-            "description": "Ensure Ticker.shared.add() calls pass the callback correctly with the new signature.",
-            "dependencies": [
-              2
-            ],
-            "details": "Review and adjust the Ticker.shared.add() calls to ensure they are registering the updated callbacks properly. If the callback was previously anonymous, consider making it a named function for clarity.",
-            "status": "pending",
-            "testStrategy": "Run the application and confirm that callbacks are registered without errors, checking console logs for any Ticker-related warnings.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Test Animation Performance",
-            "description": "Run tests to verify that animations using the updated callbacks perform smoothly.",
-            "dependencies": [
-              3
-            ],
-            "details": "Execute unit tests or manual tests for animations and updates that rely on the ticker. Measure frame rates and ensure deltaTime calculations are accurate, preventing issues like variable time steps.",
-            "status": "pending",
-            "testStrategy": "Use performance profiling tools to monitor frame times and deltaTime values during animation playback.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Code Review and Final Validation",
-            "description": "Conduct a final review of all changes and validate the migration to ticker.deltaTime.",
-            "dependencies": [
-              4
-            ],
-            "details": "Perform a code review to ensure all Ticker callbacks now use ticker.deltaTime consistently. Run a full test suite to confirm no regressions in animation or update logic.",
-            "status": "pending",
-            "testStrategy": "Integrate with CI/CD pipeline to run automated tests, ensuring the changes pass all existing test cases related to rendering and updates.",
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 3,
-        "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this modifies a single callback.",
-        "updatedAt": "2025-10-15T21:00:19.870Z"
-      },
-      {
-        "id": "12",
-        "title": "Replace PIXI.utils Imports",
-        "description": "Update all PIXI.utils.* calls to direct imports from 'pixi.js'.",
-        "details": "Change imports like PIXI.utils.isMobile to import { isMobile } from 'pixi.js'.",
-        "testStrategy": "Run the app and check for any utils-related errors or warnings.",
-        "priority": "medium",
-        "dependencies": [
-          "3"
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Identify Files Using PIXI.utils Imports",
-            "description": "Scan the entire codebase to find all files that contain PIXI.utils.* calls or imports.",
-            "dependencies": [],
-            "details": "Use grep or a code search tool to locate all instances of PIXI.utils in the project files, including JavaScript, TypeScript, and any other relevant files. Document the list of files and specific lines for reference.",
-            "status": "pending",
-            "testStrategy": "Verify the list by manually checking a few files to ensure no instances are missed.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Update Import Statements in Identified Files",
-            "description": "Replace PIXI.utils imports with direct imports from 'pixi.js' in each identified file.",
-            "dependencies": [
-              1
-            ],
-            "details": "For each file from subtask 1, change statements like 'import PIXI from 'pixi.js';' followed by PIXI.utils usage, to direct imports such as 'import { isMobile } from 'pixi.js';'. Ensure all necessary utils functions are imported.",
-            "status": "pending",
-            "testStrategy": "Check the import sections of updated files to confirm they match the new direct import pattern.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Replace PIXI.utils Usage with Direct Calls",
-            "description": "Update all code references from PIXI.utils.something to just something, assuming the direct import is in place.",
-            "dependencies": [
-              2
-            ],
-            "details": "Go through each file and replace usages like PIXI.utils.isMobile() with isMobile(), ensuring the function is imported directly. Handle any potential naming conflicts or scope issues.",
-            "status": "pending",
-            "testStrategy": "Run a linter or static analysis tool to detect any undefined references or syntax errors after replacements.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Verify No Remaining PIXI.utils References",
-            "description": "Perform a final check to ensure all PIXI.utils calls have been replaced and no references remain.",
-            "dependencies": [
-              3
-            ],
-            "details": "Re-scan the codebase using the same search method as in subtask 1 to confirm zero instances of PIXI.utils. Review any build or compilation logs for related warnings.",
-            "status": "pending",
-            "testStrategy": "Attempt to build the project and check for any errors related to missing PIXI.utils imports.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Test Application Functionality",
-            "description": "Run the application and verify that all utils-related functionality works correctly after the import changes.",
-            "dependencies": [
-              4
-            ],
-            "details": "Start the app, interact with features that use the updated utils (e.g., mobile detection), and monitor for runtime errors. Ensure rendering and logic dependent on these utils perform as expected.",
-            "status": "pending",
-            "testStrategy": "Run the app and check console for any utils-related errors or warnings, as per the parent task's test strategy.",
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 4,
-        "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this updates import statements.",
-        "updatedAt": "2025-10-15T21:00:30.253Z"
-      },
-      {
-        "id": "13",
-        "title": "Implement CullerPlugin for Performance",
-        "description": "Add and configure the CullerPlugin for automatic culling.",
-        "details": "Import { extensions, CullerPlugin } from 'pixi.js' and add extensions.add(CullerPlugin). Set cullable = true on the main viewport container.",
-        "testStrategy": "Monitor FPS during scene rendering with many objects to ensure culling improves performance.",
-        "priority": "medium",
-        "dependencies": [
-          "4"
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Import CullerPlugin from PixiJS",
-            "description": "Import the CullerPlugin and extensions from the pixi.js library to prepare for plugin addition.",
-            "dependencies": [],
-            "details": "In the main application file, add the import statement: import { extensions, CullerPlugin } from 'pixi.js';. Ensure this is done after the PixiJS application is initialized.",
-            "status": "pending",
-            "testStrategy": "Verify that the import does not cause any syntax errors or runtime issues during application startup.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Add CullerPlugin to Extensions",
-            "description": "Register the CullerPlugin with the PixiJS extensions system to enable automatic culling functionality.",
-            "dependencies": [
-              1
-            ],
-            "details": "After importing, add the plugin by calling extensions.add(CullerPlugin);. This should be done in the initialization phase of the application, ensuring it happens before creating any renderable objects.",
-            "status": "pending",
-            "testStrategy": "Check the console for any errors related to plugin registration and confirm that the plugin is listed in the extensions.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Configure Main Viewport as Cullable",
-            "description": "Set the cullable property to true on the main viewport container to allow the CullerPlugin to manage its visibility.",
-            "dependencies": [
-              2
-            ],
-            "details": "Locate the main viewport container in the code and set its cullable property: viewport.cullable = true;. This enables culling for objects within this container, improving performance by not rendering off-screen elements.",
-            "status": "pending",
-            "testStrategy": "Inspect the viewport object in the debugger to confirm the cullable property is set to true.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Integrate Culling into Application Lifecycle",
-            "description": "Ensure the culling logic is properly integrated into the application's rendering loop or initialization sequence.",
-            "dependencies": [
-              3
-            ],
-            "details": "Verify that the CullerPlugin is active during the application's update and render cycles. This may involve checking that the plugin hooks into the ticker or render events appropriately.",
-            "status": "pending",
-            "testStrategy": "Run the application and observe that culling is occurring by checking for reduced draw calls in performance tools.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Monitor Performance Improvements",
-            "description": "Test and monitor the performance gains from enabling culling, especially in scenes with many objects.",
-            "dependencies": [
-              4
-            ],
-            "details": "Use performance monitoring tools to measure FPS before and after enabling culling. Load a scene with numerous objects and compare rendering times, ensuring the plugin reduces unnecessary computations.",
-            "status": "pending",
-            "testStrategy": "Monitor FPS during scene rendering with many objects using browser dev tools or a performance monitor, verifying that culling improves performance without introducing errors.",
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 5,
-        "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this adds and configures a plugin.",
-        "updatedAt": "2025-10-15T21:08:50.754Z"
-      },
-      {
-        "id": "14",
-        "title": "Optimize Event System",
-        "description": "Review and set interactiveChildren to false on non-interactive containers.",
-        "details": "Identify containers like grid backgrounds and set interactiveChildren = false to reduce event traversal.",
-        "testStrategy": "Test interaction with interactive elements and ensure non-interactive ones don't interfere.",
-        "priority": "low",
-        "dependencies": [
-          "4"
-        ],
-        "status": "done",
-        "subtasks": [
-          {
-            "id": 1,
-            "title": "Identify Container Objects in Codebase",
-            "description": "Scan the codebase to locate all instances of container objects such as DisplayObjectContainers, Sprites, or other PixiJS objects that hold child elements.",
-            "dependencies": [
-              4
-            ],
-            "details": "Use grep or manual search in files like main.js, canvas.js, and other relevant files to find all container declarations and usages. Document their locations and types.",
-            "status": "pending",
-            "testStrategy": "Verify the list of identified containers matches expected structures in the code.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 2,
-            "title": "Classify Containers as Interactive or Non-Interactive",
-            "description": "Review each identified container to determine if it requires interactivity or is purely for layout/background purposes.",
-            "dependencies": [
-              1
-            ],
-            "details": "Examine the purpose of each container, such as grid backgrounds being non-interactive. Categorize them based on whether they handle user events or not.",
-            "status": "pending",
-            "testStrategy": "Cross-check classifications with code comments or usage patterns to ensure accuracy.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 3,
-            "title": "Set interactiveChildren to False on Non-Interactive Containers",
-            "description": "Apply the interactiveChildren = false property to all containers classified as non-interactive.",
-            "dependencies": [
-              2
-            ],
-            "details": "Modify the code in the relevant files to add or set interactiveChildren = false on the identified non-interactive containers, ensuring no interactive children are affected.",
-            "status": "pending",
-            "testStrategy": "Run the application and check that no errors occur during initialization or rendering.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 4,
-            "title": "Test Interactive Element Functionality",
-            "description": "Verify that interactive elements within the containers still respond correctly to user interactions.",
-            "dependencies": [
-              3
-            ],
-            "details": "Interact with buttons, clickable areas, or other interactive components in the app to ensure they trigger events as expected after the changes.",
-            "status": "pending",
-            "testStrategy": "Use manual testing or automated scripts to simulate interactions and log event firings.",
-            "parentId": "undefined"
-          },
-          {
-            "id": 5,
-            "title": "Validate Event Traversal Optimization",
-            "description": "Confirm that setting interactiveChildren reduces unnecessary event processing on non-interactive containers.",
-            "dependencies": [
-              4
-            ],
-            "details": "Monitor event handling performance, perhaps by adding temporary logging or using browser dev tools to check event propagation paths and ensure efficiency improvements.",
-            "status": "pending",
-            "testStrategy": "Compare event logs or performance metrics before and after changes to quantify the optimization.",
-            "parentId": "undefined"
-          }
-        ],
-        "complexity": 3,
-        "recommendedSubtasks": 0,
-        "expansionPrompt": "No expansion needed as this sets properties on containers.",
-        "updatedAt": "2025-10-15T21:10:30.101Z"
-      },
-      {
-        "id": "15",
-        "title": "Conduct Functional and Performance Testing",
-        "description": "Run full testing suite including functional checks and performance benchmarks.",
-        "details": "Execute QA checklist for user stories. Run performance tests using PerformanceMonitor, comparing to v7 baseline. Ensure FPS meets criteria.",
-        "testStrategy": "Validate all acceptance criteria: no errors, tests pass, performance met, no deprecations.",
+        "title": "Convert Canvas Room to Use New Connection Objects",
+        "description": "Update room management to use ws-connection structs instead of Hunchensocket objects.",
+        "details": "Modify room structures to store ws-connection instances. Update functions like add-connection-to-room, remove-connection-from-room to work with new structs.",
+        "testStrategy": "Unit test room operations: create room, add/remove connections, verify counts and broadcasts.",
         "priority": "high",
         "dependencies": [
-          "5",
-          "6",
-          "7",
-          "8",
-          "9",
-          "10",
-          "11",
-          "12",
-          "13",
-          "14"
+          "8"
         ],
         "status": "done",
         "subtasks": [
           {
             "id": 1,
-            "title": "Run Functional Checks on User Stories",
-            "description": "Execute the QA checklist to verify that all user stories meet their acceptance criteria, ensuring no errors occur and all tests pass.",
-            "dependencies": [
-              5,
-              6,
-              7,
-              8,
-              9,
-              10,
-              11,
-              12,
-              13,
-              14
-            ],
-            "details": "Go through each user story in the QA checklist, perform functional tests to check for correct behavior, error handling, and compliance with requirements. Document any issues found and ensure all tests are passing before proceeding.",
+            "title": "Update Room Structures to Use ws-connection Objects",
+            "description": "Modify the room data structures in the canvas application to store ws-connection instances instead of Hunchensocket objects, ensuring compatibility with the new connection handling system.",
+            "dependencies": [],
+            "details": "Locate the room struct or class definitions in the codebase (likely in room.lisp or similar). Change the fields that previously held Hunchensocket objects to now hold ws-connection structs. Update any initialization code to create or assign ws-connection instances. Ensure that the room can handle multiple connections properly.",
             "status": "pending",
-            "testStrategy": "Validate all acceptance criteria including no errors and tests passing.",
+            "testStrategy": "Unit test room creation and initialization to verify that ws-connection objects are stored correctly and room counts are accurate.",
             "parentId": "undefined"
           },
           {
             "id": 2,
-            "title": "Run Performance Benchmarks Against v7 Baseline",
-            "description": "Execute performance tests using PerformanceMonitor to compare current performance against the v7 baseline and ensure FPS meets the required criteria.",
+            "title": "Modify Room Management Functions for New Connection Objects",
+            "description": "Update the functions responsible for adding and removing connections from rooms to operate with ws-connection structs instead of Hunchensocket objects.",
             "dependencies": [
-              5,
-              6,
-              7,
-              8,
-              9,
-              10,
-              11,
-              12,
-              13,
-              14
+              1
             ],
-            "details": "Set up and run PerformanceMonitor on the application, measure FPS and other key metrics during benchmarks, compare results directly to the v7 baseline data, and verify that performance thresholds are met or exceeded.",
+            "details": "Identify and modify functions such as add-connection-to-room and remove-connection-from-room. Change their parameters and logic to work with ws-connection structs, including updating any broadcasting or messaging mechanisms. Ensure error handling for invalid connections and maintain thread safety if applicable.",
             "status": "pending",
-            "testStrategy": "Monitor FPS and other performance metrics, ensuring they meet or exceed the v7 baseline criteria.",
+            "testStrategy": "Unit test the add and remove functions with mock ws-connection objects, verifying correct addition/removal, updated room counts, and proper broadcasting of messages to remaining connections.",
             "parentId": "undefined"
           }
         ],
         "complexity": 6,
         "recommendedSubtasks": 2,
-        "expansionPrompt": "Generate subtasks for running functional checks on user stories and separate subtasks for performance benchmarks against v7 baseline.",
-        "updatedAt": "2025-10-15T21:00:32.389Z"
+        "expansionPrompt": "Break down into subtasks for updating room structures and modifying management functions.",
+        "updatedAt": "2025-10-15T21:51:05.530Z"
+      },
+      {
+        "id": "10",
+        "title": "Port WebSocket Message Handlers",
+        "description": "Implement handle-websocket-message, handle-auth-message, and dispatch-message for new API.",
+        "details": "In handle-websocket-message, parse JSON, check auth, dispatch to handlers. Implement send-to-socket and broadcast-to-room using websocket-driver:send. Port cursor-update, object-create/update/delete handlers.",
+        "testStrategy": "Integration test: Connect WebSocket client, send auth message, verify auth-success. Send updates and check broadcasts to multiple clients.",
+        "priority": "high",
+        "dependencies": [
+          "9"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement WebSocket Message Parsing",
+            "description": "Parse incoming JSON messages in the handle-websocket-message function to extract message type and payload.",
+            "dependencies": [
+              10
+            ],
+            "details": "Modify handle-websocket-message to use a JSON parsing library (e.g., cl-json) to decode the incoming WebSocket message string into a Lisp object, extracting fields like 'type' and 'data'. Ensure error handling for malformed JSON by sending appropriate error responses back to the client. This sets the foundation for further processing in auth and dispatch steps.",
+            "status": "pending",
+            "testStrategy": "Unit test with mock WebSocket messages to verify correct parsing of valid JSON and error handling for invalid JSON.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement Authentication Message Handling",
+            "description": "Add authentication checks in handle-auth-message to validate user credentials and manage session state.",
+            "dependencies": [
+              10
+            ],
+            "details": "In handle-auth-message, verify the auth token or credentials from the parsed message against the canvas access rules. If valid, update the ws-connection struct with auth status and user info; if invalid, send an auth-failure message. Integrate with existing auth logic from the old system, ensuring compatibility with canvas-id validation.",
+            "status": "pending",
+            "testStrategy": "Unit test handle-auth-message with mock auth data, checking for correct auth-success or auth-failure responses.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Implement Message Dispatching and Port Handlers",
+            "description": "Dispatch parsed messages to appropriate handlers and port cursor-update, object-create/update/delete handlers using websocket-driver.",
+            "dependencies": [
+              10
+            ],
+            "details": "Implement dispatch-message to route messages based on type (e.g., cursor-update, object-create). Port the handlers from the old API, adapting them to use websocket-driver:send for send-to-socket and broadcast-to-room functions. Ensure broadcasting sends updates to all clients in the room except the sender, and handle object CRUD operations with proper state synchronization.",
+            "status": "pending",
+            "testStrategy": "Integration test: Simulate WebSocket connections, send various message types, and verify correct dispatching, handler execution, and broadcasts to multiple clients.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Expand into subtasks for implementing message parsing, auth handling, and dispatching/porting specific handlers.",
+        "updatedAt": "2025-10-15T21:52:45.089Z"
+      },
+      {
+        "id": "11",
+        "title": "Tune Woo for Production Workload",
+        "description": "Configure Woo parameters, add metrics, and optimize for concurrency based on Fukamachi's best practices, including production clackup configuration, Linux kernel tuning, SBCL runtime tuning, connection monitoring, performance testing, and database pool thread safety.",
+        "status": "done",
+        "dependencies": [
+          "10"
+        ],
+        "priority": "medium",
+        "details": "Configure Woo with production-optimized parameters: (clack:clackup app :server :woo :address \"0.0.0.0\" :port 8080 :debug nil :worker-num 1 :backlog 4096 :max-request-per-child nil :use-thread nil). Use single worker due to SQLite limitations. Add Linux kernel tuning: ulimit -n 65535; sysctl -w net.core.somaxconn=4096; sysctl -w net.ipv4.tcp_max_syn_backlog=4096. Include SBCL runtime tuning: (sb-ext:gc :full t); (setf (sb-ext:bytes-consed-between-gcs) 67108864); (setf sb-thread:*deadlock-detection* t). Implement real-time connection monitoring with stats logging every 60 seconds. Ensure SQLite connection pool is thread-safe. Load test with wrk and thor, targeting HTTP 5000+ req/sec, WebSocket 100+ connections with <10ms latency, memory <500MB, CPU <30%.",
+        "testStrategy": "Performance test using wrk for HTTP (wrk -t4 -c100 -d30s http://localhost:8080/health) and thor for WebSocket (thor ws://localhost:8080/ws/test-canvas --amount 100 --messages 1000). Measure and document metrics in performance report: latency <10ms, memory <500MB for 100 connections (<5MB per connection), messages/sec >10,000, CPU <30%. Compare to Fukamachi's benchmarks aligning with Go's performance.",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Configure Woo Parameters",
+            "description": "Set up the clackup options for Woo server including worker number, backlog, threading settings, and additional production optimizations. Ensure the database pool is thread-safe for SQLite.",
+            "dependencies": [],
+            "details": "In the server configuration, set :server :woo, :address \"0.0.0.0\", :port 8080, :debug nil, :worker-num 1, :backlog 4096, :max-request-per-child nil, :use-thread nil. Add Linux kernel tuning in deployment scripts: ulimit -n 65535; sysctl -w net.core.somaxconn=4096; sysctl -w net.ipv4.tcp_max_syn_backlog=4096. Include SBCL runtime tuning: (sb-ext:gc :full t); (setf (sb-ext:bytes-consed-between-gcs) 67108864); (setf sb-thread:*deadlock-detection* t). Ensure SQLite connection pool uses single connection with write serialization or mutex locks for thread safety.",
+            "status": "pending",
+            "testStrategy": "Verify server starts without errors with the new settings, kernel tunings applied, and SBCL optimizations in place.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Add Connection Stats Monitoring",
+            "description": "Implement real-time monitoring for connection statistics in the Woo server, following Fukamachi's pattern.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement get-connection-stats function to track :timestamp, :total-connections (hash-table-count *ws-connections*), :total-rooms (hash-table-count *canvas-rooms*), :memory-mb (/ (sb-ext:dynamic-space-size) 1048576), :threads (length (bt:all-threads)). Create a background thread to log stats every 60 seconds using (bt:make-thread ... :name \"stats-logger\"). Integrate into Woo event loop for real-time metrics.",
+            "status": "pending",
+            "testStrategy": "Check that metrics are logged correctly every 60 seconds during server operation, including connection counts, memory usage, and thread info.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Perform Load Testing",
+            "description": "Conduct comprehensive load testing on the Woo server to ensure it handles production workloads efficiently, aligning with Fukamachi's benchmarks.",
+            "dependencies": [
+              2
+            ],
+            "details": "Use wrk for HTTP load testing (wrk -t4 -c100 -d30s http://localhost:8080/health) and thor for WebSocket testing (thor ws://localhost:8080/ws/test-canvas --amount 100 --messages 1000). Simulate 100+ concurrent connections and measure latency, memory usage, message throughput, and CPU. Aim for HTTP 5000+ req/sec, WebSocket <10ms latency, memory <500MB (<5MB per connection), CPU <30%. Document all metrics in a performance report comparing to Go's web server performance.",
+            "status": "pending",
+            "testStrategy": "Run load tests and verify metrics meet targets: HTTP 5000+ req/sec with 100 concurrent connections, WebSocket 100+ connections with <10ms latency, memory <500MB, CPU <30%. Generate performance report with detailed comparisons.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Break down into subtasks for configuration, adding metrics, and performance/load testing.",
+        "updatedAt": "2025-10-15T21:55:51.763Z"
+      },
+      {
+        "id": "12",
+        "title": "Perform Cutover and Cleanup",
+        "description": "Update main.lisp to use new server, remove Hunchentoot code, update docs, and deploy.",
+        "details": "Change main.lisp to call start-server from server.lisp. Delete old setup-routes, hunchensocket classes. Remove old deps from ASD. Update README, architecture docs. Test end-to-end, deploy to staging/production.",
+        "testStrategy": "Full integration test: Run application, connect clients, verify all features. Monitor for 24 hours in staging, check metrics against targets.",
+        "priority": "high",
+        "dependencies": [
+          "11"
+        ],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Update main.lisp to integrate new server",
+            "description": "Modify main.lisp to call the start-server function from server.lisp instead of the old Hunchentoot setup.",
+            "dependencies": [],
+            "details": "Locate main.lisp in the project root, replace any direct Hunchentoot server initialization with a call to (start-server) from server.lisp. Ensure the file compiles without errors and integrates properly with the new server architecture.",
+            "status": "pending",
+            "testStrategy": "Compile main.lisp and verify it loads without errors using (load \"main.lisp\").",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Remove old Hunchentoot code and dependencies",
+            "description": "Delete obsolete Hunchentoot-related code and remove old dependencies from the ASD file.",
+            "dependencies": [
+              1
+            ],
+            "details": "In main.lisp, delete old setup-routes functions and hunchensocket classes. Edit collabcanvas.asd to remove old dependencies like Hunchentoot from the :depends-on section. Ensure the project still loads correctly after removals.",
+            "status": "pending",
+            "testStrategy": "Run (ql:quickload :collabcanvas) after changes and check for any loading errors or missing dependencies.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Update README and architecture documentation",
+            "description": "Revise the README and architecture docs to reflect the new server setup and removal of Hunchentoot.",
+            "dependencies": [
+              2
+            ],
+            "details": "Update README.md to describe the new Clack/Woo server instead of Hunchentoot, including setup instructions. Modify architecture docs to explain the new server.lisp, app.lisp, and websocket-adapter.lisp components. Ensure docs are accurate and up-to-date.",
+            "status": "pending",
+            "testStrategy": "Review updated docs for clarity and accuracy, and verify links or references to old code are removed.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Conduct end-to-end testing and deploy to staging/production",
+            "description": "Perform full integration testing and deploy the updated application to staging and production environments.",
+            "dependencies": [
+              3
+            ],
+            "details": "Run the application, connect clients, and verify all features work as expected. Monitor in staging for 24 hours, checking metrics against targets. If successful, deploy to production following standard procedures.",
+            "status": "pending",
+            "testStrategy": "Full integration test: Run application, connect clients, verify all features. Monitor for 24 hours in staging, check metrics against targets.",
+            "parentId": "undefined"
+          }
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Expand into subtasks for updating main.lisp, removing old code, updating docs, and deployment/testing.",
+        "updatedAt": "2025-10-15T21:59:24.500Z"
+      },
+      {
+        "id": "13",
+        "title": "Create Production-Ready Docker Configuration for CollabCanvas with Woo",
+        "description": "Implement a production-ready Docker setup based on Fukamachi's battle-tested template, including Dockerfile, entrypoint script, and supporting files to containerize CollabCanvas with Woo server for deployment.",
+        "details": "Following Fukamachi's proven Docker pattern for Lisp applications, create a Dockerfile starting from fukamachi/sbcl base image with environment variable PORT set to 5000. Include RUN commands to update apt and install necessary dependencies like libev-dev, gcc, libc6-dev, and SQLite-related packages (e.g., libsqlite3-dev), then clean up package lists. Set WORKDIR to /app and COPY entrypoint.sh to /srv. Install Clack and Woo via Roswell (ros install clack woo). Set ENTRYPOINT to /srv/entrypoint.sh and CMD to [\"app.lisp\"]. For entrypoint.sh, create an executable bash script that executes clackup with Woo server, debug nil, address 0.0.0.0, port from $PORT, and passes additional arguments. To integrate frontend, use a multi-stage build: first stage builds frontend with Vite (npm run build) and copies dist to a scratch stage, then copies to the final image. Ensure SQLite is installed for database operations, and add logic in entrypoint.sh to initialize database schema on first run if needed (e.g., check for DB file and run migration script). Handle SIGTERM gracefully by trapping signals and calling stop-server if applicable. Support environment variables like PORT, DATABASE_URL, etc. Create .dockerignore to exclude node_modules, .git, etc. Provide docker-compose.yml for local testing with services for app and possibly database. Include documentation in README or separate file on building (docker build -t collabcanvas .), running (docker run -p 5000:5000 collabcanvas), and environment setup. Adhere to best practices: use non-root user, minimize layers, leverage Docker caching, and ensure compatibility with Woo's production tuning from Task 11.",
+        "testStrategy": "Build the Docker image with 'docker build -t collabcanvas .' and verify no errors occur. Run the container with 'docker run -p 5000:5000 collabcanvas' and check that the server starts successfully by monitoring logs for Woo startup messages. Perform health checks by curling the /health endpoint and confirming a 200 response with expected JSON. Test frontend asset serving by accessing static files via HTTP and verifying they load correctly. Validate WebSocket functionality by connecting a client (e.g., via wscat) to the /ws endpoint and sending/receiving messages, ensuring connections persist through the container. Test graceful shutdown by sending SIGTERM (docker stop) and confirming the process exits cleanly without errors in logs. Use docker-compose up for integrated testing, including database initialization if applicable, and run performance checks with tools like wrk for HTTP load and thor for WebSocket stress to ensure metrics align with production expectations (e.g., latency <10ms under load). Document all test results and any issues resolved.",
+        "status": "done",
+        "dependencies": [
+          "11"
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create backend/Dockerfile following Fukamachi's template",
+            "description": "Develop a Dockerfile based on Fukamachi's battle-tested template for Lisp applications, using the fukamachi/sbcl base image, installing necessary dependencies like libev-dev, gcc, libc6-dev, and SQLite packages, setting up Roswell to install Clack and Woo, copying application files, and implementing a multi-stage build to include frontend assets for a production-ready container.",
+            "dependencies": [],
+            "details": "Start with FROM fukamachi/sbcl and set ENV PORT=5000. Include RUN apt-get update && apt-get install -y libev-dev gcc libc6-dev libsqlite3-dev && rm -rf /var/lib/apt/lists/*. Set WORKDIR /app. COPY entrypoint.sh /srv. RUN ros install clack woo. COPY collabcanvas.asd src/ /app/. For multi-stage: Use a builder stage for frontend (FROM node:alpine, COPY package.json, RUN npm install, COPY ., RUN npm run build). Then FROM scratch, COPY --from=builder /app/dist /app/static. Finally, set ENTRYPOINT /srv/entrypoint.sh and CMD [\"app.lisp\"]. Ensure non-root user and minimize layers.",
+            "status": "pending",
+            "testStrategy": "Build the image with docker build -t collabcanvas . and verify it completes without errors, checking layer sizes for optimization.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Create backend/entrypoint.sh with initialization logic",
+            "description": "Create an executable entrypoint script that handles database initialization, environment variables, graceful shutdown, and starts the Woo server via clackup.",
+            "dependencies": [
+              1
+            ],
+            "details": "Write a bash script as entrypoint.sh, make it executable with chmod +x. Include logic to check for database file and run schema initialization if needed (e.g., if [ ! -f $DB_PATH ]; then sqlite3 $DB_PATH < schema.sql; fi). Handle environment variables like PORT, DATABASE_URL, DEBUG. Trap SIGTERM for graceful shutdown (trap 'stop-server' TERM). Use exec clackup --server woo --debug nil --address 0.0.0.0 --port $PORT app.lisp. Log startup info like 'Starting CollabCanvas on port $PORT'. Ensure it passes additional arguments if any.",
+            "status": "pending",
+            "testStrategy": "Test the script manually by running it in a container and checking logs for initialization messages, database creation, and proper server startup.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Create backend/.dockerignore",
+            "description": "Create a .dockerignore file to exclude unnecessary files from the Docker build context, improving build efficiency and security.",
+            "dependencies": [],
+            "details": "List exclusions such as .git/, node_modules/, *.fasl, test/, data/, and development artifacts. Ensure to include necessary files like src/, collabcanvas.asd, db/schema.sql, and entrypoint.sh. This prevents sensitive or large files from being copied into the image, reducing build time and image size.",
+            "status": "pending",
+            "testStrategy": "After creating, run docker build and verify that excluded files are not present in the build context by checking the build output or inspecting the image layers.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Create docker-compose.yml for local testing",
+            "description": "Develop a docker-compose.yml file to define services for local development and testing, including the CollabCanvas app and any necessary databases.",
+            "dependencies": [
+              1,
+              2,
+              3
+            ],
+            "details": "Define a service named collabcanvas with build context from ., ports mapping like 8080:8080, environment variables (PORT=8080, DATABASE_URL=sqlite:///app/data/db.sqlite), volumes for mounting source code or data. Optionally add a database service if needed. Include healthcheck with test curl command. Ensure it supports development workflow with hot reloading if possible.",
+            "status": "pending",
+            "testStrategy": "Run docker-compose up and verify the service starts, ports are exposed, and health checks pass by accessing the app via browser or curl.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Test Docker build and run locally",
+            "description": "Perform local testing of the Docker setup by building the image, running the container, and verifying functionality including health endpoints, WebSocket connections, and graceful shutdown.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Execute docker build -t collabcanvas:latest . to build the image. Then run docker run -p 5000:5000 collabcanvas. Test with curl to /health endpoint. Check WebSocket functionality. Verify frontend assets are served. Test shutdown with docker stop and ensure no errors. Also test with docker-compose up for integrated testing.",
+            "status": "pending",
+            "testStrategy": "Monitor logs during build and run for errors. Use curl for HTTP requests, a WebSocket client for connections, and check response times and data integrity.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 6,
+            "title": "Document Docker deployment process",
+            "description": "Create comprehensive documentation for building, running, and deploying the Dockerized CollabCanvas application, including environment setup and troubleshooting.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "details": "Add a Docker section to README.md or create a separate docs/docker.md. Document environment variables (PORT, DATABASE_URL, etc.). Provide build commands (docker build -t collabcanvas .), run commands (docker run -p 5000:5000 collabcanvas), and docker-compose usage. Include troubleshooting for common issues like port conflicts or dependency errors. Add notes for production deployment on platforms like Fly.io, emphasizing Woo's tuning from Task 11.",
+            "status": "pending",
+            "testStrategy": "Review the documentation for completeness by following the steps manually and ensuring all commands work as described, updating based on any discrepancies found.",
+            "parentId": "undefined"
+          }
+        ],
+        "updatedAt": "2025-10-15T22:01:59.328Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2025-10-15T21:10:30.102Z",
-      "taskCount": 15,
-      "completedCount": 15,
+      "lastModified": "2025-10-15T22:01:59.330Z",
+      "taskCount": 13,
+      "completedCount": 13,
       "tags": [
-        "pixi-upgrade"
+        "woo"
       ]
     }
   }

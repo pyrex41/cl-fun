@@ -1,20 +1,15 @@
-;;;; package.lisp - Package definition for CollabCanvas
+;;;; package.lisp - Package definition for CollabCanvas (Woo/Clack Edition)
 
 (defpackage #:collabcanvas
   (:use #:cl)
-  (:import-from #:hunchentoot
-                #:*acceptor*
-                #:*request*
-                #:start
+  (:import-from #:clack
+                #:clackup
                 #:stop)
-  (:import-from #:hunchensocket
-                #:websocket-acceptor
-                #:websocket-resource
-                #:websocket-client
-                #:text-message-received
-                #:client-connected
-                #:client-disconnected
-                #:send-text-message)
+  (:import-from #:websocket-driver
+                #:make-server
+                #:send
+                #:on
+                #:start-connection)
   (:import-from #:jonathan
                 #:parse
                 #:to-json)
@@ -24,12 +19,18 @@
                 #:ascii-string-to-byte-array)
   (:import-from #:bordeaux-threads
                 #:make-lock
-                #:with-lock-held)
+                #:with-lock-held
+                #:make-thread
+                #:destroy-thread
+                #:all-threads)
   (:import-from #:alexandria
                 #:hash-table-keys
                 #:hash-table-values
                 #:when-let
                 #:if-let)
+  (:import-from #:cl-ppcre
+                #:scan
+                #:split)
   (:export
    ;; Server management
    #:start-server
