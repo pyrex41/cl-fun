@@ -136,7 +136,12 @@
 (defun handle-ws-message (conn-id message)
   "Handle incoming WebSocket message - parses JSON and dispatches to handlers."
   (handler-case
-      (let* ((data (jonathan:parse message :as :alist))
+      (let* ((parsed (jonathan:parse message :as :alist))
+             ;; Convert string keys to keyword keys (same as HTTP body parsing)
+             (data (mapcar (lambda (pair)
+                            (cons (intern (string-upcase (string (car pair))) :keyword)
+                                  (cdr pair)))
+                          parsed))
              (msg-type (cdr (assoc :type data)))
              (conn (get-ws-connection conn-id)))
 
@@ -212,9 +217,12 @@
 
 (defun handle-auth-message (conn-id data)
   "Handle WebSocket authentication message."
+  (format t "[WS AUTH DEBUG] Received data keys: ~A~%" (mapcar #'car data))
   (let* ((conn (get-ws-connection conn-id))
-         (session-id (cdr (assoc :session-id data)))
+         (session-id (or (cdr (assoc :session-id data))
+                         (cdr (assoc :sessionid data))))  ; Try both formats
          (canvas-id (ws-connection-canvas-id conn)))
+    (format t "[WS AUTH DEBUG] Extracted session-id: ~A~%" session-id)
 
     (if-let ((session (validate-session session-id)))
       (let ((user-id (cdr (assoc :user-id session)))
@@ -226,17 +234,20 @@
         (setf (ws-connection-session-id conn) session-id)
 
         ;; Send auth success with canvas state
-        (let ((canvas-state (load-canvas-state canvas-id)))
+        (let ((canvas-objects (get-canvas-objects canvas-id)))
+          (format t "[WS AUTH] Loading canvas state for ~A: ~A objects~%"
+                  canvas-id (length canvas-objects))
+          (format t "[WS AUTH] Canvas objects: ~A~%" canvas-objects)
           (send-ws-message conn-id
-            (jonathan:to-json
+            (to-json-string
              `((:type . "auth-success")
                (:user-id . ,user-id)
                (:username . ,username)
-               (:canvas-state . ,canvas-state)))))
+               (:canvas-state . ,canvas-objects)))))
 
         ;; Broadcast user connected
         (broadcast-to-canvas-room canvas-id
-          (jonathan:to-json
+          (to-json-string
            `((:type . "user-connected")
              (:user-id . ,user-id)
              (:username . ,username)))
@@ -246,7 +257,7 @@
 
       ;; Auth failed
       (send-ws-message conn-id
-        (jonathan:to-json
+        (to-json-string
          '((:type . "auth-failed")
            (:message . "Invalid or expired session")))))))
 
@@ -261,7 +272,7 @@
 
     (when (and user-id username)
       (broadcast-to-canvas-room canvas-id
-        (jonathan:to-json
+        (to-json-string
          `((:type . "cursor")
            (:user-id . ,user-id)
            (:username . ,username)
@@ -272,26 +283,40 @@
 (defun handle-object-create-message (conn-id data)
   "Handle object creation."
   (let* ((conn (get-ws-connection conn-id))
-         (object-data (cdr (assoc :object data)))
-         (object-id (cdr (assoc :id object-data)))
-         (user-id (ws-connection-user-id conn))
-         (username (ws-connection-username conn))
-         (canvas-id (ws-connection-canvas-id conn)))
+         (object-data (cdr (assoc :object data))))
 
-    (when (and user-id object-id)
-      ;; Save to canvas state
-      (update-canvas-object canvas-id object-id object-data user-id)
+    ;; Debug: print what we received
+    (format t "[WS DEBUG] object-data: ~A~%" object-data)
+    (format t "[WS DEBUG] object-data keys: ~A~%" (mapcar #'car object-data))
 
-      ;; Broadcast to room
-      (broadcast-to-canvas-room canvas-id
-        (jonathan:to-json
-         `((:type . "object-create")
-           (:object . ,object-data)
-           (:user-id . ,user-id)
-           (:username . ,username)))
-        conn-id)
+    (let* ((object-id (cdr (assoc "id" object-data :test #'string=)))
+           (user-id (ws-connection-user-id conn))
+           (username (ws-connection-username conn))
+           (canvas-id (ws-connection-canvas-id conn)))
 
-      (format t "[WS] Object created: ~A by ~A~%" object-id username))))
+      (format t "[WS DEBUG] object-id: ~A, user-id: ~A~%" object-id user-id)
+
+      (when (and user-id object-id)
+      ;; Convert object-data keys to keywords to match database format
+      ;; Jonathan parses nested objects with string keys like "id", "type", "color"
+      ;; but database expects keyword keys like :ID, :TYPE, :COLOR
+      (let ((object-data-keywords (mapcar (lambda (pair)
+                                            (cons (intern (string-upcase (car pair)) :keyword)
+                                                  (cdr pair)))
+                                          object-data)))
+        ;; Save to canvas state with converted keys
+        (update-canvas-object canvas-id object-id object-data-keywords user-id)
+
+        ;; Broadcast to room (use converted keys for consistency)
+        (broadcast-to-canvas-room canvas-id
+          (to-json-string
+           `((:type . "object-create")
+             (:object . ,object-data-keywords)
+             (:user-id . ,user-id)
+             (:username . ,username)))
+          conn-id)
+
+        (format t "[WS] Object created: ~A by ~A~%" object-id username))))))
 
 (defun handle-object-update-message (conn-id data)
   "Handle object update."
@@ -306,25 +331,36 @@
       ;; Get current object and merge updates
       (let ((current-object (get-canvas-object canvas-id object-id)))
         (when current-object
-          ;; Merge updates (remove old keys that are being updated)
-          (let* ((update-keys (mapcar #'car updates))
+          ;; Convert updates keys to keywords to match database format
+          ;; Jonathan parses nested objects with string keys like "x", "y"
+          ;; but database expects keyword keys like :X, :Y
+          (let* ((updates-alist (mapcar (lambda (pair)
+                                          (cons (intern (string-upcase (car pair)) :keyword)
+                                                (cdr pair)))
+                                        updates))
+                 ;; Extract update keys for comparison
+                 (update-keys (mapcar #'car updates-alist))
+                 ;; Remove old values from current object that are being updated
                  (filtered-current (remove-if
                                     (lambda (pair) (member (car pair) update-keys))
                                     current-object))
-                 (updated-object (append updates filtered-current)))
+                 ;; Merge: new updates + remaining current values
+                 (updated-object (append updates-alist filtered-current)))
 
-            ;; Save updated object
+            ;; Save updated object to database
             (update-canvas-object canvas-id object-id updated-object user-id)
 
-            ;; Broadcast update
+            ;; Broadcast update to other users in the room
             (broadcast-to-canvas-room canvas-id
-              (jonathan:to-json
+              (to-json-string
                `((:type . "object-update")
                  (:object-id . ,object-id)
-                 (:delta . ,updates)
+                 (:delta . ,updates-alist)
                  (:user-id . ,user-id)
                  (:username . ,username)))
-              conn-id)))))))
+              conn-id)
+
+            (format t "[WS] Object updated: ~A by ~A~%" object-id username)))))))
 
 (defun handle-object-delete-message (conn-id data)
   "Handle object deletion."
@@ -339,7 +375,7 @@
       (when (delete-canvas-object canvas-id object-id user-id)
         ;; Broadcast deletion
         (broadcast-to-canvas-room canvas-id
-          (jonathan:to-json
+          (to-json-string
            `((:type . "object-delete")
              (:object-id . ,object-id)
              (:user-id . ,user-id)
