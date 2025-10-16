@@ -13,9 +13,6 @@
   (:import-from #:jonathan
                 #:parse
                 #:to-json)
-  (:import-from #:dexador)
-  (:import-from #:babel)
-  (:import-from #:cl-base64)
   (:import-from #:ironclad
                 #:digest-sequence
                 #:byte-array-to-hex-string
@@ -48,25 +45,11 @@
    #:*database-path*
    #:*session-timeout*
 
-   ;; Auth0 config & OAuth
-   #:ensure-auth0-config!
-   #:auth0-authorize-url
-   #:auth0-token-url
-   #:auth0-userinfo-url
-   #:auth0-logout-url
-   #:handle-auth0-login
-   #:handle-auth0-callback
-   #:handle-auth0-link
-
    ;; Database
    #:init-database
    #:with-database
    #:execute-query
    #:execute-non-query
-   #:ensure-auth0-user-columns
-   #:get-user-by-auth0-sub
-   #:find-or-create-user-from-oauth
-   #:link-auth0-to-existing-user
 
    ;; Authentication
    #:register-user
@@ -83,11 +66,4 @@
    ;; WebSocket
    #:broadcast-to-room
    #:handle-canvas-message
-   #:get-room-users
-
-   ;; Auth Metrics
-   #:get-auth-metrics
-   #:get-auth-migration-stats
-   #:handle-auth-metrics
-   #:log-oauth-error
-   #:log-failed-login))
+   #:get-room-users))

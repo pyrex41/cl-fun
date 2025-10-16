@@ -324,96 +324,11 @@
                 (:email . ,(fourth row))))
             rows)))
 
-;;; Auth0 OAuth user operations
-(defun ensure-auth0-user-columns ()
-  "Ensure Auth0 columns exist in users table; add if missing"
-  (with-db-connection (conn)
-    (let ((cols (sqlite:execute-to-list conn "PRAGMA table_info(users)")))
-      ;; Check for auth0_sub column
-      (unless (find "auth0_sub" cols :key #'second :test #'string=)
-        (sqlite:execute-non-query conn
-                                 "ALTER TABLE users ADD COLUMN auth0_sub TEXT UNIQUE"))
-      ;; Check for display_name
-      (unless (find "display_name" cols :key #'second :test #'string=)
-        (sqlite:execute-non-query conn
-                                 "ALTER TABLE users ADD COLUMN display_name TEXT"))
-      ;; Check for avatar_url
-      (unless (find "avatar_url" cols :key #'second :test #'string=)
-        (sqlite:execute-non-query conn
-                                 "ALTER TABLE users ADD COLUMN avatar_url TEXT"))
-      ;; Check for email_verified
-      (unless (find "email_verified" cols :key #'second :test #'string=)
-        (sqlite:execute-non-query conn
-                                 "ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0"))
-      ;; Check for last_login_at
-      (unless (find "last_login_at" cols :key #'second :test #'string=)
-        (sqlite:execute-non-query conn
-                                 "ALTER TABLE users ADD COLUMN last_login_at TEXT"))
-      ;; Add indexes for new columns
-      (handler-case
-          (sqlite:execute-non-query conn "CREATE INDEX IF NOT EXISTS idx_users_auth0_sub ON users(auth0_sub)")
-        (error nil)))))
-
-(defun get-user-by-auth0-sub (auth0-sub)
-  "Get user by Auth0 subject (sub) claim"
-  (let ((row (execute-single
-              "SELECT id, email, username, auth0_sub, display_name, avatar_url, email_verified, created_at
-               FROM users WHERE auth0_sub = ?"
-              auth0-sub)))
-    (when row
-      `((:id . ,(first row))
-        (:email . ,(second row))
-        (:username . ,(third row))
-        (:auth0-sub . ,(fourth row))
-        (:display-name . ,(fifth row))
-        (:avatar-url . ,(sixth row))
-        (:email-verified . ,(seventh row))
-        (:created-at . ,(eighth row))))))
-
-(defun find-or-create-user-from-oauth (&key auth0-sub email display-name avatar-url email-verified)
-  "Find or create a user from OAuth claims"
-  (let ((existing (get-user-by-auth0-sub auth0-sub)))
-    (if existing
-        (progn
-          ;; Update last login
-          (execute-non-query
-           "UPDATE users SET last_login_at = datetime('now') WHERE id = ?"
-           (cdr (assoc :id existing)))
-          (cdr (assoc :id existing)))
-        ;; Create new user
-        (let* ((at-pos (and email (position #\@ email)))
-               (base-username (if (and email at-pos)
-                                 (subseq email 0 at-pos)
-                                 (if email email (format nil "user-~A" (subseq auth0-sub 0 8)))))
-               (final-username (if (get-user-by-username base-username)
-                                  (format nil "~A-~A" base-username (subseq (generate-session-id) 0 4))
-                                  base-username)))
-          (execute-non-query
-           "INSERT INTO users (email, username, auth0_sub, display_name, avatar_url, email_verified, last_login_at)
-            VALUES (?, ?, ?, ?, ?, ?, datetime('now'))"
-           email final-username auth0-sub display-name avatar-url (if email-verified 1 0))))))
-
-(defun link-auth0-to-existing-user (user-id auth0-sub email display-name avatar-url)
-  "Link Auth0 account to existing user (for migration)"
-  (execute-non-query
-   "UPDATE users
-    SET auth0_sub = ?,
-        display_name = COALESCE(?, display_name),
-        avatar_url = COALESCE(?, avatar_url),
-        email_verified = 1,
-        last_login_at = datetime('now')
-    WHERE id = ?"
-   auth0-sub display-name avatar-url user-id)
-  (format t "[INFO] Successfully linked Auth0 account ~A to user ~A~%" auth0-sub user-id)
-  user-id)
-
 ;;; Server lifecycle functions (called by server.lisp)
 (defun init-db ()
   "Initialize database for server startup"
   (format t "Initializing database...~%")
   (init-database)
-  ;; Ensure Auth0 columns exist
-  (ignore-errors (ensure-auth0-user-columns))
   (init-database-pool))
 
 (defun close-db ()

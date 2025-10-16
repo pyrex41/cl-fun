@@ -16,10 +16,6 @@ export default defineConfig({
         target: 'http://localhost:9090',
         changeOrigin: true
       },
-      '/auth0': {
-        target: 'http://localhost:8080',
-        changeOrigin: true
-      },
       '/ws': {
         target: 'ws://localhost:9090',
         ws: true,
