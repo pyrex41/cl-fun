@@ -90,25 +90,38 @@ class CollabCanvas {
     }
 
     async validateSession() {
+        console.log('[FRONTEND] Validating session...')
+        console.log('[FRONTEND] sessionId from localStorage:', this.sessionId)
+
         try {
             const response = await fetch('/api/session', {
                 credentials: 'include',
                 headers: {
-                    'Authorization': this.sessionId
+                    'X-Session-ID': this.sessionId
                 }
             })
 
+            console.log('[FRONTEND] Response status:', response.status)
+            console.log('[FRONTEND] Response ok:', response.ok)
+
             if (response.ok) {
                 const data = await response.json()
+                console.log('[FRONTEND] Response data:', data)
+
                 if (data.success && data.data && data.data.valid) {
                     this.userId = data.data['user-id']
                     this.username = data.data.username
-                    console.log('Session restored:', this.username)
+                    console.log('[FRONTEND] Session restored:', this.username)
                     return true
+                } else {
+                    console.log('[FRONTEND] Session validation failed - data.success:', data.success, 'data.data:', data.data, 'data.data.valid:', data.data?.valid)
                 }
+            } else {
+                const errorData = await response.json()
+                console.log('[FRONTEND] Error response:', errorData)
             }
         } catch (error) {
-            console.error('Session validation failed:', error)
+            console.error('[FRONTEND] Session validation exception:', error)
         }
 
         return false

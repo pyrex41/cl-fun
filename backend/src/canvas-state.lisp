@@ -166,47 +166,5 @@
   (let ((state (get-or-load-canvas-state canvas-id)))
     (gethash object-id (canvas-state-objects state))))
 
-;;; HTTP Handlers for canvas state
-(defun handle-get-canvas-state ()
-  "Handle GET request for canvas state"
-  (set-cors-headers)
-  (require-auth)
-
-  (let ((canvas-id (hunchentoot:get-parameter "canvas_id")))
-    (unless canvas-id
-      (return-from handle-get-canvas-state
-        (error-response "Canvas ID required")))
-
-    (let ((state (get-or-load-canvas-state canvas-id)))
-      (success-response
-       `((:canvas-id . ,canvas-id)
-         (:objects . ,(canvas-state-objects state))
-         (:version . ,(canvas-state-version state))
-         (:last-updated . ,(canvas-state-last-updated state)))))))
-
-(defun handle-save-canvas-state ()
-  "Handle POST request to save canvas state"
-  (set-cors-headers)
-  (require-auth)
-
-  (let ((data (get-json-body)))
-    (unless data
-      (return-from handle-save-canvas-state
-        (error-response "Invalid request body")))
-
-    (let ((canvas-id (cdr (assoc :canvas-id data)))
-          (objects (cdr (assoc :objects data))))
-
-      (unless (and canvas-id objects)
-        (return-from handle-save-canvas-state
-          (error-response "Canvas ID and objects required")))
-
-      ;; Update entire canvas state
-      (let* ((lock (get-or-create-canvas-lock canvas-id))
-             (state (get-or-load-canvas-state canvas-id)))
-        (bt:with-lock-held (lock)
-          (setf (canvas-state-objects state) objects)
-          (mark-canvas-dirty canvas-id)))
-
-      (success-response
-       '((:message . "Canvas state saved successfully"))))))
+;;; Note: HTTP handlers have been moved to app.lisp for Clack compatibility
+;;; This file now contains only core canvas state management logic

@@ -396,8 +396,8 @@
 (defun link-auth0-to-existing-user (user-id auth0-sub email display-name avatar-url)
   "Link Auth0 account to existing user (for migration)"
   (execute-non-query
-   "UPDATE users 
-    SET auth0_sub = ?, 
+   "UPDATE users
+    SET auth0_sub = ?,
         display_name = COALESCE(?, display_name),
         avatar_url = COALESCE(?, avatar_url),
         email_verified = 1,
@@ -406,3 +406,18 @@
    auth0-sub display-name avatar-url user-id)
   (format t "[INFO] Successfully linked Auth0 account ~A to user ~A~%" auth0-sub user-id)
   user-id)
+
+;;; Server lifecycle functions (called by server.lisp)
+(defun init-db ()
+  "Initialize database for server startup"
+  (format t "Initializing database...~%")
+  (init-database)
+  ;; Ensure Auth0 columns exist
+  (ignore-errors (ensure-auth0-user-columns))
+  (init-database-pool))
+
+(defun close-db ()
+  "Close database connections for server shutdown"
+  (format t "Closing database connections...~%")
+  (close-database-pool)
+  (disconnect-database))

@@ -1,13 +1,17 @@
-;;;; collabcanvas.asd - ASDF system definition for CollabCanvas
+;;;; collabcanvas.asd - ASDF system definition for CollabCanvas (Woo Edition)
 
 (defsystem "collabcanvas"
-  :description "Real-time collaborative design tool with WebSocket synchronization"
+  :description "Real-time collaborative design tool with WebSocket synchronization (Woo/Clack backend)"
   :author "CollabCanvas Team"
   :license "MIT"
-  :version "0.1.0"
+  :version "0.2.0"
   :serial t
-  :depends-on (:hunchentoot
-               :hunchensocket
+  :depends-on (;; Web framework and server
+               :clack
+               :woo
+               :lack
+               :websocket-driver
+               ;; Utilities and libraries (kept from original)
                :jonathan
                :ironclad
                :bordeaux-threads
@@ -23,14 +27,16 @@
                 ((:file "package")
                  (:file "config" :depends-on ("package"))
                  (:file "auth0-config" :depends-on ("package" "config"))
-                 (:file "auth0-oauth" :depends-on ("package" "config" "utils" "auth0-config"))
                  (:file "utils" :depends-on ("package" "config"))
                  (:file "database" :depends-on ("package" "config" "utils"))
                  (:file "auth" :depends-on ("package" "database" "utils"))
-                 (:file "canvas-state" :depends-on ("package" "database"))
-                 (:file "websocket" :depends-on ("package" "auth" "canvas-state"))
+                 (:file "auth0-oauth" :depends-on ("package" "config" "utils" "auth0-config" "auth"))
                  (:file "auth-metrics" :depends-on ("package" "database" "utils"))
-                 (:file "main" :depends-on ("package" "config" "database" "auth" "auth0-config" "auth0-oauth" "auth-metrics" "websocket" "canvas-state")))))
+                 (:file "canvas-state" :depends-on ("package" "database"))
+                 (:file "websocket-adapter" :depends-on ("package" "auth" "canvas-state"))
+                 (:file "app" :depends-on ("package" "websocket-adapter" "auth" "canvas-state" "auth0-oauth" "auth-metrics"))
+                 (:file "server" :depends-on ("package" "app" "database"))
+                 (:file "main" :depends-on ("package" "server" "auth"))))))
   :in-order-to ((test-op (test-op "collabcanvas/tests"))))
 
 (defsystem "collabcanvas/tests"

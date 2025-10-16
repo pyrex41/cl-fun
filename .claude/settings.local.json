@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for file in backend/src/*.lisp backend/*.lisp)",
+      "Bash(do [ -f \"$file\" ])",
+      "Bash(echo:*)",
+      "Bash(./format-lisp.ros:*)",
+      "Bash(done)",
+      "Bash(sblint:*)",
+      "Bash(git reset:*)",
+      "Bash(git add:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "task-master-ai"
+  ],
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write(*.lisp)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-lisp-edit.sh",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Edit(*.lisp)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/post-lisp-edit.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

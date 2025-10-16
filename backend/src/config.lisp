@@ -83,3 +83,6 @@
     "http://localhost:3000"
     "https://cl-fun.fly.dev")
   "List of allowed CORS origins")
+
+(defparameter *cors-origin* "*"
+  "CORS origin for Lack middleware - use '*' for development, specific origin for production")

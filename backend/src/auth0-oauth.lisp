@@ -481,6 +481,121 @@
     (when state-data
       (getf state-data :metadata))))
 
+;; Pure internal functions for Clack compatibility
+
+(defun build-auth0-login-redirect (&optional connection)
+  "Build Auth0 login redirect URL with CSRF state.
+   Parameters:
+     CONNECTION - Optional Auth0 connection name (e.g., 'google-oauth2')
+   Returns alist with :redirect-url key."
+  (ensure-auth0-config!)
+  (let* ((state (store-oauth-state (generate-oauth-state)))
+         (url (auth0-authorize-url :state state :connection connection)))
+    `((:redirect-url . ,url))))
+
+(defun handle-auth0-callback-internal (code state)
+  "Process OAuth callback internally without Hunchentoot context.
+   Parameters:
+     CODE - Authorization code from Auth0
+     STATE - CSRF state token to validate
+   Returns alist with :session-id, :user-id, :username keys on success,
+   or signals error on failure."
+  ;; Get metadata before popping state
+  (let ((metadata (get-oauth-state-metadata state)))
+    (unless (and code state (pop-oauth-state state))
+      (error "Invalid or expired state"))
+
+    ;; Check if this is a linking flow
+    (let ((link-user-id (and metadata (getf metadata :link-user-id))))
+      (handler-case
+          (let* ((token-resp (exchange-code-for-tokens code))
+                 (id-token (cdr (assoc :id-token token-resp)))
+                 (access-token (cdr (assoc :access-token token-resp)))
+                 (claims (and id-token (decode-and-validate-jwt id-token)))
+                 (sub (and claims (cdr (assoc :sub claims))))
+                 (email (and claims (cdr (assoc :email claims))))
+                 (name (and claims (cdr (assoc :name claims))))
+                 (picture (and claims (cdr (assoc :picture claims)))))
+            (unless sub
+              (error "Missing subject in ID token"))
+
+            ;; Ensure DB ready
+            (ensure-auth0-user-columns)
+
+            (let ((user-id
+                   (if link-user-id
+                       ;; Linking flow: update existing user with auth0_sub
+                       (progn
+                         (format t "[INFO] Linking Auth0 account ~A to user ~A~%" sub link-user-id)
+                         (link-auth0-to-existing-user link-user-id sub email name picture)
+                         link-user-id)
+                       ;; Normal flow: find or create user
+                       (find-or-create-user-from-oauth
+                        :auth0-sub sub
+                        :email email
+                        :display-name name
+                        :avatar-url picture
+                        :email-verified (cdr (assoc :email-verified claims))))))
+
+              ;; Get user info for response
+              (let ((user (get-user-by-id user-id)))
+                ;; Create session
+                (let* ((session-id (generate-session-id))
+                       (expires-at (local-time:format-timestring
+                                   nil (local-time:timestamp+
+                                        (local-time:now) *session-timeout* :sec))))
+                  (create-session user-id session-id expires-at)
+
+                  ;; Return session data
+                  `((:session-id . ,session-id)
+                    (:user-id . ,user-id)
+                    (:username . ,(cdr (assoc :username user))))))))
+        (error (e)
+          (format t "[ERROR] Callback processing failed: ~A~%" e)
+          (error "Callback processing failed: ~A" e))))))
+
+(defun handle-auth0-link-internal (session-id code state)
+  "Link Auth0 account to existing user session.
+   Parameters:
+     SESSION-ID - Active session ID
+     CODE - Authorization code from Auth0
+     STATE - CSRF state token to validate
+   Returns alist with :success t on success, or :success nil :error message on failure."
+  (let ((session (validate-session session-id)))
+    (unless session
+      (return-from handle-auth0-link-internal
+        `((:success . nil) (:error . "Invalid session"))))
+
+    (let ((user-id (cdr (assoc :user-id session))))
+      ;; Get metadata before popping state
+      (let ((metadata (get-oauth-state-metadata state)))
+        (unless (and code state (pop-oauth-state state))
+          (return-from handle-auth0-link-internal
+            `((:success . nil) (:error . "Invalid or expired state"))))
+
+        (handler-case
+            (let* ((token-resp (exchange-code-for-tokens code))
+                   (id-token (cdr (assoc :id-token token-resp)))
+                   (claims (and id-token (decode-and-validate-jwt id-token)))
+                   (sub (and claims (cdr (assoc :sub claims))))
+                   (email (and claims (cdr (assoc :email claims))))
+                   (name (and claims (cdr (assoc :name claims))))
+                   (picture (and claims (cdr (assoc :picture claims)))))
+              (unless sub
+                (return-from handle-auth0-link-internal
+                  `((:success . nil) (:error . "Missing subject in ID token"))))
+
+              ;; Ensure DB ready
+              (ensure-auth0-user-columns)
+
+              ;; Link account
+              (link-auth0-to-existing-user user-id sub email name picture)
+
+              `((:success . t) (:message . "Account linked successfully")))
+          (error (e)
+            (format t "[ERROR] Link processing failed: ~A~%" e)
+            `((:success . nil) (:error . ,(format nil "~A" e)))))))))
+
 (defun handle-auth0-callback ()
   "Process OAuth callback, validate state, exchange code, create session.
    Rate limited to prevent abuse."
