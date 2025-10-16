@@ -7,8 +7,12 @@
 
 (defun get-env-header (env header-name)
   "Get a header from Clack environment.
-   header-name should be a keyword like :x-session-id"
-  (getf env (intern (format nil "HTTP-~A" (string-upcase header-name)) :keyword)))
+   header-name should be a keyword like :x-session-id
+   Headers are stored in a hash table at :headers key"
+  (let ((headers (getf env :headers)))
+    (when headers
+      ;; Try lowercase with hyphens (standard HTTP header format)
+      (gethash (string-downcase (string header-name)) headers))))
 
 (defun get-env-cookie (env cookie-name)
   "Get a cookie value from Clack environment"
@@ -25,10 +29,17 @@
   (let* ((content-length (getf env :content-length))
          (input-stream (getf env :raw-body)))
     (when (and content-length (> content-length 0) input-stream)
-      (let ((body-string (make-string content-length)))
-        (read-sequence body-string input-stream)
+      (let* ((body-bytes (make-array content-length :element-type '(unsigned-byte 8)))
+             (bytes-read (read-sequence body-bytes input-stream))
+             (body-string (flexi-streams:octets-to-string body-bytes :end bytes-read)))
         (handler-case
-            (jonathan:parse body-string :as :alist)
+            ;; Parse JSON and convert string/symbol keys to keyword keys
+            (let* ((parsed (jonathan:parse body-string :as :alist))
+                   (result (mapcar (lambda (pair)
+                                    (cons (intern (string-upcase (string (car pair))) :keyword)
+                                          (cdr pair)))
+                                  parsed)))
+              result)
           (error (e)
             (format t "[ERROR] Failed to parse JSON body: ~A~%" e)
             nil))))))
@@ -38,7 +49,7 @@
    Returns (status headers body-list) format."
   (list status
         '(:content-type "application/json")
-        (list (jonathan:to-json data))))
+        (list (to-json-string data))))
 
 (defun clack-error-response (message &key (status 400))
   "Return Clack error response"
@@ -47,6 +58,19 @@
 (defun clack-success-response (data)
   "Return Clack success response"
   (clack-json-response `((:success . t) (:data . ,data))))
+
+(defun add-cors-headers (response)
+  "Add CORS headers to a Clack response"
+  (let ((status (first response))
+        (headers (second response))
+        (body (third response)))
+    (list status
+          (append headers
+                  (list :access-control-allow-origin *cors-origin*
+                        :access-control-allow-methods "GET, POST, PUT, DELETE, OPTIONS"
+                        :access-control-allow-headers "Content-Type, Authorization, X-Session-ID"
+                        :access-control-allow-credentials "true"))
+          body)))
 
 (defun handle-websocket-upgrade (env)
   "Handle WebSocket upgrade request.
@@ -59,9 +83,9 @@
       (return-from handle-websocket-upgrade
         (clack-error-response "Invalid WebSocket path - expected /ws/<canvas-id>" :status 400)))
 
-    ;; Create WebSocket connection
+    ;; Create WebSocket connection using websocket-driver
     (let* ((conn-id (format nil "ws-~A-~A" canvas-id (get-universal-time)))
-           (ws (getf env :websocket)))
+           (ws (websocket-driver:make-server env)))
 
       (format t "[WS] Upgrade request for canvas: ~A (conn: ~A)~%" canvas-id conn-id)
 
@@ -90,65 +114,57 @@
             (format t "[WS] Connection closed: ~A~%" conn-id)
             (handle-ws-disconnect conn-id)))
 
-        ;; Return 101 Switching Protocols
-        (list 101 '() '())))))
+        ;; Start the WebSocket connection
+        (websocket-driver:start-connection ws)
+
+        ;; Return function for async response handling
+        (lambda (responder)
+          (declare (ignore responder))
+          ws)))))
 
 (defun make-app ()
-  "Build and return the Clack application with middleware stack.
-   Uses Lack middleware for CORS, static files, and request handling."
-  (lack:builder
-   ;; CORS middleware - allow cross-origin requests
-   (:cors
-    :allow-origin *cors-origin*
-    :allow-methods '(:GET :POST :PUT :DELETE :OPTIONS)
-    :allow-headers '("Content-Type" "Authorization" "X-Session-ID")
-    :allow-credentials t)
+  "Build and return the Clack application without middleware."
+  (lambda (env)
+    (let ((request-method (getf env :request-method))
+          (path-info (getf env :path-info)))
 
-   ;; Static file serving middleware (for potential future use)
-   ;; :static :path "/static/" :root "./public/"
+      ;; Check for WebSocket upgrade request - return directly if WebSocket
+      (if (cl-ppcre:scan "^/ws/" path-info)
+          (handle-websocket-upgrade env)
 
-   ;; Main application handler
-   (lambda (env)
-     (let ((request-method (getf env :request-method))
-           (path-info (getf env :path-info)))
+          ;; Otherwise, route requests to appropriate handlers and add CORS
+          (add-cors-headers
+           (cond
+             ;; Health check endpoint
+             ((string= path-info "/health")
+              (handle-health env))
 
-       ;; Check for WebSocket upgrade request
-       (when (and (cl-ppcre:scan "^/ws/" path-info)
-                  (getf env :websocket))
-         (return-from nil (handle-websocket-upgrade env)))
+             ;; API endpoints
+             ((string= path-info "/api/register")
+              (handle-register env))
 
-       ;; Route requests to appropriate handlers
-       (cond
-         ;; Health check endpoint
-         ((string= path-info "/health")
-          (handle-health env))
+             ((string= path-info "/api/login")
+              (handle-login env))
 
-         ;; API endpoints
-         ((string= path-info "/api/register")
-          (handle-register env))
+             ((string= path-info "/api/logout")
+              (handle-logout env))
 
-         ((string= path-info "/api/login")
-          (handle-login env))
+             ((string= path-info "/api/session")
+              (handle-session-check env))
 
-         ((string= path-info "/api/logout")
-          (handle-logout env))
+             ((cl-ppcre:scan "^/api/canvas/state" path-info)
+              (handle-canvas-state env))
 
-         ((string= path-info "/api/session")
-          (handle-session-check env))
+             ;; OPTIONS handler for CORS preflight
+             ((eq request-method :options)
+              (list 200 '(:content-type "text/plain") '("")))
 
-         ((cl-ppcre:scan "^/api/canvas/state" path-info)
-          (handle-canvas-state env))
-
-         ;; OPTIONS handler for CORS preflight
-         ((eq request-method :options)
-          (list 200 '(:content-type "text/plain") '("")))
-
-         ;; 404 Not Found
-         (t
-          (list 404
-                '(:content-type "application/json")
-                (list (jonathan:to-json
-                       '(:|error| "Not Found"))))))))))
+             ;; 404 Not Found
+             (t
+              (list 404
+                    '(:content-type "application/json")
+                    (list (to-json-string
+                           '((:error . "Not Found"))))))))))))
 
 ;;; HTTP Handler Implementations (Clack format)
 
@@ -219,11 +235,32 @@
 
 (defun handle-session-check (env)
   "Check if current session is valid - Clack format"
+  ;; Debug: Print ALL headers from the hash table
+  (format t "~%[BACKEND DEBUG] ALL HEADERS IN HASH TABLE:~%")
+  (let ((headers (getf env :headers)))
+    (when headers
+      (maphash (lambda (key value)
+                 (format t "  ~A: ~A~%" key value))
+               headers)))
+  (format t "~%")
+
   (let ((session-id (or (get-env-cookie env "session")
+                        (get-env-header env :x-session-id)
                         (get-env-header env :authorization))))
+    (format t "[BACKEND] Session check request~%")
+    (format t "[BACKEND] Session ID from cookie: ~A~%" (get-env-cookie env "session"))
+    (format t "[BACKEND] Session ID from X-Session-ID header: ~A~%" (get-env-header env :x-session-id))
+    (format t "[BACKEND] Session ID from Authorization header: ~A~%" (get-env-header env :authorization))
+    (format t "[BACKEND] Using session-id: ~A~%" session-id)
+
     (if-let ((session (validate-session session-id)))
-      (clack-success-response session)
-      (clack-error-response "Invalid or expired session" :status 401))))
+      (progn
+        (format t "[BACKEND] Session valid! Session data: ~A~%" session)
+        ;; Add 'valid' field for frontend compatibility
+        (clack-success-response (acons :valid t session)))
+      (progn
+        (format t "[BACKEND] Session invalid or expired~%")
+        (clack-error-response "Invalid or expired session" :status 401)))))
 
 (defun handle-canvas-state (env)
   "Canvas state retrieval endpoint handler - Clack format.

@@ -142,38 +142,13 @@
   "Convert object to JSON string"
   (jonathan:to-json (convert-to-hash object)))
 
-;;; HTTP utilities
-(defun get-json-body ()
-  "Get and parse JSON body from current request"
-  (let ((raw-body (hunchentoot:raw-post-data :force-text t)))
-    (when raw-body
-      (parse-json raw-body))))
-
-(defun json-response (data &key (status 200))
-  "Send JSON response with appropriate headers"
-  (setf (hunchentoot:content-type*) "application/json")
-  (setf (hunchentoot:return-code*) status)
-  ;; Convert any alists to hash tables recursively
-  (jonathan:to-json (convert-to-hash data)))
-
-(defun error-response (message &key (status 400))
-  "Send error response as JSON"
-  (json-response `((:error . ,message)) :status status))
-
-(defun success-response (data)
-  "Send success response as JSON"
-  (json-response `((:success . t) (:data . ,data))))
-
-;;; CORS utilities
-(defun set-cors-headers ()
-  "Set CORS headers for development"
-  (when *cors-enabled*
-    (setf (hunchentoot:header-out "Access-Control-Allow-Origin") "*")
-    (setf (hunchentoot:header-out "Access-Control-Allow-Methods")
-          "GET, POST, PUT, DELETE, OPTIONS")
-    (setf (hunchentoot:header-out "Access-Control-Allow-Headers")
-          "Content-Type, Authorization")
-    (setf (hunchentoot:header-out "Access-Control-Max-Age") "3600")))
+;;; HTTP utilities - Removed old Hunchentoot functions
+;;; See app.lisp for Clack equivalents:
+;;;  - parse-env-body (was get-json-body)
+;;;  - clack-json-response (was json-response)
+;;;  - clack-error-response (was error-response)
+;;;  - clack-success-response (was success-response)
+;;; CORS is now handled by Lack middleware in make-app
 
 ;;; Validation utilities
 (defun valid-email-p (email)

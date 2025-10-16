@@ -323,3 +323,16 @@
                 (:username . ,(third row))
                 (:email . ,(fourth row))))
             rows)))
+
+;;; Server lifecycle functions (called by server.lisp)
+(defun init-db ()
+  "Initialize database for server startup"
+  (format t "Initializing database...~%")
+  (init-database)
+  (init-database-pool))
+
+(defun close-db ()
+  "Close database connections for server shutdown"
+  (format t "Closing database connections...~%")
+  (close-database-pool)
+  (disconnect-database))

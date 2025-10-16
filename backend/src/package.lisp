@@ -5,10 +5,6 @@
   (:import-from #:clack
                 #:clackup
                 #:stop)
-  (:import-from #:lack.builder
-                #:builder)
-  (:import-from #:lack.middleware.cors
-                #:*lack-middleware-cors*)
   (:import-from #:websocket-driver
                 #:make-server
                 #:send

@@ -14,7 +14,7 @@
                            (address "0.0.0.0")
                            (debug nil)
                            (worker-num 1)
-                           (backlog 4096))
+                           (backlog 128))
   "Start the CollabCanvas server using Woo.
 
    Parameters:

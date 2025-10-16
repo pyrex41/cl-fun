@@ -10,11 +10,7 @@
                :clack
                :woo
                :lack
-               :lack-middleware-static
-               :lack-middleware-cors
                :websocket-driver
-               :fast-http
-               :quri
                ;; Utilities and libraries (kept from original)
                :jonathan
                :ironclad
