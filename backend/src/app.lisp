@@ -24,6 +24,13 @@
             (when (string= (first parts) cookie-name)
               (return-from get-env-cookie (second parts)))))))))
 
+(defun get-client-ip-from-env (env)
+  "Extract client IP address from Clack environment, considering proxy headers.
+   Returns IP address string (IPv4 or IPv6)."
+  (or (get-env-header env :x-forwarded-for)
+      (get-env-header env :x-real-ip)
+      (getf env :remote-addr)))
+
 (defun parse-env-body (env)
   "Parse JSON body from Clack environment"
   (let* ((content-length (getf env :content-length))
@@ -292,7 +299,15 @@
 
 (defun handle-auth0-login-clack (env)
   "Auth0 OAuth login initiation - Clack format.
-   Redirects to Auth0 authorization endpoint with state CSRF protection."
+   Redirects to Auth0 authorization endpoint with state CSRF protection.
+   Rate limited to prevent abuse."
+  ;; Check rate limit first
+  (let ((client-ip (get-client-ip-from-env env)))
+    (unless (check-rate-limit client-ip)
+      (format t "[WARN] Rate limit exceeded for IP: ~A on /auth0/login~%" client-ip)
+      (return-from handle-auth0-login-clack
+        (clack-error-response "Too many requests. Please try again later." :status 429))))
+
   (handler-case
       (let* ((query-string (getf env :query-string))
              (connection (when query-string
@@ -318,7 +333,18 @@
 
 (defun handle-auth0-callback-clack (env)
   "Auth0 OAuth callback handler - Clack format.
-   Exchanges authorization code for tokens, validates JWT, creates session."
+   Exchanges authorization code for tokens, validates JWT, creates session.
+   Rate limited to prevent abuse."
+  ;; Check rate limit first
+  (let ((client-ip (get-client-ip-from-env env)))
+    (unless (check-rate-limit client-ip)
+      (format t "[WARN] Rate limit exceeded for IP: ~A on /auth0/callback~%" client-ip)
+      (return-from handle-auth0-callback-clack
+        (list 302
+              (list :location "/?error=rate_limit_exceeded"
+                    :access-control-allow-origin *cors-origin*)
+              '("")))))
+
   (handler-case
       (let* ((query-string (getf env :query-string))
              (params (when query-string
@@ -367,13 +393,21 @@
       (format t "[ERROR] Auth0 callback error: ~A~%" e)
       (list 302
             (list :location (format nil "/?error=server_error&error_description=~A"
-                                   (dexador:urlencode-params `(("msg" . ,(format nil "~A" e)))))
+                                   (dexador:urlencode (format nil "~A" e)))
                   :access-control-allow-origin *cors-origin*)
             '("")))))
 
 (defun handle-auth0-link-clack (env)
   "Auth0 account linking handler - Clack format.
-   Links existing user account with Auth0 OAuth account."
+   Links existing user account with Auth0 OAuth account.
+   Rate limited to prevent abuse."
+  ;; Check rate limit first
+  (let ((client-ip (get-client-ip-from-env env)))
+    (unless (check-rate-limit client-ip)
+      (format t "[WARN] Rate limit exceeded for IP: ~A on /auth0/link~%" client-ip)
+      (return-from handle-auth0-link-clack
+        (clack-error-response "Too many requests. Please try again later." :status 429))))
+
   (handler-case
       (let* ((session-id (or (get-env-cookie env "session")
                             (get-env-header env :x-session-id)))
