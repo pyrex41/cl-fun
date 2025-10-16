@@ -48,8 +48,8 @@
                                (when connection (cons "connection" connection)))))
          (encoded-params (mapcar (lambda (pair)
                                    (format nil "~A=~A"
-                                           (hunchentoot:url-encode (car pair))
-                                           (hunchentoot:url-encode (cdr pair))))
+                                           (quri:url-encode (car pair))
+                                           (quri:url-encode (cdr pair))))
                                  params)))
     (concatenate 'string base "?" (%join-with encoded-params "&"))))
 
@@ -62,9 +62,9 @@
 (defun auth0-logout-url (&key return-to)
   (let* ((base (format nil "~A/v2/logout" (auth0-base-url)))
          (params (remove nil
-                         (list (format nil "client_id=~A" (hunchentoot:url-encode *auth0-client-id*))
+                         (list (format nil "client_id=~A" (quri:url-encode *auth0-client-id*))
                                (when return-to
-                                 (format nil "returnTo=~A" (hunchentoot:url-encode return-to))))))
+                                 (format nil "returnTo=~A" (quri:url-encode return-to)))))))
     (concatenate 'string base "?" (%join-with params "&"))))
 
 (defun ensure-auth0-config! ()

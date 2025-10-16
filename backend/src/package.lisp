@@ -14,6 +14,8 @@
                 #:parse
                 #:to-json)
   (:import-from #:dexador)
+  (:import-from #:quri
+                #:url-encode)
   (:import-from #:babel)
   (:import-from #:cl-base64)
   (:import-from #:ironclad

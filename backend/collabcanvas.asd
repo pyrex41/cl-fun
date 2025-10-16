@@ -41,7 +41,6 @@
                  (:file "app" :depends-on ("package" "websocket-adapter" "auth" "canvas-state" "auth0-oauth" "auth-metrics"))
                  (:file "server" :depends-on ("package" "app" "database"))
                  (:file "main" :depends-on ("package" "server" "auth"))))))
-  :in-order-to ((test-op (test-op "collabcanvas/tests"))))
 
 (defsystem "collabcanvas/tests"
   :description "Test suite for CollabCanvas"
