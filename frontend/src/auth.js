@@ -76,28 +76,86 @@ export class AuthManager {
         this.modal.classList.add('hidden')
     }
 
-    loginWithAuth0() {
-        // Redirect to backend OAuth initiation
-        window.location.href = '/auth0/login'
+    showError(message, formId = 'login') {
+        const errorEl = document.getElementById(`${formId}-error`)
+        if (errorEl) {
+            errorEl.textContent = message
+            errorEl.style.display = 'block'
+        }
     }
 
-    loginWithGoogle() {
-        // Redirect to backend OAuth with Google connection
-        window.location.href = '/auth0/login?connection=google-oauth2'
+    async loginWithAuth0() {
+        try {
+            // Check backend health before redirecting
+            const response = await fetch('/auth0/login', { method: 'HEAD' })
+            if (!response.ok && response.status !== 405) {
+                // 405 Method Not Allowed is expected since we're doing HEAD
+                throw new Error('Authentication service unavailable')
+            }
+            // Redirect to backend OAuth initiation
+            window.location.href = '/auth0/login'
+        } catch (error) {
+            console.error('Auth0 login error:', error)
+            this.showError('Could not connect to authentication service. Please try again.')
+        }
     }
 
-    loginWithGithub() {
-        // Redirect to backend OAuth with GitHub connection
-        window.location.href = '/auth0/login?connection=github'
+    async loginWithGoogle() {
+        try {
+            // Check backend health before redirecting
+            const response = await fetch('/auth0/login?connection=google-oauth2', { method: 'HEAD' })
+            if (!response.ok && response.status !== 405) {
+                throw new Error('Authentication service unavailable')
+            }
+            // Redirect to backend OAuth with Google connection
+            window.location.href = '/auth0/login?connection=google-oauth2'
+        } catch (error) {
+            console.error('Google login error:', error)
+            this.showError('Could not connect to Google authentication. Please try again.')
+        }
+    }
+
+    async loginWithGithub() {
+        try {
+            // Check backend health before redirecting
+            const response = await fetch('/auth0/login?connection=github', { method: 'HEAD' })
+            if (!response.ok && response.status !== 405) {
+                throw new Error('Authentication service unavailable')
+            }
+            // Redirect to backend OAuth with GitHub connection
+            window.location.href = '/auth0/login?connection=github'
+        } catch (error) {
+            console.error('GitHub login error:', error)
+            this.showError('Could not connect to GitHub authentication. Please try again.')
+        }
     }
 
     checkAuthCallback() {
         // Check if returning from Auth0 callback
         const url = new URL(window.location)
         const code = url.searchParams.get('code')
-        const state = url.searchParams.get('state')
-        
-        if (code) {
+        const error = url.searchParams.get('error')
+        const errorDescription = url.searchParams.get('error_description')
+
+        if (error) {
+            // OAuth error returned from Auth0
+            console.error('OAuth error:', error, errorDescription)
+
+            // Show user-friendly error message
+            let message = 'Authentication failed. '
+            if (error === 'access_denied') {
+                message += 'Access was denied. Please try again.'
+            } else if (errorDescription) {
+                message += errorDescription
+            } else {
+                message += 'Please try again or contact support.'
+            }
+
+            this.showError(message)
+
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname)
+        } else if (code) {
             // Callback will be handled by backend redirect to /auth0/callback
             // which will set session cookie and redirect back
             console.log('Auth0 callback detected, processing...')

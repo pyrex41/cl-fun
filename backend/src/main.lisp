@@ -164,6 +164,14 @@
   (ignore-errors (ensure-auth0-config!))
   (setup-routes)
 
+  ;; Start state cleanup thread
+  (format t "Starting OAuth state cleanup thread...~%")
+  (start-state-cleanup-thread)
+
+  ;; Start rate limit cleanup thread
+  (format t "Starting rate limit cleanup thread...~%")
+  (start-rate-limit-cleanup-thread)
+
   ;; Create and start the acceptor (combines HTTP and WebSocket)
   (format t "Starting server on ~A:~A...~%" host port)
   (format t "Frontend path: ~A~%" *frontend-path*)
@@ -222,6 +230,18 @@
           (setf *websocket-acceptor* nil))
       (error (e)
         (format t "Error stopping server: ~A~%" e))))
+
+  ;; Stop state cleanup thread
+  (when (and *state-cleanup-thread* (bt:thread-alive-p *state-cleanup-thread*))
+    (format t "Stopping OAuth state cleanup thread...~%")
+    (bt:destroy-thread *state-cleanup-thread*)
+    (setf *state-cleanup-thread* nil))
+
+  ;; Stop rate limit cleanup thread
+  (when (and *rate-limit-cleanup-thread* (bt:thread-alive-p *rate-limit-cleanup-thread*))
+    (format t "Stopping rate limit cleanup thread...~%")
+    (bt:destroy-thread *rate-limit-cleanup-thread*)
+    (setf *rate-limit-cleanup-thread* nil))
 
   ;; Close connection pool
   (format t "Closing database connection pool...~%")

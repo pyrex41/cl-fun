@@ -3135,13 +3135,15 @@
       "completedCount": 15,
       "tags": [
         "pixi-upgrade"
-      ]
+      ],
+      "created": "2025-10-16T21:25:04.764Z",
+      "description": "Tasks for pixi-upgrade context"
     }
   },
   "auth0": {
     "tasks": [
       {
-        "id": 1,
+        "id": "1",
         "title": "Set up Auth0 configuration and environment variables",
         "description": "Configure Auth0 domain, client ID, client secret, callback URL, and audience in the application configuration to enable OAuth2 integration.",
         "details": "Create a configuration file or module (e.g., src/auth0-config.lisp) with parameters like *auth0-domain*, *auth0-client-id*, etc., using environment variables. Implement helper functions such as auth0-authorize-url, auth0-token-url, auth0-userinfo-url, and auth0-logout-url as specified in the PRD. Ensure secure handling of secrets and validate that all required environment variables are set.",
@@ -3149,10 +3151,13 @@
         "priority": "high",
         "dependencies": [],
         "status": "done",
-        "subtasks": []
+        "subtasks": [],
+        "complexity": 4,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Break down the setup of Auth0 configuration into subtasks focusing on creating the configuration module, implementing helper functions, and adding validation for environment variables."
       },
       {
-        "id": 2,
+        "id": "2",
         "title": "Update database schema to support Auth0 fields",
         "description": "Modify the users table to include Auth0-specific fields like auth0_sub, display_name, avatar_url, email_verified, and last_login_at, making password_hash nullable.",
         "details": "Execute the SQL schema changes as provided in the PRD, recreating the users table with new columns and copying existing data. Add indexes for auth0_sub, email, and username. Ensure backward compatibility by keeping password_hash nullable for legacy users.",
@@ -3160,131 +3165,392 @@
         "priority": "high",
         "dependencies": [],
         "status": "done",
-        "subtasks": []
+        "subtasks": [],
+        "complexity": 5,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Divide the database schema update into subtasks for executing SQL changes and ensuring data migration with backward compatibility."
       },
       {
-        "id": 3,
+        "id": "3",
         "title": "Implement OAuth2 authorization flow initiation",
         "description": "Create the handler to redirect users to Auth0's authorization endpoint with proper state parameter for CSRF protection.",
         "details": "Implement handle-auth0-login function in src/auth0-oauth.lisp, generating a secure state token, storing it temporarily, and redirecting to the Auth0 authorize URL. Include state expiry mechanism using threads for cleanup after 5 minutes.",
         "testStrategy": "Unit test the handler to ensure correct redirect URL generation and state storage. Simulate requests and verify state validation in subsequent steps.",
         "priority": "high",
         "dependencies": [
-          1
+          "1"
         ],
         "status": "done",
-        "subtasks": []
+        "subtasks": [],
+        "complexity": 6,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Expand the OAuth2 flow initiation into subtasks covering state token generation, temporary storage, and redirect handling with expiry mechanisms."
       },
       {
-        "id": 4,
+        "id": "4",
         "title": "Implement OAuth2 callback and token exchange",
         "description": "Handle the Auth0 callback, validate state, exchange authorization code for tokens, and process the response.",
         "details": "Implement handle-auth0-callback function, checking for errors and state validity, then calling exchange-code-for-tokens to POST to Auth0's token endpoint. Parse the response for access_token and id_token. Handle errors gracefully with logging.",
         "testStrategy": "Integration test by mocking the callback request with valid/invalid codes and states. Verify token exchange via HTTP calls to a test Auth0 endpoint and check error responses.",
         "priority": "high",
         "dependencies": [
-          1,
-          3
+          "1",
+          "3"
         ],
         "status": "done",
-        "subtasks": []
+        "subtasks": [],
+        "complexity": 7,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Break down the callback handling into subtasks for state validation, token exchange via HTTP, response parsing, and error handling."
       },
       {
-        "id": 5,
+        "id": "5",
         "title": "Implement JWT ID token decoding and validation",
         "description": "Decode the ID token, validate its signature, issuer, audience, and expiration, and extract user claims.",
         "details": "Implement decode-id-token and validate-jwt-signature functions, fetching JWKS from Auth0 for signature verification using RS256. Cache JWKS for 24 hours. Validate claims as per OAuth2 standards and return user info like sub, email, name, etc.",
         "testStrategy": "Unit test with mock JWTs, verifying signature validation, claim checks, and error handling for expired or invalid tokens. Use test JWKS data to simulate Auth0 responses.",
         "priority": "high",
         "dependencies": [
-          1,
-          4
+          "1",
+          "4"
         ],
         "status": "done",
-        "subtasks": []
+        "subtasks": [],
+        "complexity": 8,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Subdivide JWT handling into tasks for decoding, signature validation with JWKS, claim validation, and caching mechanisms."
       },
       {
-        "id": 6,
+        "id": "6",
         "title": "Implement user finding and creation from OAuth data",
         "description": "Check for existing users by auth0_sub or email, update or create new users, and handle linking for legacy accounts.",
         "details": "Implement find-or-create-user-from-oauth, get-user-by-auth0-sub, update-user-from-oauth, link-auth0-to-user, and create-user-from-oauth functions. Use database transactions for safety. Generate usernames from emails if needed.",
         "testStrategy": "Unit test the functions with mock OAuth user info, verifying user creation, updates, and linking. Integration test by inserting test data and checking database state after operations.",
         "priority": "medium",
         "dependencies": [
-          2,
-          5
+          "2",
+          "5"
         ],
         "status": "done",
-        "subtasks": []
+        "subtasks": [],
+        "complexity": 6,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Expand user management into subtasks for finding existing users, creating new ones, updating records, and handling legacy account linking with transactions."
       },
       {
-        "id": 7,
+        "id": "7",
         "title": "Implement session creation and cookie management",
         "description": "Create user sessions upon successful OAuth authentication and set secure session cookies.",
         "details": "After validating tokens and finding/creating users, call create-session-for-user and set-session-cookie with HttpOnly, Secure, SameSite=strict flags, and 24-hour expiry. Ensure sessions are stored securely.",
         "testStrategy": "Integration test the full flow, checking cookie setting and session retrieval. Verify cookie security attributes and session validity across requests.",
         "priority": "medium",
         "dependencies": [
-          5,
-          6
+          "5",
+          "6"
         ],
         "status": "done",
-        "subtasks": []
+        "subtasks": [],
+        "complexity": 5,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Divide session handling into subtasks for creating sessions and setting secure cookies with proper attributes."
       },
       {
-        "id": 8,
+        "id": "8",
         "title": "Update frontend for Auth0 login integration",
         "description": "Modify the frontend to include Auth0 login buttons, handle redirects, and support dual-mode authentication during transition.",
         "details": "Update frontend/src/auth.js with AuthManager class, adding loginWithAuth0, loginWithGoogle, loginWithGithub methods. Modify UI in login page to show Auth0 and social login options, keeping legacy login for transition.",
         "testStrategy": "Manual testing in browser: click login buttons, verify redirects to Auth0, and successful callback. Check UI rendering and error handling for failed logins.",
         "priority": "medium",
         "dependencies": [
-          3,
-          4
+          "3",
+          "4"
         ],
         "status": "done",
-        "subtasks": []
+        "subtasks": [],
+        "complexity": 5,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Break down frontend updates into subtasks for modifying the AuthManager class, updating UI elements, and supporting dual-mode authentication."
       },
       {
-        "id": 9,
+        "id": "9",
         "title": "Implement user migration and linking flow",
         "description": "Allow existing users to link their Auth0 accounts to legacy profiles during Phase 2.",
         "details": "Implement handle-link-auth0-account function, requiring legacy login first, then initiating OAuth with metadata to link. Update user records with auth0_sub upon successful linking. Add UI banners and email campaigns as per PRD.",
         "testStrategy": "Integration test the linking flow: simulate legacy login, initiate link, complete OAuth, and verify database updates. Manual test with real users to ensure no disruption.",
         "priority": "medium",
         "dependencies": [
-          6,
-          8
+          "6",
+          "8"
         ],
         "status": "done",
-        "subtasks": []
+        "subtasks": [],
+        "complexity": 7,
+        "recommendedSubtasks": 4,
+        "expansionPrompt": "Expand the migration flow into subtasks for implementing the linking handler, updating UI banners, managing email campaigns, and ensuring database updates."
       },
       {
-        "id": 10,
+        "id": "10",
         "title": "Implement monitoring, testing, and deprecation of legacy auth",
         "description": "Add metrics collection, comprehensive testing, and gradual removal of legacy authentication in Phase 3.",
         "details": "Implement get-auth-metrics for monitoring key stats. Conduct unit, integration, and manual tests as outlined. Add feature flags for Auth0 enablement and deprecate legacy endpoints after migration thresholds.",
         "testStrategy": "Run full test suite including OAuth flow simulations, social logins, and migration. Monitor metrics for errors and usage. Manual checklist verification for security and functionality.",
         "priority": "low",
         "dependencies": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9"
         ],
         "status": "done",
-        "subtasks": []
+        "subtasks": [],
+        "complexity": 9,
+        "recommendedSubtasks": 5,
+        "expansionPrompt": "Subdivide the final phase into tasks for metrics collection, comprehensive testing, feature flag implementation, legacy deprecation, and monitoring setup."
+      },
+      {
+        "id": "11",
+        "title": "Implement JWT Signature Validation with RS256 and JWKS",
+        "description": "Enhance JWT validation to include cryptographic signature verification using RS256 algorithm and Auth0's JWKS endpoint, ensuring secure token authenticity beyond claims validation.",
+        "details": "Update the existing JWT validation logic (likely in Task 5's functions) to incorporate signature verification. Use a robust JWT library such as 'jose' or 'cl-jwt' for Common Lisp to handle decoding, signature verification, and JWKS management. Implement a function to fetch Auth0's JWKS (JSON Web Key Set) from the configured endpoint (e.g., https://your-domain.auth0.com/.well-known/jwks.json), parse the keys, and select the appropriate RSA public key based on the 'kid' (Key ID) in the JWT header. Verify the JWT signature using RS256 (RSA with SHA-256) against the public key. Implement caching for the JWKS with a TTL (Time-To-Live) of 24 hours to minimize network calls and improve performance; use a thread-safe cache mechanism like a hash table with expiry timestamps or a library such as 'cl-cache'. Ensure the cache handles key rotation by re-fetching if a 'kid' is not found. Validate standard claims (iss, aud, exp, iat) as before, but now as part of a comprehensive validation function that returns true only if both signature and claims are valid. Handle errors gracefully, such as invalid signatures, network failures during JWKS fetch, or malformed JWKS, by logging and returning appropriate error responses. Consider security best practices: avoid storing private keys, use HTTPS for JWKS fetches, and implement rate limiting if needed. Integrate this into the OAuth callback flow after token exchange (from Task 4).",
+        "testStrategy": "Conduct unit tests with mock JWTs: create valid and invalid signed tokens using test keys, verify signature validation passes/fails correctly, and check JWKS caching behavior (e.g., simulate cache expiry and re-fetch). Use integration tests to simulate the full OAuth flow: mock Auth0 responses including JWKS, exchange code for tokens, and validate the ID token with signature verification. Test edge cases like key rotation (new 'kid'), network timeouts during JWKS fetch, and malformed JWKS. Perform manual tests in a staging environment with real Auth0 integration, monitoring logs for signature validation successes/failures and cache hits/misses. Verify performance impact by measuring response times with and without caching. Ensure compliance with OAuth2 and JWT RFC standards.",
+        "status": "done",
+        "dependencies": [
+          "4"
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement JWKS Fetching Function",
+            "description": "Create a function to fetch the JSON Web Key Set (JWKS) from Auth0's endpoint, handling network requests and parsing the response.",
+            "dependencies": [],
+            "details": "Implement a function named 'fetch-jwks' that makes an HTTPS GET request to the configured Auth0 JWKS endpoint (e.g., https://your-domain.auth0.com/.well-known/jwks.json). Use a Common Lisp HTTP library like Drakma to perform the request. Parse the JSON response into a usable structure, such as a list of key objects. Handle errors like network failures or invalid JSON by logging and returning nil or an error indicator. Ensure the function is thread-safe if called concurrently.",
+            "status": "pending",
+            "testStrategy": "Unit test the function with mocked HTTP responses: simulate successful fetches, network errors, and malformed JSON to verify correct parsing and error handling.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement JWKS Caching Mechanism",
+            "description": "Set up a thread-safe caching system for JWKS data with a 24-hour TTL to reduce network calls and handle key rotation.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement a cache using a thread-safe hash table or a library like cl-cache. Store the fetched JWKS with an expiry timestamp set to 24 hours from fetch time. Create functions to check cache validity, retrieve keys, and refresh the cache if expired or if a key ID is not found. Ensure the cache handles concurrent access using locks or atomic operations. Integrate this with the fetching function to automatically re-fetch when needed.",
+            "status": "pending",
+            "testStrategy": "Unit test caching behavior: simulate cache hits, misses, expiries, and key rotations by mocking time and verifying re-fetch calls.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Implement RSA Public Key Selection",
+            "description": "Add logic to select the appropriate RSA public key from the JWKS based on the 'kid' in the JWT header.",
+            "dependencies": [
+              2
+            ],
+            "details": "In the JWT validation process, decode the JWT header to extract the 'kid' (Key ID). Query the cached JWKS to find the matching key. If not found, trigger a cache refresh. Convert the selected key (in JWK format) to an RSA public key object using the JWT library (e.g., 'jose' or 'cl-jwt'). Handle cases where the key is not RSA or RS256 compatible by raising appropriate errors. This ensures the correct public key is used for signature verification.",
+            "status": "pending",
+            "testStrategy": "Unit test key selection: create mock JWKS with multiple keys, test matching 'kid', non-matching cases, and invalid key types.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Implement JWT Signature Verification with RS256",
+            "description": "Verify the JWT signature using the selected RSA public key and RS256 algorithm.",
+            "dependencies": [
+              3
+            ],
+            "details": "Using the JWT library, implement signature verification by decoding the JWT, extracting the signature, and verifying it against the RSA public key using RS256 (RSA with SHA-256). Ensure the verification process checks the entire token integrity. Return true if valid, false otherwise. Integrate error handling for invalid signatures, mismatched algorithms, or corrupted tokens, logging details for debugging.",
+            "status": "pending",
+            "testStrategy": "Unit test signature verification: use mock JWTs signed with test keys, verify valid signatures pass and invalid ones fail, including algorithm mismatches.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Integrate Comprehensive JWT Validation",
+            "description": "Combine signature verification with claims validation into a single function and integrate it into the OAuth callback flow.",
+            "dependencies": [
+              4
+            ],
+            "details": "Create a comprehensive 'validate-jwt' function that first performs signature verification (from subtask 4) and then validates standard claims (iss, aud, exp, iat) as in Task 5. Return true only if both are valid. Handle errors gracefully, such as by returning error responses. Integrate this into the OAuth callback handler after token exchange (from Task 4), ensuring the flow proceeds only on successful validation. Update existing logic from Task 5 to use this new function.",
+            "status": "pending",
+            "testStrategy": "Integration test the full validation: mock OAuth flow with valid/invalid tokens, verify signature and claims checks, and ensure proper error responses in the callback handler.",
+            "parentId": "undefined"
+          }
+        ],
+        "updatedAt": "2025-10-16T22:33:53.155Z"
+      },
+      {
+        "id": "12",
+        "title": "Implement Rate Limiting for OAuth Endpoints",
+        "description": "Add rate limiting middleware to the OAuth endpoints (/auth0/login, /auth0/callback, /auth0/link) to prevent abuse by enforcing a limit of 10 requests per hour per IP address using IP-based tracking with a sliding window mechanism.",
+        "details": "Implement rate limiting as middleware in the Common Lisp application to protect the specified OAuth endpoints from abuse. Create a global hash table *rate-limit-store* to track request timestamps per IP address, where each key is an IP string and the value is a list of timestamps (in Unix epoch seconds) for recent requests. Develop a check-rate-limit function that, for a given IP, removes timestamps older than 1 hour (3600 seconds) from the list (sliding window), counts the remaining timestamps, and returns true if the count is less than 10, otherwise false. If allowed, append the current timestamp to the list. Apply this middleware to the handlers for /auth0/login (from Task 3), /auth0/callback (from Task 4), and /auth0/link (from Task 9), checking the rate limit before processing the request and returning a 429 Too Many Requests HTTP status with an appropriate error message if exceeded. Use the client's IP address from the request headers (e.g., X-Forwarded-For or remote-addr), with considerations for proxies. For best practices, ensure thread-safety by using locks or atomic operations on the hash table in a multi-threaded environment like Hunchentoot. Periodically clean up the hash table to remove entries for IPs with no recent requests to prevent memory leaks. Research indicates using a sliding window over fixed windows reduces burstiness; consider libraries like cl-store for persistence if needed, but in-memory suffices for this scale. Handle IPv4 and IPv6 addresses uniformly.",
+        "testStrategy": "Conduct unit tests for the check-rate-limit function using mock IP addresses and timestamps: simulate multiple requests within an hour to verify blocking after 10, and test window sliding by advancing time and checking if older requests are pruned. Integration tests: Use a test framework to send repeated requests to each endpoint (/auth0/login, /auth0/callback, /auth0/link) from the same IP, verifying that the 11th request returns 429 status and subsequent requests are allowed after the hour window. Mock the IP extraction and test with various header scenarios. Load test with concurrent requests to ensure thread-safety and performance. Manual verification: Deploy to a staging environment, simulate abuse patterns, and monitor logs for rate limit hits without affecting legitimate traffic.",
+        "status": "done",
+        "dependencies": [
+          "3",
+          "4",
+          "9"
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Global Rate Limit Store",
+            "description": "Set up a global hash table to track request timestamps per IP address for rate limiting.",
+            "dependencies": [],
+            "details": "Implement a global hash table *rate-limit-store* in the Common Lisp application, where keys are IP strings and values are lists of Unix epoch timestamps for recent requests. Ensure it handles IPv4 and IPv6 uniformly.",
+            "status": "pending",
+            "testStrategy": "Unit test the hash table creation and basic operations like insertion and retrieval of timestamps for mock IP addresses.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 2,
+            "title": "Implement Check Rate Limit Function",
+            "description": "Develop the check-rate-limit function to enforce the sliding window rate limiting logic.",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a check-rate-limit function that takes an IP address, removes timestamps older than 3600 seconds from the list, counts remaining timestamps, and returns true if count < 10, appending current timestamp if allowed. Implement sliding window mechanism.",
+            "status": "pending",
+            "testStrategy": "Unit tests with mock IPs and timestamps: simulate requests to verify blocking after 10 within an hour, and test pruning of old timestamps by advancing time.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 3,
+            "title": "Extract Client IP Address from Request",
+            "description": "Implement logic to reliably extract the client's IP address from HTTP request headers.",
+            "dependencies": [],
+            "details": "Develop a function to get the client's IP from headers like X-Forwarded-For or remote-addr, considering proxy scenarios. Handle both IPv4 and IPv6 addresses uniformly for rate limiting purposes.",
+            "status": "pending",
+            "testStrategy": "Unit tests with various header combinations, including proxies, to ensure correct IP extraction. Mock requests to verify handling of forwarded headers.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 4,
+            "title": "Apply Rate Limiting Middleware to OAuth Endpoints",
+            "description": "Integrate the rate limiting check as middleware for the specified OAuth handlers.",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Modify the handlers for /auth0/login, /auth0/callback, and /auth0/link to check rate limit before processing. If exceeded, return 429 status with error message. Apply this middleware ensuring it uses the extracted IP.",
+            "status": "pending",
+            "testStrategy": "Integration tests using a test framework to send requests to the endpoints, verifying rate limiting blocks after 10 requests per hour per IP and allows within limits.",
+            "parentId": "undefined"
+          },
+          {
+            "id": 5,
+            "title": "Ensure Thread-Safety and Periodic Cleanup",
+            "description": "Add thread-safety and cleanup mechanisms to the rate limiting system.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Use locks or atomic operations for hash table access in multi-threaded Hunchentoot environment. Implement periodic cleanup to remove entries for IPs with no recent requests, preventing memory leaks. Consider in-memory storage sufficiency.",
+            "status": "pending",
+            "testStrategy": "Stress tests in a multi-threaded setup to verify thread-safety. Unit tests for cleanup function, simulating time passage and checking hash table size reduction.",
+            "parentId": "undefined"
+          }
+        ],
+        "updatedAt": "2025-10-16T22:35:49.751Z"
+      },
+      {
+        "id": "13",
+        "title": "Implement Environment-Dependent Secure Cookie Flag",
+        "description": "Modify the auth0-oauth.lisp file to make the :secure cookie flag dynamic based on the ENVIRONMENT environment variable, setting it to true for production to ensure cookies are only sent over HTTPS, while allowing insecure cookies in development.",
+        "details": "In the auth0-oauth.lisp file, replace the hardcoded :secure nil with a dynamic parameter. Define a global parameter *use-secure-cookies* that checks the ENVIRONMENT environment variable using (uiop:getenv \"ENVIRONMENT\") or similar. Set *use-secure-cookies* to t if ENVIRONMENT is \"production\" (or matches production values like \"prod\"), otherwise nil. This follows security best practices where secure cookies prevent transmission over insecure connections in production, reducing risks like session hijacking. Consider using a configuration module (e.g., from Task 1) to centralize environment checks. Ensure the parameter is evaluated at runtime or load time, and document the behavior. For Common Lisp, leverage libraries like uiop for environment access. Update any cookie-setting functions to use this parameter, such as in Hunchentoot or similar web frameworks. Best practices include defaulting to secure in production and providing clear logging or warnings if the environment is misconfigured.",
+        "testStrategy": "Unit test the *use-secure-cookies* parameter by mocking the ENVIRONMENT variable: set it to \"production\" and verify it returns t, set to \"development\" and verify nil. Integration test by simulating OAuth login in a test environment, checking that cookies are set with :secure t in production mode and nil in development. Use a test web server to inspect cookie headers in responses. Verify no regressions in existing OAuth flows by running full integration tests for login and callback endpoints.",
+        "status": "done",
+        "dependencies": [
+          "1"
+        ],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2025-10-16T22:22:42.589Z"
+      },
+      {
+        "id": "14",
+        "title": "Fix Thread Safety in State Token Cleanup",
+        "description": "Modify the cleanup-expired-states function in auth0-oauth.lisp to ensure thread-safe removal of expired state tokens by collecting keys first and removing them in a separate pass, preventing issues from modifying the hash table during iteration.",
+        "details": "In the cleanup-expired-states function around line 60 of auth0-oauth.lisp, address the thread safety issue where the hash table is modified during iteration, which can lead to undefined behavior or errors in Common Lisp implementations. Current best practices for thread-safe hash table operations in Common Lisp recommend avoiding modifications during iteration to prevent race conditions in multi-threaded environments. Implement the fix by first iterating over the hash table to collect expired keys into a list (e.g., using maphash or loop to check expiration based on timestamps), then perform a second pass to remove those keys from the hash table using remhash. Ensure the function uses appropriate locking if the hash table is accessed concurrently, such as with a mutex or bordeaux-threads locks, to synchronize access. Consider using a read-write lock for better performance if reads are more frequent than writes. Update any related documentation or comments to reflect the thread-safe approach. This aligns with Common Lisp concurrency patterns, drawing from libraries like bordeaux-threads for synchronization primitives, and ensures robustness in production environments where multiple threads might access the state store simultaneously.",
+        "testStrategy": "Conduct unit tests for the cleanup-expired-states function using a testing framework like FiveAM or Prove. Create a mock hash table populated with state tokens, some expired and some not, based on simulated timestamps. Test the function in a single-threaded context first to verify expired keys are correctly identified and removed without errors. For thread safety, use bordeaux-threads to spawn multiple threads that concurrently access and modify the hash table while the cleanup runs periodically (e.g., every few seconds in a loop). Monitor for race conditions by checking hash table integrity post-cleanup, ensuring no keys are lost or corrupted. Use tools like SBCL's thread inspector or add logging to detect any iteration-related exceptions. Integration tests should simulate the full OAuth flow with concurrent requests, verifying that state cleanup does not interfere with active sessions. Run stress tests with high concurrency to confirm no deadlocks or performance degradation, measuring execution time and memory usage.",
+        "status": "done",
+        "dependencies": [
+          "1"
+        ],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2025-10-16T22:19:20.381Z"
+      },
+      {
+        "id": "15",
+        "title": "Enhance Error Handling in OAuth Token Exchange",
+        "description": "Improve error handling in the exchange-code-for-token function within auth0-oauth.lisp by replacing the generic error handler with specific conditions for network errors and JSON parsing issues, providing appropriate HTTP status codes and user-friendly error messages.",
+        "details": "In the auth0-oauth.lisp file, locate the exchange-code-for-token function and modify its error handling from the generic (error (e)) clause to handle specific error types. Use drakma:drakma-error for network-related issues, such as connection failures or HTTP errors like 502 Bad Gateway, and define a custom json-parse-error condition for malformed JSON responses, typically associated with 500 Internal Server Error. For each error type, set the appropriate HTTP status code in the response and include user-friendly messages, e.g., 'Network error occurred during token exchange' for drakma:drakma-error and 'Invalid response format from authorization server' for json-parse-error. Ensure the error handling integrates with the application's web framework (e.g., Hunchentoot or similar) to return proper HTTP responses. Consider using Common Lisp's condition system to define and signal these errors, allowing for clean separation of concerns. Research indicates that specific error handling improves debugging and user experience, aligning with best practices in robust web application development. Avoid catching all errors generically to prevent masking underlying issues. If using libraries like Drakma for HTTP requests and a JSON parser like Yason or Jonathon, ensure compatibility. Update any related logging to capture error details for monitoring.",
+        "testStrategy": "Conduct unit tests for the exchange-code-for-token function using a testing framework like FiveAM or Prove. Mock network failures by simulating drakma:drakma-error conditions (e.g., using a test double for HTTP requests) and verify that a 502 status code is returned with the appropriate message. For JSON parsing errors, mock malformed responses and check for 500 status code and user-friendly message. Integration tests should simulate the full OAuth callback flow: use a test server to trigger the function with invalid codes or network disruptions, ensuring the application handles errors gracefully without crashing and logs details appropriately. Verify that valid token exchanges still succeed and that error responses are properly formatted (e.g., JSON or HTML based on the application's response type).",
+        "status": "done",
+        "dependencies": [
+          "1"
+        ],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2025-10-16T22:23:48.199Z"
+      },
+      {
+        "id": "16",
+        "title": "Enhance Frontend Error Handling for OAuth Methods in auth.js",
+        "description": "Improve error handling in the OAuth login methods (loginWithAuth0, loginWithGoogle, loginWithGithub) within auth.js by replacing simple console logging with comprehensive checks for HTTP response status, safe JSON parsing, and displaying user-friendly error messages via the showError method, while gracefully managing network failures.",
+        "details": "In the auth.js file, locate the AuthManager class and its OAuth methods (loginWithAuth0, loginWithGoogle, loginWithGithub). Currently, these methods likely use fetch or similar for API calls and only log errors to console. Enhance each method with robust error handling following modern JavaScript best practices: wrap the fetch calls in try-catch blocks to handle network failures (e.g., connection timeouts or DNS errors), check response.ok to identify HTTP errors (4xx/5xx), and safely parse JSON responses using response.json() within a try-catch to handle malformed JSON. For errors, extract relevant details from the response (e.g., error message from JSON body if available) and call the existing showError method to display user-friendly messages, such as 'Login failed: Invalid credentials' or 'Network error: Please check your connection'. Implement exponential backoff for retryable network errors (e.g., 5xx status codes) using a utility function with setTimeout, limiting retries to 3 attempts. Ensure error messages are localized if an i18n system is in place, and log detailed errors to console.error for debugging while keeping user-facing messages generic. Use async/await for readability and avoid callback hell. Consider integrating with a global error boundary or logging service like Sentry for production monitoring. This approach aligns with current best practices for frontend error handling, emphasizing user experience and security by not exposing sensitive details.",
+        "testStrategy": "Conduct manual testing in a browser environment: simulate various error scenarios using browser developer tools (e.g., throttle network to 'Offline' for network failures, use mock servers like Postman or a local Express server to return 4xx/5xx responses with error JSON). Verify that user-friendly messages appear via showError for each method, and check console.error logs for detailed debugging info. For unit tests, use Jest or Mocha to mock fetch responses: test successful logins, HTTP errors (e.g., 400 with error JSON), network failures (throwing errors), and malformed JSON. Assert that showError is called with appropriate messages, retries occur for 5xx errors, and no unhandled exceptions propagate. Integration tests should cover the full login flow, ensuring errors don't break the UI state and redirects work post-error. Validate accessibility by checking error messages are announced via screen readers if showError supports ARIA.",
+        "status": "done",
+        "dependencies": [
+          "8"
+        ],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2025-10-16T22:24:51.125Z"
+      },
+      {
+        "id": "17",
+        "title": "Add Docstrings to Core OAuth Functions in auth0-oauth.lisp",
+        "description": "Add comprehensive docstrings to key functions in auth0-oauth.lisp, including parse-jwt, exchange-code-for-token, validate-id-token, and other core OAuth functions, following Common Lisp conventions with detailed descriptions of parameters, return values, and behavior.",
+        "details": "In the auth0-oauth.lisp file, identify the core OAuth functions such as parse-jwt, exchange-code-for-token, validate-id-token, and any other essential functions (e.g., those handling token validation, state management, or error responses). For each function, add a docstring immediately following the function definition using Common Lisp's standard docstring placement. Follow established Common Lisp docstring conventions: start with a brief description of the function's purpose, then list parameters with their types and descriptions, followed by return value details including types and possible values. Include any side effects, error conditions, or examples where relevant. Use clear, concise language and ensure consistency across functions. For instance, for exchange-code-for-token, describe parameters like authorization-code and redirect-uri, and specify return values such as a token object or error signals. Research and incorporate best practices from Common Lisp documentation standards, such as those outlined in the CLHS (Common Lisp HyperSpec) and tools like SLIME for docstring formatting. Ensure docstrings are machine-readable for tools like documentation generators (e.g., using DECLARE or custom macros if needed, but stick to standard strings). Consider internationalization if applicable, but prioritize English for clarity. Update any related comments or inline documentation to avoid redundancy.",
+        "testStrategy": "Verify docstring addition by manually inspecting the auth0-oauth.lisp file to ensure each targeted function has a docstring in the correct position (after DEFUN or similar). Use a Common Lisp REPL or IDE like Emacs with SLIME to query function documentation via DESCRIBE or DOCUMENTATION functions, confirming that parameters, return values, and descriptions are accurately reflected. Conduct peer code review to assess clarity and adherence to conventions. Run automated checks if available (e.g., via linters like lisp-critic or custom scripts) to detect missing docstrings. Test that the functions still operate correctly after docstring addition by running existing unit tests for parse-jwt, exchange-code-for-token, etc., ensuring no functional changes were introduced. Document the docstrings in project documentation or README to confirm they enhance code maintainability.",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2025-10-16T22:21:53.015Z"
+      },
+      {
+        "id": "18",
+        "title": "Extract Magic Numbers to Named Constants in auth0-oauth.lisp",
+        "description": "Refactor the auth0-oauth.lisp file to replace hardcoded magic numbers, such as the 300-second state token TTL, with named constants following Common Lisp conventions, including rate limits, timeouts, and other similar values to improve code readability and maintainability.",
+        "details": "In the auth0-oauth.lisp file, identify all hardcoded magic numbers related to OAuth functionality, including but not limited to the state token TTL (e.g., 300 seconds), rate limiting thresholds, timeout values, HTTP status codes used in responses, and any other numeric literals that represent configurable or meaningful constants. Define these as named constants using Common Lisp's DEFCONSTANT macro, adhering to naming conventions by enclosing the names in plus signs, such as +STATE-TOKEN-TTL+, +RATE-LIMIT-THRESHOLD+, +REQUEST-TIMEOUT+, etc. Place these constant definitions at the top of the file or in a dedicated constants section for easy reference and modification. Ensure that the constants are evaluated at compile-time where possible for efficiency. Replace all occurrences of the magic numbers with references to these constants throughout the file, using tools like grep or manual inspection to avoid missing any instances. Consider grouping related constants (e.g., all time-related constants together) and adding comments explaining their purpose and units. This refactoring aligns with Common Lisp best practices for code maintainability, as outlined in resources like 'Practical Common Lisp' by Peter Seibel, which emphasizes avoiding magic numbers to make code self-documenting and easier to configure. Be cautious with DEFCONSTANT, as it creates true constants that cannot be redefined without warnings; if runtime configurability is needed, consider DEFPARAMETER instead, but for fixed values like TTLs, DEFCONSTANT is appropriate. After changes, ensure the file compiles without errors and that the constants are accessible in the package namespace.",
+        "testStrategy": "Verify the extraction by compiling the auth0-oauth.lisp file and checking for any compilation errors or warnings related to undefined variables. Use a Common Lisp REPL (e.g., SBCL or CCL) to load the file and inspect the defined constants using DESCRIBE or by evaluating them directly to confirm their values match the original magic numbers. Conduct unit tests with a framework like FiveAM or Prove to ensure that functions using these constants (e.g., state token expiration logic) behave identically before and after the change; for instance, create test cases that simulate token creation and expiration, asserting that TTL calculations use the new +STATE-TOKEN-TTL+ constant correctly. Perform integration tests by running the OAuth flow in a test environment, monitoring logs or responses to confirm that timeouts, rate limits, and other behaviors align with the constant values. Use code analysis tools like SLIME in Emacs to search for any remaining magic numbers in the file. Finally, document the constants in the code comments and verify that changing a constant value (e.g., via recompilation) propagates correctly without altering the source code elsewhere.",
+        "status": "done",
+        "dependencies": [
+          "1"
+        ],
+        "priority": "medium",
+        "subtasks": [],
+        "updatedAt": "2025-10-16T22:20:30.489Z"
       }
     ],
     "metadata": {
-      "created": "2025-10-16T04:58:43.781Z",
-      "updated": "2025-10-16T20:58:41.000Z",
-      "description": "Tasks for auth0 context - All tasks completed ✅"
+      "version": "1.0.0",
+      "lastModified": "2025-10-16T22:35:49.752Z",
+      "taskCount": 18,
+      "completedCount": 18,
+      "tags": [
+        "auth0"
+      ]
     }
   }
 }
