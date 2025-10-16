@@ -2,6 +2,18 @@
 // Complete PixiJS Canvas Manager for CollabCanvas
 import * as PIXI from 'pixi.js';
 
+// Note: CullerPlugin may not be available in all PixiJS v8 builds
+// We have custom viewport culling as a fallback
+try {
+  // Attempt to import and register CullerPlugin if available
+  if (PIXI.extensions && PIXI.CullerPlugin) {
+    PIXI.extensions.add(PIXI.CullerPlugin);
+    console.log('CullerPlugin registered successfully');
+  }
+} catch (e) {
+  console.log('CullerPlugin not available, using custom culling implementation');
+}
+
 export class PerformanceMonitor {
   constructor(app, canvasManager) {
     this.app = app;
@@ -111,6 +123,10 @@ export class CanvasManager {
     this.app.stage.addChild(this.viewport);
     this.viewport.sortableChildren = true;
 
+    // Enable culling on viewport for PixiJS built-in CullerPlugin (if available)
+    // Falls back to our custom culling implementation in setupViewportCulling()
+    this.viewport.cullable = true;
+
     // Grid background (optional visual aid)
     this.drawGrid();
 
@@ -128,13 +144,13 @@ export class CanvasManager {
     // Create cursor shape using Graphics
     const graphics = new PIXI.Graphics();
 
-    // Draw cursor pointer (triangle)
-    graphics.beginFill(0xFFFFFF); // White fill (will be tinted)
-    graphics.moveTo(0, 0);
-    graphics.lineTo(12, 18);
-    graphics.lineTo(6, 18);
-    graphics.lineTo(0, 24);
-    graphics.endFill();
+    // Draw cursor pointer (triangle) using v8 builder pattern
+    graphics.poly([
+      { x: 0, y: 0 },
+      { x: 12, y: 18 },
+      { x: 6, y: 18 },
+      { x: 0, y: 24 }
+    ]).fill(0xFFFFFF); // White fill (will be tinted)
 
     // Render to texture
     const texture = this.app.renderer.generateTexture(graphics, {
@@ -153,30 +169,33 @@ export class CanvasManager {
   drawGrid() {
     const grid = new PIXI.Graphics();
     grid.lineStyle(1, 0x333333, 0.3);
-    
+
     const gridSize = 50;
     const gridExtent = 5000;
-    
+
     // Vertical lines
     for (let x = -gridExtent; x <= gridExtent; x += gridSize) {
       grid.moveTo(x, -gridExtent);
       grid.lineTo(x, gridExtent);
     }
-    
+
     // Horizontal lines
     for (let y = -gridExtent; y <= gridExtent; y += gridSize) {
       grid.moveTo(-gridExtent, y);
       grid.lineTo(gridExtent, y);
     }
-    
+
     grid.zIndex = -1;
+    // Grid is non-interactive - optimize event traversal
+    grid.interactive = false;
+    grid.interactiveChildren = false;
     this.viewport.addChild(grid);
   }
   
   // ==================== Pan & Zoom ====================
   
   setupPanZoom() {
-    const canvas = this.app.view;
+    const canvas = this.app.canvas;
     
     // Pan with middle mouse or Alt+drag
     canvas.addEventListener('mousedown', (e) => {
@@ -234,7 +253,7 @@ export class CanvasManager {
   // ==================== Centralized Drag (Performance Optimized) ====================
 
   setupCentralizedDrag() {
-    const canvas = this.app.view;
+    const canvas = this.app.canvas;
 
     // Global mousemove handler (only one for all objects)
     canvas.addEventListener('mousemove', (e) => {
@@ -322,7 +341,7 @@ export class CanvasManager {
   // ==================== Tool Handlers ====================
   
   setupToolHandlers() {
-    const canvas = this.app.view;
+    const canvas = this.app.canvas;
     let drawStart = null;
     let previewShape = null;
     let lastPreviewUpdate = 0;
@@ -349,16 +368,14 @@ export class CanvasManager {
             const height = currentWorldPos.y - drawStart.y;
 
             previewShape.clear();
-            previewShape.beginFill(this.currentColor);
 
+            // PixiJS v8 builder pattern
             if (this.currentTool === 'rectangle') {
-              previewShape.drawRect(drawStart.x, drawStart.y, width, height);
+              previewShape.rect(drawStart.x, drawStart.y, width, height).fill(this.currentColor);
             } else if (this.currentTool === 'circle') {
               const radius = Math.sqrt(width * width + height * height);
-              previewShape.drawCircle(drawStart.x, drawStart.y, radius);
+              previewShape.circle(drawStart.x, drawStart.y, radius).fill(this.currentColor);
             }
-
-            previewShape.endFill();
             lastPreviewUpdate = now;
           }
           previewUpdatePending = false;
@@ -542,13 +559,12 @@ export class CanvasManager {
   
   createRectangle(id, x, y, width, height, color) {
     const rect = new PIXI.Graphics();
-    rect.beginFill(color);
-    rect.drawRect(0, 0, width, height);
-    rect.endFill();
+    // PixiJS v8 builder pattern
+    rect.rect(0, 0, width, height).fill(color);
     rect.x = x;
     rect.y = y;
     rect.interactive = true;
-    rect.buttonMode = true;
+    rect.cursor = 'pointer'; // v8 replaces buttonMode
     rect.visible = true; // Start visible, culling will handle visibility
 
     // Store dimensions for selection box
@@ -565,13 +581,12 @@ export class CanvasManager {
   
   createCircle(id, x, y, radius, color) {
     const circle = new PIXI.Graphics();
-    circle.beginFill(color);
-    circle.drawCircle(0, 0, radius);
-    circle.endFill();
+    // PixiJS v8 builder pattern
+    circle.circle(0, 0, radius).fill(color);
     circle.x = x;
     circle.y = y;
     circle.interactive = true;
-    circle.buttonMode = true;
+    circle.cursor = 'pointer'; // v8 replaces buttonMode
     circle.visible = true; // Start visible, culling will handle visibility
 
     // Store dimensions for selection box
@@ -663,23 +678,26 @@ export class CanvasManager {
 
     // Create selection indicator
     const indicator = new PIXI.Graphics();
-    indicator.lineStyle(2, 0x00FF00);
 
     if (obj.userData) {
       if (obj.userData.type === 'rectangle') {
-        // Draw selection box around rectangle
+        // Draw selection box around rectangle using v8 builder pattern
         const { width, height } = obj.userData;
-        indicator.drawRect(-2, -2, width + 4, height + 4);
+        indicator.rect(-2, -2, width + 4, height + 4).stroke({ width: 2, color: 0x00FF00 });
         indicator.x = obj.x;
         indicator.y = obj.y;
       } else if (obj.userData.type === 'circle') {
-        // Draw selection box around circle
+        // Draw selection box around circle using v8 builder pattern
         const { radius } = obj.userData;
-        indicator.drawCircle(0, 0, radius + 2);
+        indicator.circle(0, 0, radius + 2).stroke({ width: 2, color: 0x00FF00 });
         indicator.x = obj.x;
         indicator.y = obj.y;
       }
     }
+
+    // Selection indicators are non-interactive - optimize event traversal
+    indicator.interactive = false;
+    indicator.interactiveChildren = false;
 
     // Add to viewport and store reference
     this.viewport.addChild(indicator);
@@ -800,11 +818,9 @@ export class CanvasManager {
     // Clear and redraw the graphics object based on its current properties
     obj.clear();
 
-    // Basic rectangle drawing - you might want to extend this for other shapes
+    // Basic rectangle drawing using v8 builder pattern
     if (obj.width && obj.height) {
-      obj.beginFill(obj.color || 0xFF0000);
-      obj.drawRect(0, 0, obj.width, obj.height);
-      obj.endFill();
+      obj.rect(0, 0, obj.width, obj.height).fill(obj.color || 0xFF0000);
     }
 
     // Apply rotation if set
@@ -942,7 +958,8 @@ export class CanvasManager {
     }
 
     // Check texture memory (basic check)
-    const textureCount = Object.keys(PIXI.utils.TextureCache).length;
+    // Note: In PixiJS v8, texture cache access has changed
+    const textureCount = PIXI.Cache ? Object.keys(PIXI.Cache._cache).length : 0;
     if (textureCount > 100) { // Arbitrary threshold
       issues.push(`High texture count detected: ${textureCount} textures in cache`);
     }
@@ -975,8 +992,9 @@ export class CanvasManager {
       selectedObjects,
       remoteCursors,
       totalTrackedObjects: objectsInMap + selectionIndicators + selectedObjects + remoteCursors,
-      textureCacheSize: Object.keys(PIXI.utils.TextureCache).length,
-      baseTextureCacheSize: Object.keys(PIXI.utils.BaseTextureCache).length
+      // PixiJS v8: Cache API has changed
+      textureCacheSize: PIXI.Cache ? Object.keys(PIXI.Cache._cache).length : 0,
+      baseTextureCacheSize: 0 // BaseTextureCache deprecated in v8
     };
   }
 
@@ -1161,6 +1179,10 @@ export class CanvasManager {
       cursor.addChild(pointer);
       cursor.addChild(label);
       cursor.zIndex = 1000;
+
+      // Remote cursors are non-interactive - optimize event traversal
+      cursor.interactive = false;
+      cursor.interactiveChildren = false;
 
       this.remoteCursors.set(userId, cursor);
       this.viewport.addChild(cursor);

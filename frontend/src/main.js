@@ -70,8 +70,8 @@ class CollabCanvas {
         // Hide loading screen (session is valid)
         this.hideLoadingScreen()
 
-        // Initialize canvas
-        this.initCanvas()
+        // Initialize canvas (async in v8)
+        await this.initCanvas()
 
         // Initialize WebSocket connection
         this.initWebSocket()
@@ -127,18 +127,19 @@ class CollabCanvas {
         return false
     }
 
-    initCanvas() {
+    async initCanvas() {
         const container = document.getElementById('canvas-container')
 
-        // Create PixiJS application
-        const app = new PIXI.Application({
+        // Create PixiJS application with v8 async initialization
+        const app = new PIXI.Application()
+        await app.init({
             width: window.innerWidth,
             height: window.innerHeight,
             backgroundColor: 0x1a1a1a,
             resizeTo: window
         })
 
-        container.appendChild(app.view)
+        container.appendChild(app.canvas)
 
         this.canvasManager = new CanvasManager(app)
 
