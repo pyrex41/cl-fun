@@ -18,7 +18,10 @@
                :sqlite
                :alexandria
                :cl-ppcre
-               :local-time)
+               :local-time
+               ;; HTTP client for Claude API
+               :dexador
+               :quri)
   :components ((:module "src"
                 :components
                 ((:file "package")
@@ -27,7 +30,9 @@
                  (:file "database" :depends-on ("package" "config" "utils"))
                  (:file "auth" :depends-on ("package" "database" "utils"))
                  (:file "canvas-state" :depends-on ("package" "database"))
-                 (:file "websocket-adapter" :depends-on ("package" "auth" "canvas-state"))
+                 (:file "components" :depends-on ("package" "utils"))
+                 (:file "ai-agent" :depends-on ("package" "config" "utils" "components"))
+                 (:file "websocket-adapter" :depends-on ("package" "auth" "canvas-state" "ai-agent"))
                  (:file "app" :depends-on ("package" "websocket-adapter" "auth" "canvas-state"))
                  (:file "server" :depends-on ("package" "app" "database"))
                  (:file "main" :depends-on ("package" "server" "auth")))))

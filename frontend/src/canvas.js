@@ -168,11 +168,14 @@ export class CanvasManager {
   
   drawGrid() {
     const grid = new PIXI.Graphics();
-    grid.lineStyle(1, 0x333333, 0.3);
+    
+    // Enable smooth rendering for grid
+    grid.roundPixels = false;
 
     const gridSize = 50;
     const gridExtent = 5000;
 
+    // PixiJS v8 builder pattern for lines
     // Vertical lines
     for (let x = -gridExtent; x <= gridExtent; x += gridSize) {
       grid.moveTo(x, -gridExtent);
@@ -184,6 +187,9 @@ export class CanvasManager {
       grid.moveTo(-gridExtent, y);
       grid.lineTo(gridExtent, y);
     }
+    
+    // Apply stroke at the end with v8 API
+    grid.stroke({ width: 1, color: 0x333333, alpha: 0.3 });
 
     grid.zIndex = -1;
     // Grid is non-interactive - optimize event traversal
@@ -391,9 +397,10 @@ export class CanvasManager {
       if (this.currentTool === 'rectangle' || this.currentTool === 'circle') {
         drawStart = worldPos;
         
-        // Create preview shape
+        // Create preview shape with smooth rendering
         previewShape = new PIXI.Graphics();
         previewShape.alpha = 0.5;
+        previewShape.roundPixels = false;
         this.viewport.addChild(previewShape);
       }
     });
@@ -559,13 +566,16 @@ export class CanvasManager {
   
   createRectangle(id, x, y, width, height, color) {
     const rect = new PIXI.Graphics();
-    // PixiJS v8 builder pattern
+    // PixiJS v8 builder pattern with anti-aliasing settings
     rect.rect(0, 0, width, height).fill(color);
     rect.x = x;
     rect.y = y;
     rect.interactive = true;
     rect.cursor = 'pointer'; // v8 replaces buttonMode
     rect.visible = true; // Start visible, culling will handle visibility
+    
+    // Enable smooth rendering
+    rect.roundPixels = false;
 
     // Store dimensions for selection box
     rect.userData = { width, height, type: 'rectangle' };
@@ -581,13 +591,16 @@ export class CanvasManager {
   
   createCircle(id, x, y, radius, color) {
     const circle = new PIXI.Graphics();
-    // PixiJS v8 builder pattern
+    // PixiJS v8 builder pattern with anti-aliasing settings
     circle.circle(0, 0, radius).fill(color);
     circle.x = x;
     circle.y = y;
     circle.interactive = true;
     circle.cursor = 'pointer'; // v8 replaces buttonMode
     circle.visible = true; // Start visible, culling will handle visibility
+    
+    // Enable smooth rendering
+    circle.roundPixels = false;
 
     // Store dimensions for selection box
     circle.userData = { radius, type: 'circle' };
@@ -678,18 +691,21 @@ export class CanvasManager {
 
     // Create selection indicator
     const indicator = new PIXI.Graphics();
+    
+    // Enable smooth rendering for selection borders
+    indicator.roundPixels = false;
 
     if (obj.userData) {
       if (obj.userData.type === 'rectangle') {
         // Draw selection box around rectangle using v8 builder pattern
         const { width, height } = obj.userData;
-        indicator.rect(-2, -2, width + 4, height + 4).stroke({ width: 2, color: 0x00FF00 });
+        indicator.rect(-2, -2, width + 4, height + 4).stroke({ width: 2, color: 0x00FF00, alignment: 0.5 });
         indicator.x = obj.x;
         indicator.y = obj.y;
       } else if (obj.userData.type === 'circle') {
         // Draw selection box around circle using v8 builder pattern
         const { radius } = obj.userData;
-        indicator.circle(0, 0, radius + 2).stroke({ width: 2, color: 0x00FF00 });
+        indicator.circle(0, 0, radius + 2).stroke({ width: 2, color: 0x00FF00, alignment: 0.5 });
         indicator.x = obj.x;
         indicator.y = obj.y;
       }

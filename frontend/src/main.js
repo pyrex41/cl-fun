@@ -130,16 +130,35 @@ class CollabCanvas {
     async initCanvas() {
         const container = document.getElementById('canvas-container')
 
+        // Get current theme for canvas background
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark'
+        const backgroundColor = currentTheme === 'dark' ? 0x16161f : 0xffffff
+
         // Create PixiJS application with v8 async initialization
         const app = new PIXI.Application()
         await app.init({
             width: window.innerWidth,
             height: window.innerHeight,
-            backgroundColor: 0x1a1a1a,
-            resizeTo: window
+            backgroundColor: backgroundColor,
+            resizeTo: window,
+            antialias: true,
+            autoDensity: true,
+            resolution: window.devicePixelRatio || 1
         })
 
         container.appendChild(app.canvas)
+        
+        // Listen for theme changes and update canvas background
+        const themeToggle = document.getElementById('theme-toggle')
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                setTimeout(() => {
+                    const newTheme = document.documentElement.getAttribute('data-theme')
+                    const newBgColor = newTheme === 'dark' ? 0x16161f : 0xffffff
+                    app.renderer.background.color = newBgColor
+                }, 50)
+            })
+        }
 
         this.canvasManager = new CanvasManager(app)
 

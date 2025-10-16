@@ -8,7 +8,9 @@
       "Bash(done)",
       "Bash(sblint:*)",
       "Bash(git reset:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Add setup-hooks.sh script for worktrees\n\nThis script makes it easy to install git pre-commit hooks in new worktrees.\n\nUsage: ./setup-hooks.sh\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -177,3 +177,39 @@
 (defun generate-canvas-id ()
   "Generate a unique canvas ID"
   (format nil "canvas-~A" (subseq (generate-uuid) 0 8)))
+
+(defun generate-object-id ()
+  "Generate a unique object ID (same as UUID for now)"
+  (generate-uuid))
+
+;;; AI Agent utilities
+(defun build-canvas-context (canvas-state)
+  "Build summary of canvas for AI context"
+  (when canvas-state
+    (let* ((objects (if (listp canvas-state) canvas-state nil))
+           (object-count (length objects))
+           (object-types (when objects
+                          (remove-duplicates
+                           (mapcar (lambda (obj)
+                                    (cdr (assoc :type obj)))
+                                  objects)
+                           :test #'string=))))
+      `((:object-count . ,object-count)
+        (:object-types . ,object-types)))))
+
+(defun sanitize-string (str)
+  "Remove potentially harmful content from string"
+  (when (stringp str)
+    (let ((clean (string-trim '(#\Space #\Tab #\Newline #\Return) str)))
+      ;; Remove control characters (< 32)
+      (setf clean (remove-if (lambda (c) (< (char-code c) 32)) clean))
+      ;; Limit to safe Unicode range (< 65536)
+      (setf clean (remove-if (lambda (c) (> (char-code c) 65535)) clean))
+      clean)))
+
+(defun escape-for-prompt (str)
+  "Escape string for safe use in AI prompts"
+  (when (stringp str)
+    (let ((sanitized (sanitize-string str)))
+      ;; Replace quotes with escaped versions
+      (cl-ppcre:regex-replace-all "\"" sanitized "\\\\\""))))

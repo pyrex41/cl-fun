@@ -1,0 +1,3180 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files and files not matching ignore patterns, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: frontend/
+- Files matching these patterns are excluded: frontend/dist/
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+frontend/
+  src/
+    auth.js
+    canvas.js
+    main.js
+    styles.css
+    websocket.js
+  index.html
+  package.json
+  vite.config.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="frontend/src/styles.css">
+/* styles.css - Additional styles for CollabCanvas */
+
+/* Remote cursors */
+.remote-cursor {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1000;
+    transition: left 0.1s ease-out, top 0.1s ease-out;
+}
+
+.remote-cursor-pointer {
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 20px solid;
+    transform: rotate(-45deg);
+    transform-origin: center top;
+}
+
+.remote-cursor-label {
+    position: absolute;
+    top: 20px;
+    left: 10px;
+    padding: 2px 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    font-size: 12px;
+    border-radius: 4px;
+    white-space: nowrap;
+    user-select: none;
+}
+
+/* Selection box */
+.selection-box {
+    position: absolute;
+    border: 2px dashed #5a9cb0;
+    background: rgba(90, 156, 176, 0.1);
+    pointer-events: none;
+    z-index: 999;
+}
+
+/* Object handles */
+.resize-handle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: white;
+    border: 2px solid #5a9cb0;
+    border-radius: 2px;
+}
+
+.resize-handle.nw { cursor: nw-resize; top: -5px; left: -5px; }
+.resize-handle.ne { cursor: ne-resize; top: -5px; right: -5px; }
+.resize-handle.sw { cursor: sw-resize; bottom: -5px; left: -5px; }
+.resize-handle.se { cursor: se-resize; bottom: -5px; right: -5px; }
+.resize-handle.n { cursor: n-resize; top: -5px; left: 50%; transform: translateX(-50%); }
+.resize-handle.s { cursor: s-resize; bottom: -5px; left: 50%; transform: translateX(-50%); }
+.resize-handle.w { cursor: w-resize; left: -5px; top: 50%; transform: translateY(-50%); }
+.resize-handle.e { cursor: e-resize; right: -5px; top: 50%; transform: translateY(-50%); }
+
+/* Notifications */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 4px;
+    color: white;
+    font-size: 14px;
+    z-index: 10000;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.notification.info {
+    background: #4a7c8e;
+}
+
+.notification.success {
+    background: #4caf50;
+}
+
+.notification.warning {
+    background: #ff9800;
+}
+
+.notification.error {
+    background: #f44336;
+}
+
+/* Loading states */
+.loading-spinner {
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 3px solid white;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #toolbar {
+        top: 10px;
+        left: 10px;
+        padding: 5px;
+    }
+
+    .tool-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+
+    #presence-list {
+        top: 10px;
+        right: 10px;
+        min-width: 150px;
+    }
+
+    #status-bar {
+        font-size: 11px;
+        padding: 6px 15px;
+    }
+}
+
+/* Print styles */
+@media print {
+    #toolbar,
+    #presence-list,
+    #status-bar,
+    #auth-modal {
+        display: none !important;
+    }
+}
+</file>
+
+<file path="frontend/src/auth.js">
+// auth.js - Authentication UI and logic for CollabCanvas
+
+export class AuthManager {
+    constructor() {
+        this.modal = document.getElementById('auth-modal')
+        this.loginForm = document.getElementById('login-form')
+        this.registerForm = document.getElementById('register-form')
+        this.setupEventListeners()
+    }
+
+    setupEventListeners() {
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab
+                this.switchTab(tab)
+            })
+        })
+
+        // Form submissions
+        this.loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault()
+            await this.handleLogin()
+        })
+
+        this.registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault()
+            await this.handleRegister()
+        })
+    }
+
+    switchTab(tab) {
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab)
+        })
+
+        // Update forms
+        document.querySelectorAll('.auth-form').forEach(form => {
+            form.classList.toggle('active', form.id === `${tab}-form`)
+        })
+
+        // Clear errors
+        document.querySelectorAll('.error-message').forEach(err => {
+            err.textContent = ''
+        })
+    }
+
+    showModal() {
+        return new Promise((resolve) => {
+            this.modal.classList.remove('hidden')
+            this.resolveAuth = resolve
+        })
+    }
+
+    hideModal() {
+        this.modal.classList.add('hidden')
+    }
+
+    async handleLogin() {
+        const email = document.getElementById('login-email').value
+        const password = document.getElementById('login-password').value
+        const errorEl = document.getElementById('login-error')
+
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            })
+
+            const data = await response.json()
+
+            if (data.success && data.data) {
+                this.hideModal()
+                this.resolveAuth({
+                    sessionId: data.data['session-id'],
+                    userId: data.data['user-id'],
+                    username: data.data.username
+                })
+            } else {
+                errorEl.textContent = data.error || 'Login failed'
+            }
+        } catch (error) {
+            console.error('Login error:', error)
+            errorEl.textContent = 'Connection error. Please try again.'
+        }
+    }
+
+    async handleRegister() {
+        const username = document.getElementById('register-username').value
+        const email = document.getElementById('register-email').value
+        const password = document.getElementById('register-password').value
+        const errorEl = document.getElementById('register-error')
+
+        try {
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, email, password })
+            })
+
+            const data = await response.json()
+
+            if (data.success) {
+                // Auto-login after registration
+                await this.loginAfterRegister(email, password)
+            } else {
+                errorEl.textContent = data.error || 'Registration failed'
+            }
+        } catch (error) {
+            console.error('Registration error:', error)
+            errorEl.textContent = 'Connection error. Please try again.'
+        }
+    }
+
+    async loginAfterRegister(email, password) {
+        // Switch to login tab
+        this.switchTab('login')
+
+        // Fill in credentials
+        document.getElementById('login-email').value = email
+        document.getElementById('login-password').value = password
+
+        // Auto-submit
+        await this.handleLogin()
+    }
+}
+</file>
+
+<file path="frontend/index.html">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CollabCanvas - Real-time Collaborative Design</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            overflow: hidden;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #app {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+
+        /* Toolbar */
+        #toolbar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(40, 40, 40, 0.95);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .tool-btn {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #444;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 18px;
+        }
+
+        .tool-btn:hover {
+            background: #3a3a3a;
+            border-color: #666;
+        }
+
+        .tool-btn.active {
+            background: #4a7c8e;
+            border-color: #5a9cb0;
+        }
+
+        .tool-separator {
+            width: 1px;
+            background: #444;
+            margin: 0 5px;
+        }
+
+        #color-picker {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Presence List */
+        #presence-list {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(40, 40, 40, 0.95);
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 200px;
+            max-width: 300px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        #presence-list h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            padding: 5px 0;
+            font-size: 14px;
+        }
+
+        .user-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        /* Status Bar */
+        #status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(30, 30, 30, 0.95);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #999;
+            z-index: 100;
+        }
+
+        .status-section {
+            display: flex;
+            gap: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-label {
+            color: #666;
+        }
+
+        /* Auth Modal */
+        #auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        #auth-modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 30px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #444;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.2s;
+            font-size: 16px;
+        }
+
+        .tab-btn.active {
+            color: #e0e0e0;
+            border-bottom: 2px solid #5a9cb0;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #5a9cb0;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4a7c8e;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            background: #5a9cb0;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        #loading-screen.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top-color: #5a9cb0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="canvas-container"></div>
+
+        <!-- Toolbar -->
+        <div id="toolbar">
+            <button class="tool-btn active" data-tool="select" title="Select (V)">
+                <span>↖</span>
+            </button>
+            <button class="tool-btn" data-tool="rectangle" title="Rectangle (R)">
+                <span>□</span>
+            </button>
+            <button class="tool-btn" data-tool="circle" title="Circle (C)">
+                <span>○</span>
+            </button>
+            <div class="tool-separator"></div>
+            <input type="color" id="color-picker" value="#5a9cb0" title="Color">
+        </div>
+
+        <!-- Presence List -->
+        <div id="presence-list">
+            <h3>Online Users</h3>
+            <div id="users-container"></div>
+        </div>
+
+        <!-- Status Bar -->
+        <div id="status-bar">
+            <div class="status-section">
+                <div class="status-item">
+                    <span class="status-label">Tool:</span>
+                    <span id="current-tool">Select</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Position:</span>
+                    <span id="mouse-position">0, 0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Zoom:</span>
+                    <span id="zoom-level">100%</span>
+                </div>
+            </div>
+            <div class="status-section">
+                <div class="status-item">
+                    <span class="status-label">Objects:</span>
+                    <span id="object-count">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Canvas:</span>
+                    <span id="canvas-id">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Screen -->
+        <div id="loading-screen">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Auth Modal -->
+        <div id="auth-modal" class="hidden">
+            <div class="modal-content">
+                <div class="modal-tabs">
+                    <button class="tab-btn active" data-tab="login">Login</button>
+                    <button class="tab-btn" data-tab="register">Register</button>
+                </div>
+
+                <form class="auth-form active" id="login-form">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Login</button>
+                    <div class="error-message" id="login-error"></div>
+                </form>
+
+                <form class="auth-form" id="register-form">
+                    <div class="form-group">
+                        <label for="register-username">Username</label>
+                        <input type="text" id="register-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email</label>
+                        <input type="email" id="register-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password</label>
+                        <input type="password" id="register-password" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Register</button>
+                    <div class="error-message" id="register-error"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>
+</file>
+
+<file path="frontend/package.json">
+{
+  "name": "collabcanvas-frontend",
+  "version": "0.1.0",
+  "description": "Real-time collaborative design tool frontend",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf dist node_modules"
+  },
+  "dependencies": {
+    "pixi.js": "^8.14.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-legacy": "^5.0.0",
+    "puppeteer": "^24.24.1",
+    "vite": "^5.0.0"
+  }
+}
+</file>
+
+<file path="frontend/vite.config.js">
+import { defineConfig } from 'vite'
+import legacy from '@vitejs/plugin-legacy'
+
+export default defineConfig({
+  plugins: [
+    legacy({
+      targets: ['defaults', 'not IE 11']
+    })
+  ],
+  server: {
+    port: 6465,
+    host: true,
+    cors: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      '/ws': {
+        target: 'ws://localhost:8080',
+        ws: true,
+        changeOrigin: true
+      }
+    }
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'pixi': ['pixi.js']
+        }
+      }
+    }
+  }
+})
+</file>
+
+<file path="frontend/src/websocket.js">
+// websocket.js - WebSocket client for real-time synchronization
+
+export class LatencyMonitor {
+    constructor(options = {}) {
+        this.maxHistorySize = options.maxHistorySize || 1000
+        this.warningThreshold = options.warningThreshold || 100 // 100ms
+        this.pendingMessages = new Map() // messageId -> { sentTime, type }
+        this.latencyHistory = [] // Array of latency measurements
+        this.stats = {
+            totalMessages: 0,
+            averageLatency: 0,
+            minLatency: Infinity,
+            maxLatency: 0,
+            warningCount: 0
+        }
+    }
+
+    startTracking(messageId, messageType) {
+        this.pendingMessages.set(messageId, {
+            sentTime: performance.now(),
+            type: messageType
+        })
+    }
+
+    endTracking(messageId) {
+        const pending = this.pendingMessages.get(messageId)
+        if (!pending) {
+            return null // Message not found or already tracked
+        }
+
+        const latency = performance.now() - pending.sentTime
+        this.pendingMessages.delete(messageId)
+
+        // Record latency
+        this.recordLatency(latency, pending.type)
+
+        // Warn if high latency
+        if (latency > this.warningThreshold) {
+            console.warn(`⚠️ High latency detected: ${Math.round(latency)}ms for ${pending.type} message`)
+            this.stats.warningCount++
+        }
+
+        return latency
+    }
+
+    recordLatency(latency, messageType) {
+        // Add to history
+        this.latencyHistory.push({
+            latency,
+            type: messageType,
+            timestamp: Date.now()
+        })
+
+        // Trim history if too large
+        if (this.latencyHistory.length > this.maxHistorySize) {
+            this.latencyHistory.shift()
+        }
+
+        // Update stats
+        this.stats.totalMessages++
+        this.stats.minLatency = Math.min(this.stats.minLatency, latency)
+        this.stats.maxLatency = Math.max(this.stats.maxLatency, latency)
+
+        // Recalculate average
+        const sum = this.latencyHistory.reduce((acc, item) => acc + item.latency, 0)
+        this.stats.averageLatency = sum / this.latencyHistory.length
+    }
+
+    getPercentile(percentile) {
+        if (this.latencyHistory.length === 0) {
+            return 0
+        }
+
+        // Sort latencies
+        const sorted = this.latencyHistory
+            .map(item => item.latency)
+            .sort((a, b) => a - b)
+
+        // Calculate percentile index
+        const index = Math.ceil((percentile / 100) * sorted.length) - 1
+        return sorted[Math.max(0, index)]
+    }
+
+    getStats() {
+        return {
+            totalMessages: this.stats.totalMessages,
+            averageLatency: Math.round(this.stats.averageLatency * 100) / 100,
+            minLatency: this.stats.minLatency === Infinity ? 0 : Math.round(this.stats.minLatency * 100) / 100,
+            maxLatency: Math.round(this.stats.maxLatency * 100) / 100,
+            p50: Math.round(this.getPercentile(50) * 100) / 100,
+            p95: Math.round(this.getPercentile(95) * 100) / 100,
+            p99: Math.round(this.getPercentile(99) * 100) / 100,
+            warningCount: this.stats.warningCount,
+            historySize: this.latencyHistory.length,
+            pendingMessages: this.pendingMessages.size
+        }
+    }
+
+    getStatsByType(messageType) {
+        const filtered = this.latencyHistory.filter(item => item.type === messageType)
+        if (filtered.length === 0) {
+            return null
+        }
+
+        const latencies = filtered.map(item => item.latency).sort((a, b) => a - b)
+        const sum = latencies.reduce((acc, val) => acc + val, 0)
+
+        const getPercentile = (p) => {
+            const index = Math.ceil((p / 100) * latencies.length) - 1
+            return latencies[Math.max(0, index)]
+        }
+
+        return {
+            messageType,
+            count: filtered.length,
+            averageLatency: Math.round((sum / filtered.length) * 100) / 100,
+            minLatency: Math.round(latencies[0] * 100) / 100,
+            maxLatency: Math.round(latencies[latencies.length - 1] * 100) / 100,
+            p50: Math.round(getPercentile(50) * 100) / 100,
+            p95: Math.round(getPercentile(95) * 100) / 100,
+            p99: Math.round(getPercentile(99) * 100) / 100
+        }
+    }
+
+    logStats() {
+        const stats = this.getStats()
+        console.log('=== Latency Statistics ===')
+        console.log(`Total messages: ${stats.totalMessages}`)
+        console.log(`Average latency: ${stats.averageLatency}ms`)
+        console.log(`Min latency: ${stats.minLatency}ms`)
+        console.log(`Max latency: ${stats.maxLatency}ms`)
+        console.log(`P50 (median): ${stats.p50}ms`)
+        console.log(`P95: ${stats.p95}ms`)
+        console.log(`P99: ${stats.p99}ms`)
+        console.log(`High latency warnings: ${stats.warningCount}`)
+        console.log(`History size: ${stats.historySize}`)
+        console.log(`Pending messages: ${stats.pendingMessages}`)
+    }
+
+    reset() {
+        this.pendingMessages.clear()
+        this.latencyHistory = []
+        this.stats = {
+            totalMessages: 0,
+            averageLatency: 0,
+            minLatency: Infinity,
+            maxLatency: 0,
+            warningCount: 0
+        }
+    }
+}
+
+export class CursorThrottle {
+    constructor(sendCallback, intervalMs = 50) { // 20/sec = 50ms
+        this.sendCallback = sendCallback
+        this.intervalMs = intervalMs
+        this.pendingCursor = null
+        this.intervalId = null
+        this.start()
+    }
+
+    start() {
+        this.intervalId = setInterval(() => {
+            if (this.pendingCursor) {
+                this.sendCallback(this.pendingCursor.x, this.pendingCursor.y)
+                this.pendingCursor = null
+            }
+        }, this.intervalMs)
+    }
+
+    update(x, y) {
+        this.pendingCursor = { x, y } // Always update to latest
+    }
+
+    stop() {
+        if (this.intervalId) {
+            clearInterval(this.intervalId)
+            this.intervalId = null
+        }
+    }
+}
+
+export class WebSocketClient {
+    constructor(url, sessionId, canvasId) {
+        this.url = url
+        this.sessionId = sessionId
+        this.canvasId = canvasId
+        this.ws = null
+        this.isConnected = false
+        this.reconnectAttempts = 0
+        this.maxReconnectAttempts = 5
+        this.reconnectDelay = 1000
+
+        // Message ID counter for latency tracking
+        this.messageIdCounter = 0
+
+        // Latency monitoring
+        this.latencyMonitor = new LatencyMonitor({
+            maxHistorySize: 1000,
+            warningThreshold: 100 // 100ms
+        })
+
+        // Bandwidth tracking for delta compression testing
+        this.bandwidthStats = {
+            totalBytesReceived: 0,
+            objectUpdateMessages: 0,
+            startTime: Date.now()
+        }
+
+        // Cursor throttling using CursorThrottle class
+        this.cursorThrottle = new CursorThrottle((x, y) => {
+            this.send({ type: 'cursor', x, y })
+        })
+
+        // Callbacks
+        this.onAuthSuccess = () => {}
+        this.onAuthFailed = () => {}
+        this.onUserConnected = () => {}
+        this.onUserDisconnected = () => {}
+        this.onPresenceUpdate = () => {}
+        this.onCursorUpdate = () => {}
+        this.onObjectCreated = () => {}
+        this.onObjectUpdated = () => {}
+        this.onObjectDeleted = () => {}
+        this.onObjectsDeleted = () => {}
+        this.onError = () => {}
+        this.onReconnecting = () => {}
+        this.onReconnected = () => {}
+    }
+
+    connect() {
+        console.log(`Connecting to WebSocket: ${this.url}`)
+
+        try {
+            this.ws = new WebSocket(this.url)
+            this.setupEventHandlers()
+        } catch (error) {
+            console.error('WebSocket connection error:', error)
+            this.onError(error)
+            this.scheduleReconnect()
+        }
+    }
+
+    setupEventHandlers() {
+        this.ws.onopen = () => {
+            console.log('WebSocket connected')
+            this.isConnected = true
+            this.reconnectAttempts = 0
+
+            // Send authentication message
+            this.send({
+                type: 'auth',
+                sessionId: this.sessionId,
+                canvasId: this.canvasId
+            })
+
+            if (this.reconnectAttempts > 0) {
+                this.onReconnected()
+            }
+        }
+
+        this.ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data)
+                this.handleMessage(data)
+            } catch (error) {
+                console.error('Error parsing WebSocket message:', error)
+                this.onError(error)
+            }
+        }
+
+        this.ws.onclose = (event) => {
+            console.log('WebSocket disconnected:', event.code, event.reason)
+            this.isConnected = false
+
+            if (!event.wasClean) {
+                this.scheduleReconnect()
+            }
+        }
+
+        this.ws.onerror = (error) => {
+            console.error('WebSocket error:', error)
+            this.onError(error)
+        }
+    }
+
+    handleMessage(data) {
+        // Track latency if message has an ID (response to our request)
+        if (data.messageId) {
+            const latency = this.latencyMonitor.endTracking(data.messageId)
+            if (latency !== null && latency < 100) {
+                // Only log sub-100ms latencies at debug level
+                console.debug(`Message ${data.type} latency: ${Math.round(latency)}ms`)
+            }
+        }
+
+        switch (data.type) {
+            case 'auth-success':
+                this.onAuthSuccess(data)
+                break
+
+            case 'auth-failed':
+                this.onAuthFailed(data)
+                break
+
+            case 'user-connected':
+                this.onUserConnected(data)
+                break
+
+            case 'user-disconnected':
+                this.onUserDisconnected(data)
+                break
+
+            case 'presence':
+                this.onPresenceUpdate(data.users)
+                break
+
+            case 'cursor':
+                this.onCursorUpdate(data)
+                break
+
+            case 'cursor-batch':
+                // Handle batched cursor updates
+                if (data.cursors && Array.isArray(data.cursors)) {
+                    data.cursors.forEach(cursor => {
+                        this.onCursorUpdate(cursor)
+                    })
+                }
+                break
+
+            case 'object-create':
+                this.onObjectCreated(data)
+                break
+
+            case 'object-update':
+                // Track bandwidth for delta compression testing
+                const messageSize = JSON.stringify(data).length
+                this.bandwidthStats.totalBytesReceived += messageSize
+                this.bandwidthStats.objectUpdateMessages++
+                console.log(`Object update received: ${messageSize} bytes (total: ${this.bandwidthStats.totalBytesReceived} bytes, ${this.bandwidthStats.objectUpdateMessages} messages)`)
+                this.onObjectUpdated(data)
+                break
+
+            case 'object-delete':
+                this.onObjectDeleted(data)
+                break
+
+            case 'objects-delete':
+                this.onObjectsDeleted(data)
+                break
+
+            case 'error':
+                console.error('Server error:', data.message)
+                this.onError(new Error(data.message))
+                break
+
+            default:
+                console.warn('Unknown message type:', data.type)
+        }
+    }
+
+    send(data, trackLatency = false) {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            // Add message ID for latency tracking if requested
+            if (trackLatency && data.type !== 'cursor') {
+                data.messageId = ++this.messageIdCounter
+                this.latencyMonitor.startTracking(data.messageId, data.type)
+            }
+
+            this.ws.send(JSON.stringify(data))
+        } else {
+            console.warn('WebSocket not connected, message not sent:', data)
+        }
+    }
+
+    sendCursorUpdate(x, y) {
+        this.cursorThrottle.update(x, y)
+    }
+
+    sendObjectCreate(object) {
+        this.send({
+            type: 'object-create',
+            object: object
+        }, true) // Enable latency tracking
+    }
+
+    sendObjectUpdate(objectId, updates) {
+        this.send({
+            type: 'object-update',
+            'object-id': objectId,
+            updates: updates
+        }, true) // Enable latency tracking
+    }
+
+    sendObjectDelete(objectId) {
+        this.send({
+            type: 'object-delete',
+            'object-id': objectId
+        }, true) // Enable latency tracking
+    }
+
+    scheduleReconnect() {
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.error('Max reconnection attempts reached')
+            this.onError(new Error('Unable to reconnect to server'))
+            return
+        }
+
+        this.reconnectAttempts++
+        const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1)
+
+        console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
+        this.onReconnecting()
+
+        setTimeout(() => {
+            this.connect()
+        }, delay)
+    }
+
+    getBandwidthStats() {
+        const elapsedMinutes = (Date.now() - this.bandwidthStats.startTime) / (1000 * 60)
+        return {
+            totalBytes: this.bandwidthStats.totalBytesReceived,
+            messageCount: this.bandwidthStats.objectUpdateMessages,
+            averageBytesPerMessage: this.bandwidthStats.objectUpdateMessages > 0
+                ? Math.round(this.bandwidthStats.totalBytesReceived / this.bandwidthStats.objectUpdateMessages)
+                : 0,
+            bytesPerMinute: elapsedMinutes > 0
+                ? Math.round(this.bandwidthStats.totalBytesReceived / elapsedMinutes)
+                : 0,
+            elapsedMinutes: Math.round(elapsedMinutes * 10) / 10
+        }
+    }
+
+    getLatencyStats() {
+        return this.latencyMonitor.getStats()
+    }
+
+    getLatencyStatsByType(messageType) {
+        return this.latencyMonitor.getStatsByType(messageType)
+    }
+
+    logLatencyStats() {
+        this.latencyMonitor.logStats()
+    }
+
+    logBandwidthStats() {
+        const stats = this.getBandwidthStats()
+        console.log('Bandwidth Stats (Delta Compression):', {
+            'Total bytes received': `${stats.totalBytes} bytes`,
+            'Object update messages': stats.messageCount,
+            'Avg bytes per message': `${stats.averageBytesPerMessage} bytes`,
+            'Bytes per minute': `${stats.bytesPerMinute} bytes/min`,
+            'Elapsed time': `${stats.elapsedMinutes} minutes`
+        })
+    }
+
+    disconnect() {
+        // Log final bandwidth stats before disconnecting
+        if (this.bandwidthStats.objectUpdateMessages > 0) {
+            console.log('=== Final Bandwidth Stats (Delta Compression) ===')
+            this.logBandwidthStats()
+        }
+
+        // Stop cursor throttle timer
+        if (this.cursorThrottle) {
+            this.cursorThrottle.stop()
+            console.log('Stopped cursor throttle timer')
+        }
+
+        // Close WebSocket connection
+        if (this.ws) {
+            this.ws.close(1000, 'User disconnect')
+            this.ws = null
+            this.isConnected = false
+        }
+
+        console.log('=== Disconnect cleanup complete ===')
+    }
+
+    sendObjectsDelete(objectIds) {
+        this.send({
+            type: 'objects-delete',
+            'object-ids': objectIds
+        })
+    }
+
+    sendObjectsDelete(objectIds) {
+        this.send({
+            type: 'objects-delete',
+            'object-ids': objectIds
+        })
+    }
+}
+</file>
+
+<file path="frontend/src/main.js">
+// main.js - Application entry point for CollabCanvas
+
+import './styles.css'
+import * as PIXI from 'pixi.js'
+import { CanvasManager } from './canvas.js'
+import { WebSocketClient } from './websocket.js'
+import { AuthManager } from './auth.js'
+
+class CollabCanvas {
+    constructor() {
+        this.canvasManager = null
+        this.wsClient = null
+        this.authManager = null
+        this.sessionId = null
+        this.userId = null
+        this.username = null
+        this.canvasId = this.getCanvasId()
+        this.activeUsers = [] // Track active users
+    }
+
+    getCanvasId() {
+        // Get canvas ID from URL or use default shared canvas
+        const params = new URLSearchParams(window.location.search)
+        let canvasId = params.get('canvas')
+
+        if (!canvasId) {
+            // Use a fixed default canvas so all users join the same one
+            canvasId = 'default-canvas'
+            // Update URL without reload
+            const newUrl = new URL(window.location)
+            newUrl.searchParams.set('canvas', canvasId)
+            window.history.replaceState({}, '', newUrl)
+        }
+
+        return canvasId
+    }
+
+    async init() {
+        console.log('Initializing CollabCanvas...')
+
+        // Update canvas ID in status bar
+        document.getElementById('canvas-id').textContent = this.canvasId
+
+        // Initialize authentication
+        this.authManager = new AuthManager()
+
+        // Check for existing session
+        this.sessionId = localStorage.getItem('sessionId')
+
+        if (this.sessionId) {
+            // Validate session with backend
+            const isValid = await this.validateSession()
+
+            if (!isValid) {
+                this.sessionId = null
+                localStorage.removeItem('sessionId')
+            }
+        }
+
+        if (!this.sessionId) {
+            // Hide loading screen and show auth modal
+            this.hideLoadingScreen()
+            const authData = await this.authManager.showModal()
+            this.sessionId = authData.sessionId
+            this.userId = authData.userId
+            this.username = authData.username
+            localStorage.setItem('sessionId', this.sessionId)
+        }
+
+        // Hide loading screen (session is valid)
+        this.hideLoadingScreen()
+
+        // Initialize canvas (async in v8)
+        await this.initCanvas()
+
+        // Initialize WebSocket connection
+        this.initWebSocket()
+
+        // Setup UI event handlers
+        this.setupUIHandlers()
+
+        console.log('CollabCanvas initialized successfully')
+    }
+
+    hideLoadingScreen() {
+        const loadingScreen = document.getElementById('loading-screen')
+        if (loadingScreen) {
+            loadingScreen.classList.add('hidden')
+        }
+    }
+
+    async validateSession() {
+        console.log('[FRONTEND] Validating session...')
+        console.log('[FRONTEND] sessionId from localStorage:', this.sessionId)
+
+        try {
+            const response = await fetch('/api/session', {
+                credentials: 'include',
+                headers: {
+                    'X-Session-ID': this.sessionId
+                }
+            })
+
+            console.log('[FRONTEND] Response status:', response.status)
+            console.log('[FRONTEND] Response ok:', response.ok)
+
+            if (response.ok) {
+                const data = await response.json()
+                console.log('[FRONTEND] Response data:', data)
+
+                if (data.success && data.data && data.data.valid) {
+                    this.userId = data.data['user-id']
+                    this.username = data.data.username
+                    console.log('[FRONTEND] Session restored:', this.username)
+                    return true
+                } else {
+                    console.log('[FRONTEND] Session validation failed - data.success:', data.success, 'data.data:', data.data, 'data.data.valid:', data.data?.valid)
+                }
+            } else {
+                const errorData = await response.json()
+                console.log('[FRONTEND] Error response:', errorData)
+            }
+        } catch (error) {
+            console.error('[FRONTEND] Session validation exception:', error)
+        }
+
+        return false
+    }
+
+    async initCanvas() {
+        const container = document.getElementById('canvas-container')
+
+        // Create PixiJS application with v8 async initialization
+        const app = new PIXI.Application()
+        await app.init({
+            width: window.innerWidth,
+            height: window.innerHeight,
+            backgroundColor: 0x1a1a1a,
+            resizeTo: window
+        })
+
+        container.appendChild(app.canvas)
+
+        this.canvasManager = new CanvasManager(app)
+
+        // Make performance stats available globally for console access
+        window.getPerformanceStats = () => {
+            return this.canvasManager.getPerformanceStats();
+        };
+
+        // Make latency stats available globally
+        window.getLatencyStats = () => {
+            if (!this.wsClient) return null;
+            return this.wsClient.getLatencyStats();
+        };
+
+        window.logLatencyStats = () => {
+            if (!this.wsClient) {
+                console.warn('WebSocket client not initialized');
+                return;
+            }
+            this.wsClient.logLatencyStats();
+        };
+
+        window.getLatencyStatsByType = (messageType) => {
+            if (!this.wsClient) return null;
+            return this.wsClient.getLatencyStatsByType(messageType);
+        };
+
+        // Set up canvas callbacks for WebSocket synchronization
+        this.canvasManager.onCursorMoved = (x, y) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendCursorUpdate(x, y)
+            }
+        }
+
+        this.canvasManager.onObjectCreated = (object) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendObjectCreate(object)
+            }
+        }
+
+        this.canvasManager.onObjectUpdated = (objectId, updates) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendObjectUpdate(objectId, updates)
+            }
+        }
+
+        this.canvasManager.onObjectDeleted = (objectId) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendObjectDelete(objectId)
+            }
+        }
+
+        this.canvasManager.onObjectsDeleted = (objectIds) => {
+            if (this.wsClient && this.wsClient.isConnected) {
+                this.wsClient.sendObjectsDelete(objectIds)
+            }
+        }
+
+        // Update status bar callbacks
+        this.canvasManager.onToolChange = (tool) => {
+            document.getElementById('current-tool').textContent =
+                tool.charAt(0).toUpperCase() + tool.slice(1)
+        }
+
+        this.canvasManager.onMouseMove = (x, y) => {
+            document.getElementById('mouse-position').textContent = `${Math.round(x)}, ${Math.round(y)}`
+        }
+
+        this.canvasManager.onZoomChange = (zoom) => {
+            document.getElementById('zoom-level').textContent = `${Math.round(zoom * 100)}%`
+        }
+
+        this.canvasManager.onObjectCountChange = (count) => {
+            document.getElementById('object-count').textContent = count
+        }
+
+        // Start periodic memory cleanup (every 60 seconds)
+        // This removes orphaned selection indicators and inactive cursors
+        this.canvasManager.startPeriodicCleanup(60000)
+        console.log('Started periodic memory cleanup (60s interval)')
+    }
+
+    initWebSocket() {
+        // Use wss:// for HTTPS pages, ws:// for HTTP
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+        // window.location.host includes port if non-standard (e.g., localhost:8080)
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/${this.canvasId}`
+
+        this.wsClient = new WebSocketClient(wsUrl, this.sessionId, this.canvasId)
+
+        // Set up WebSocket callbacks
+        this.wsClient.onAuthSuccess = (data) => {
+            console.error('=== WebSocket authenticated ===')
+            console.error('Auth data received:', data)
+
+            // Backend sends 'canvas-state' (kebab-case), not 'canvasState'
+            const canvasState = data['canvas-state'] || data.canvasState
+            console.error('canvasState exists?', !!canvasState)
+            console.error('canvasState type:', typeof canvasState)
+            console.error('canvasState length:', canvasState ? canvasState.length : 0)
+
+            // Load initial canvas state
+            if (canvasState) {
+                console.error('=== CALLING loadState ===')
+                this.canvasManager.loadState(canvasState)
+                console.error('=== loadState RETURNED ===')
+            } else {
+                console.error('=== NO CANVAS STATE IN AUTH RESPONSE ===')
+            }
+        }
+
+        this.wsClient.onUserConnected = (data) => {
+            // Add new user to active users list
+            this.activeUsers.push({
+                'user-id': data.userId || data['user-id'],
+                username: data.username,
+                color: data.color
+            })
+            this.updatePresenceList(this.activeUsers)
+            this.showNotification(`${data.username} joined`, 'info')
+        }
+
+        this.wsClient.onUserDisconnected = (data) => {
+            // Remove user from active users list
+            const userId = data.userId || data['user-id']
+            this.activeUsers = this.activeUsers.filter(u =>
+                (u['user-id'] || u.userId) !== userId
+            )
+            this.updatePresenceList(this.activeUsers)
+            this.canvasManager.removeRemoteCursor(userId)
+            this.showNotification(`${data.username} left`, 'info')
+        }
+
+        this.wsClient.onPresenceUpdate = (users) => {
+            // Replace entire active users list with server's authoritative list
+            this.activeUsers = users
+            this.updatePresenceList(this.activeUsers)
+        }
+
+        this.wsClient.onCursorUpdate = (data) => {
+            this.canvasManager.updateRemoteCursor(
+                data.userId,
+                data.username,
+                data.x,
+                data.y,
+                data.color
+            )
+        }
+
+        this.wsClient.onObjectCreated = (data) => {
+            this.canvasManager.createRemoteObject(data.object)
+        }
+
+        this.wsClient.onObjectUpdated = (data) => {
+            // Backend sends 'object-id' (kebab-case)
+            const objectId = data['object-id'] || data.objectId
+            this.canvasManager.updateRemoteObject(objectId, data.delta)
+        }
+
+        this.wsClient.onObjectDeleted = (data) => {
+            // Remove user from active users list
+            const userId = data.userId || data['user-id']
+            this.activeUsers = this.activeUsers.filter(u =>
+                (u['user-id'] || u.userId) !== userId
+            )
+            this.updatePresenceList(this.activeUsers)
+            this.canvasManager.removeRemoteCursor(userId)
+            this.showNotification(`${data.username} left`, 'info')
+        }
+
+        this.wsClient.onObjectsDeleted = (data) => {
+            const objectIds = data['object-ids'] || data.objectIds || []
+            console.log('Received bulk delete for objects:', objectIds)
+
+            // Handle remote bulk deletion
+            if (objectIds.length > 0) {
+                objectIds.forEach(objectId => {
+                    this.canvasManager.deleteObject(objectId)
+                })
+                console.log(`Processed remote bulk deletion of ${objectIds.length} objects`)
+            }
+        }
+
+        this.wsClient.onError = (error) => {
+            console.error('WebSocket error:', error)
+            this.showNotification('Connection error', 'error')
+        }
+
+        this.wsClient.onReconnecting = () => {
+            this.showNotification('Reconnecting...', 'warning')
+        }
+
+        this.wsClient.onReconnected = () => {
+            this.showNotification('Reconnected', 'success')
+        }
+
+        // Connect to WebSocket
+        this.wsClient.connect()
+    }
+
+    setupUIHandlers() {
+        // Tool buttons
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tool = btn.dataset.tool
+                this.canvasManager.setTool(tool)
+
+                // Update active button
+                document.querySelectorAll('.tool-btn').forEach(b =>
+                    b.classList.remove('active'))
+                btn.classList.add('active')
+            })
+        })
+
+        // Color picker
+        const colorPicker = document.getElementById('color-picker')
+        colorPicker.addEventListener('change', (e) => {
+            this.canvasManager.setColor(e.target.value)
+        })
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Prevent shortcuts when typing in inputs
+            if (e.target.tagName === 'INPUT') return
+
+            switch(e.key.toLowerCase()) {
+                case 'v':
+                    this.selectTool('select')
+                    break
+                case 'r':
+                    this.selectTool('rectangle')
+                    break
+                case 'c':
+                    this.selectTool('circle')
+                    break
+                case 'p':
+                    if (e.ctrlKey && e.shiftKey) {
+                        e.preventDefault()
+                        this.runPerformanceTest()
+                    }
+                    break
+                case 'delete':
+                case 'backspace':
+                    if (!e.target.isContentEditable) {
+                        e.preventDefault()
+                        this.canvasManager.deleteSelected()
+                    }
+                    break
+                case 'z':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault()
+                        if (e.shiftKey) {
+                            this.canvasManager.redo()
+                        } else {
+                            this.canvasManager.undo()
+                        }
+                    }
+                    break
+            }
+        })
+
+        // Logout button (if added to UI)
+        const logoutBtn = document.getElementById('logout-btn')
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                await this.logout()
+            })
+        }
+    }
+
+    selectTool(tool) {
+        this.canvasManager.setTool(tool)
+
+        // Update UI
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            if (btn.dataset.tool === tool) {
+                btn.classList.add('active')
+            } else {
+                btn.classList.remove('active')
+            }
+        })
+    }
+
+    updatePresenceList(users = []) {
+        const container = document.getElementById('users-container')
+        container.innerHTML = ''
+
+        users.forEach(user => {
+            const userItem = document.createElement('div')
+            userItem.className = 'user-item'
+            // Handle both kebab-case and camelCase keys
+            const username = user.username
+            const color = user.color
+            userItem.innerHTML = `
+                <span class="user-indicator" style="background-color: ${color}"></span>
+                <span>${username}</span>
+            `
+            container.appendChild(userItem)
+        })
+    }
+
+    showNotification(message, type = 'info') {
+        // Simple notification system (can be enhanced with a library)
+        console.log(`[${type.toUpperCase()}] ${message}`)
+
+        // TODO: Implement visual notifications
+    }
+
+    async logout() {
+        try {
+            await fetch('/api/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': this.sessionId
+                }
+            })
+        } catch (error) {
+            console.error('Logout error:', error)
+        }
+
+        // Clean up
+        localStorage.removeItem('sessionId')
+
+        // Stop periodic cleanup timer
+        if (this.canvasManager) {
+            this.canvasManager.stopPeriodicCleanup()
+        }
+
+        // Disconnect WebSocket (also cleans up cursor throttle)
+        if (this.wsClient) {
+            this.wsClient.disconnect()
+        }
+
+        // Reload page to show login
+        window.location.reload()
+    }
+
+    async runPerformanceTest() {
+        console.log('Performance testing is not available in production build');
+        console.log('Use development build (npm run dev) for performance testing');
+    }
+}
+
+// Initialize application when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        const app = new CollabCanvas()
+        app.init()
+        window.collabCanvas = app // For debugging
+    })
+} else {
+    const app = new CollabCanvas()
+    app.init()
+    window.collabCanvas = app // For debugging
+}
+</file>
+
+<file path="frontend/src/canvas.js">
+// src/canvas.js
+// Complete PixiJS Canvas Manager for CollabCanvas
+import * as PIXI from 'pixi.js';
+
+// Note: CullerPlugin may not be available in all PixiJS v8 builds
+// We have custom viewport culling as a fallback
+try {
+  // Attempt to import and register CullerPlugin if available
+  if (PIXI.extensions && PIXI.CullerPlugin) {
+    PIXI.extensions.add(PIXI.CullerPlugin);
+    console.log('CullerPlugin registered successfully');
+  }
+} catch (e) {
+  console.log('CullerPlugin not available, using custom culling implementation');
+}
+
+export class PerformanceMonitor {
+  constructor(app, canvasManager) {
+    this.app = app;
+    this.canvasManager = canvasManager;
+    this.fpsHistory = [];
+    this.maxHistorySize = 60;
+    this.currentFps = 60;
+    this.lastTime = performance.now();
+    this.frameCount = 0;
+
+    // Bind ticker update
+    this.app.ticker.add(this.update.bind(this));
+
+    console.log('PerformanceMonitor initialized');
+  }
+
+  update(deltaTime) {
+    // Calculate FPS based on delta time (in seconds)
+    const now = performance.now();
+    const deltaMs = now - this.lastTime;
+
+    if (deltaMs > 0) {
+      this.currentFps = Math.round(1000 / deltaMs);
+    }
+
+    this.lastTime = now;
+
+    // Add to history
+    this.fpsHistory.push(this.currentFps);
+    if (this.fpsHistory.length > this.maxHistorySize) {
+      this.fpsHistory.shift(); // Remove oldest entry
+    }
+
+    // Check for low FPS and log warnings
+    if (this.currentFps < 55) {
+      const avgFps = this.getAverageFps();
+      const objectCount = this.canvasManager ? this.canvasManager.objects.size : 0;
+      console.warn(`⚠️ Low FPS detected: ${this.currentFps} FPS (avg: ${avgFps.toFixed(1)}, objects: ${objectCount})`);
+    }
+  }
+
+  getAverageFps() {
+    if (this.fpsHistory.length === 0) return 60;
+    const sum = this.fpsHistory.reduce((a, b) => a + b, 0);
+    return sum / this.fpsHistory.length;
+  }
+
+  getStats() {
+    if (this.fpsHistory.length === 0) {
+      return {
+        current: this.currentFps,
+        average: 60,
+        min: 60,
+        max: 60
+      };
+    }
+
+    return {
+      current: this.currentFps,
+      average: Math.round(this.getAverageFps() * 10) / 10,
+      min: Math.min(...this.fpsHistory),
+      max: Math.max(...this.fpsHistory)
+    };
+  }
+
+  destroy() {
+    if (this.app && this.app.ticker) {
+      this.app.ticker.remove(this.update.bind(this));
+    }
+  }
+}
+
+export class CanvasManager {
+  constructor(app) {
+    this.app = app;
+    this.viewport = new PIXI.Container();
+    this.objects = new Map(); // objectId -> PIXI Graphics
+    this.selectedObjects = new Set();
+    this.selectionIndicators = new Map(); // objectId -> selection box Graphics
+    this.remoteCursors = new Map(); // userId -> cursor container
+
+    // State
+    this.isPanning = false;
+    this.panStart = { x: 0, y: 0 };
+    this.currentTool = 'select'; // 'select', 'rectangle', 'circle', 'text'
+    this.currentColor = 0x3498db; // Default blue
+
+    // Drag state (centralized for performance)
+    this.isDragging = false;
+    this.draggedObject = null;
+    this.draggedObjectId = null;
+    this.dragOffset = { x: 0, y: 0 };
+    this.lastDragUpdate = 0;
+
+    // Viewport culling
+    this.cullingEnabled = true;
+    this.cullingPadding = 200; // Extra padding around viewport for smooth scrolling
+    this.lastViewportBounds = null;
+
+    // Performance monitoring
+    this.performanceMonitor = new PerformanceMonitor(app, this);
+
+    // Shared cursor texture for performance optimization
+    this.cursorTexture = this.createSharedCursorTexture();
+
+    // Viewport setup
+    this.app.stage.addChild(this.viewport);
+    this.viewport.sortableChildren = true;
+
+    // Enable culling on viewport for PixiJS built-in CullerPlugin (if available)
+    // Falls back to our custom culling implementation in setupViewportCulling()
+    this.viewport.cullable = true;
+
+    // Grid background (optional visual aid)
+    this.drawGrid();
+
+    // Setup interaction
+    this.setupPanZoom();
+    this.setupCentralizedDrag(); // NEW: Centralized drag handler
+    this.setupKeyboardShortcuts();
+    this.setupToolHandlers();
+    this.setupViewportCulling();
+
+    console.log('Canvas initialized');
+  }
+
+  createSharedCursorTexture() {
+    // Create cursor shape using Graphics
+    const graphics = new PIXI.Graphics();
+
+    // Draw cursor pointer (triangle) using v8 builder pattern
+    graphics.poly([
+      { x: 0, y: 0 },
+      { x: 12, y: 18 },
+      { x: 6, y: 18 },
+      { x: 0, y: 24 }
+    ]).fill(0xFFFFFF); // White fill (will be tinted)
+
+    // Render to texture
+    const texture = this.app.renderer.generateTexture(graphics, {
+      resolution: 1,
+      scaleMode: PIXI.SCALE_MODES.LINEAR
+    });
+
+    // Clean up graphics object
+    graphics.destroy();
+
+    return texture;
+  }
+
+  // ==================== Grid ====================
+  
+  drawGrid() {
+    const grid = new PIXI.Graphics();
+    grid.lineStyle(1, 0x333333, 0.3);
+
+    const gridSize = 50;
+    const gridExtent = 5000;
+
+    // Vertical lines
+    for (let x = -gridExtent; x <= gridExtent; x += gridSize) {
+      grid.moveTo(x, -gridExtent);
+      grid.lineTo(x, gridExtent);
+    }
+
+    // Horizontal lines
+    for (let y = -gridExtent; y <= gridExtent; y += gridSize) {
+      grid.moveTo(-gridExtent, y);
+      grid.lineTo(gridExtent, y);
+    }
+
+    grid.zIndex = -1;
+    // Grid is non-interactive - optimize event traversal
+    grid.interactive = false;
+    grid.interactiveChildren = false;
+    this.viewport.addChild(grid);
+  }
+  
+  // ==================== Pan & Zoom ====================
+  
+  setupPanZoom() {
+    const canvas = this.app.canvas;
+    
+    // Pan with middle mouse or Alt+drag
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.button === 1 || (e.button === 0 && e.altKey)) {
+        this.isPanning = true;
+        this.panStart = { x: e.clientX, y: e.clientY };
+        canvas.style.cursor = 'grabbing';
+        e.preventDefault();
+      }
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+      if (this.isPanning) {
+        const dx = e.clientX - this.panStart.x;
+        const dy = e.clientY - this.panStart.y;
+        
+        this.viewport.x += dx;
+        this.viewport.y += dy;
+        
+        this.panStart = { x: e.clientX, y: e.clientY };
+      }
+    });
+    
+    canvas.addEventListener('mouseup', () => {
+      if (this.isPanning) {
+        this.isPanning = false;
+        canvas.style.cursor = 'default';
+      }
+    });
+    
+    // Zoom with mouse wheel
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      
+      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      
+      // Get position before zoom
+      const worldPosBefore = this.screenToWorld(mouseX, mouseY);
+      
+      // Apply zoom
+      const newScale = this.viewport.scale.x * zoomFactor;
+      if (newScale >= 0.1 && newScale <= 10) {
+        this.viewport.scale.set(newScale);
+        
+        // Adjust position to keep mouse over same world point
+        const worldPosAfter = this.screenToWorld(mouseX, mouseY);
+        this.viewport.x += (worldPosAfter.x - worldPosBefore.x) * this.viewport.scale.x;
+        this.viewport.y += (worldPosAfter.y - worldPosBefore.y) * this.viewport.scale.y;
+      }
+    }, { passive: false });
+  }
+
+  // ==================== Centralized Drag (Performance Optimized) ====================
+
+  setupCentralizedDrag() {
+    const canvas = this.app.canvas;
+
+    // Global mousemove handler (only one for all objects)
+    canvas.addEventListener('mousemove', (e) => {
+      if (this.isDragging && this.draggedObject) {
+        const worldPos = this.screenToWorld(e.clientX, e.clientY);
+
+        // Update position immediately
+        this.draggedObject.x = worldPos.x - this.dragOffset.x;
+        this.draggedObject.y = worldPos.y - this.dragOffset.y;
+
+        // Throttle network updates
+        const now = performance.now();
+        if (now - this.lastDragUpdate >= 16) { // 60 FPS
+          if (this.onObjectUpdated) {
+            this.onObjectUpdated(this.draggedObjectId, {
+              x: this.draggedObject.x,
+              y: this.draggedObject.y
+            });
+          }
+          this.lastDragUpdate = now;
+        }
+      }
+    });
+
+    // Global mouseup handler
+    canvas.addEventListener('mouseup', () => {
+      if (this.isDragging && this.draggedObject) {
+        this.draggedObject.alpha = 1;
+
+        // Send final position
+        if (this.onObjectUpdated) {
+          this.onObjectUpdated(this.draggedObjectId, {
+            x: this.draggedObject.x,
+            y: this.draggedObject.y
+          });
+        }
+
+        // Reset drag state
+        this.isDragging = false;
+        this.draggedObject = null;
+        this.draggedObjectId = null;
+      }
+    });
+  }
+
+  screenToWorld(screenX, screenY) {
+    return {
+      x: (screenX - this.viewport.x) / this.viewport.scale.x,
+      y: (screenY - this.viewport.y) / this.viewport.scale.y
+    };
+  }
+  
+  worldToScreen(worldX, worldY) {
+    return {
+      x: worldX * this.viewport.scale.x + this.viewport.x,
+      y: worldY * this.viewport.scale.y + this.viewport.y
+    };
+  }
+  
+  // ==================== Keyboard Shortcuts ====================
+  
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Tool shortcuts
+      if (e.key === 'r' || e.key === 'R') {
+        this.setTool('rectangle');
+      } else if (e.key === 'c' || e.key === 'C') {
+        this.setTool('circle');
+      } else if (e.key === 't' || e.key === 'T') {
+        this.setTool('text');
+      } else if (e.key === 'v' || e.key === 'V' || e.key === 'Escape') {
+        this.setTool('select');
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        this.deleteSelected();
+      }
+    });
+  }
+  
+  setTool(tool) {
+    this.currentTool = tool;
+    console.log('Tool:', tool);
+    // Update UI indicator if you have one
+  }
+  
+  // ==================== Tool Handlers ====================
+  
+  setupToolHandlers() {
+    const canvas = this.app.canvas;
+    let drawStart = null;
+    let previewShape = null;
+    let lastPreviewUpdate = 0;
+    let previewUpdatePending = false;
+
+    // Track cursor movement
+    canvas.addEventListener('mousemove', (e) => {
+      const worldPos = this.screenToWorld(e.clientX, e.clientY);
+
+      // Notify about cursor movement
+      if (this.onCursorMoved) {
+        this.onCursorMoved(worldPos.x, worldPos.y);
+      }
+
+      // Handle preview shape drawing with RAF throttling
+      if (drawStart && previewShape && !previewUpdatePending) {
+        previewUpdatePending = true;
+        requestAnimationFrame(() => {
+          const now = performance.now();
+          // Throttle preview updates to 60 FPS
+          if (now - lastPreviewUpdate >= 16) {
+            const currentWorldPos = this.screenToWorld(e.clientX, e.clientY);
+            const width = currentWorldPos.x - drawStart.x;
+            const height = currentWorldPos.y - drawStart.y;
+
+            previewShape.clear();
+
+            // PixiJS v8 builder pattern
+            if (this.currentTool === 'rectangle') {
+              previewShape.rect(drawStart.x, drawStart.y, width, height).fill(this.currentColor);
+            } else if (this.currentTool === 'circle') {
+              const radius = Math.sqrt(width * width + height * height);
+              previewShape.circle(drawStart.x, drawStart.y, radius).fill(this.currentColor);
+            }
+            lastPreviewUpdate = now;
+          }
+          previewUpdatePending = false;
+        });
+      }
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.button !== 0 || e.altKey) return; // Left click only, not panning
+      
+      const worldPos = this.screenToWorld(e.clientX, e.clientY);
+      
+      if (this.currentTool === 'rectangle' || this.currentTool === 'circle') {
+        drawStart = worldPos;
+        
+        // Create preview shape
+        previewShape = new PIXI.Graphics();
+        previewShape.alpha = 0.5;
+        this.viewport.addChild(previewShape);
+      }
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+      if (drawStart && previewShape) {
+        const worldPos = this.screenToWorld(e.clientX, e.clientY);
+        
+        // Create actual object
+        const objData = this.createToolObject(drawStart, worldPos);
+        
+        // Clean up preview
+        this.viewport.removeChild(previewShape);
+        previewShape = null;
+        drawStart = null;
+        
+        // Notify about new object (callback to WebSocket)
+        if (this.onObjectCreated) {
+          this.onObjectCreated(objData);
+        }
+      }
+    });
+  }
+
+  // ==================== Viewport Culling ====================
+
+  setupViewportCulling() {
+    // Listen for viewport changes (pan and zoom)
+    this.app.ticker.add(() => {
+      if (this.cullingEnabled) {
+        this.updateVisibleObjects();
+      }
+    });
+  }
+
+  updateVisibleObjects() {
+    // Calculate current viewport bounds in world coordinates
+    const viewportBounds = this.getViewportBounds();
+
+    // Check if viewport has changed significantly
+    if (!this.lastViewportBounds ||
+        Math.abs(viewportBounds.left - this.lastViewportBounds.left) > 50 ||
+        Math.abs(viewportBounds.top - this.lastViewportBounds.top) > 50 ||
+        Math.abs(viewportBounds.right - this.lastViewportBounds.right) > 50 ||
+        Math.abs(viewportBounds.bottom - this.lastViewportBounds.bottom) > 50) {
+
+      this.lastViewportBounds = viewportBounds;
+
+      // Update visibility for all objects
+      this.objects.forEach((obj, id) => {
+        const objBounds = this.getObjectBounds(obj);
+        const isVisible = this.isBoundsVisible(objBounds, viewportBounds);
+
+        // Only change visibility if it actually changed to avoid unnecessary operations
+        if (obj.visible !== isVisible) {
+          obj.visible = isVisible;
+        }
+      });
+    }
+  }
+
+  getViewportBounds() {
+    // Get screen dimensions
+    const screenWidth = this.app.renderer.width;
+    const screenHeight = this.app.renderer.height;
+
+    // Convert screen corners to world coordinates
+    const topLeft = this.screenToWorld(0, 0);
+    const bottomRight = this.screenToWorld(screenWidth, screenHeight);
+
+    return {
+      left: topLeft.x - this.cullingPadding,
+      top: topLeft.y - this.cullingPadding,
+      right: bottomRight.x + this.cullingPadding,
+      bottom: bottomRight.y + this.cullingPadding
+    };
+  }
+
+  getObjectBounds(obj) {
+    // Calculate object bounds based on type
+    if (obj.userData) {
+      if (obj.userData.type === 'rectangle') {
+        return {
+          left: obj.x,
+          top: obj.y,
+          right: obj.x + obj.userData.width,
+          bottom: obj.y + obj.userData.height
+        };
+      } else if (obj.userData.type === 'circle') {
+        const radius = obj.userData.radius;
+        return {
+          left: obj.x - radius,
+          top: obj.y - radius,
+          right: obj.x + radius,
+          bottom: obj.y + radius
+        };
+      }
+    }
+
+    // Fallback for objects without userData (like text)
+    if (obj.width && obj.height) {
+      return {
+        left: obj.x,
+        top: obj.y,
+        right: obj.x + obj.width,
+        bottom: obj.y + obj.height
+      };
+    }
+
+    // Last resort - treat as point
+    return {
+      left: obj.x,
+      top: obj.y,
+      right: obj.x,
+      bottom: obj.y
+    };
+  }
+
+  isBoundsVisible(objBounds, viewportBounds) {
+    // Check if object bounds intersect with viewport bounds
+    return !(objBounds.right < viewportBounds.left ||
+             objBounds.left > viewportBounds.right ||
+             objBounds.bottom < viewportBounds.top ||
+             objBounds.top > viewportBounds.bottom);
+  }
+
+  createToolObject(start, end) {
+    const id = this.generateId();
+
+    if (this.currentTool === 'rectangle') {
+      const width = Math.abs(end.x - start.x);
+      const height = Math.abs(end.y - start.y);
+      const x = Math.min(start.x, end.x);
+      const y = Math.min(start.y, end.y);
+
+      this.createRectangle(id, x, y, width, height, this.currentColor);
+
+      return {
+        id,
+        type: 'rectangle',
+        x, y, width, height,
+        color: this.colorToHexString(this.currentColor)
+      };
+    } else if (this.currentTool === 'circle') {
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
+      const radius = Math.sqrt(dx * dx + dy * dy);
+
+      this.createCircle(id, start.x, start.y, radius, this.currentColor);
+
+      return {
+        id,
+        type: 'circle',
+        x: start.x,
+        y: start.y,
+        radius,
+        color: this.colorToHexString(this.currentColor)
+      };
+    }
+  }
+  
+  // ==================== Object Creation ====================
+  
+  createRectangle(id, x, y, width, height, color) {
+    const rect = new PIXI.Graphics();
+    // PixiJS v8 builder pattern
+    rect.rect(0, 0, width, height).fill(color);
+    rect.x = x;
+    rect.y = y;
+    rect.interactive = true;
+    rect.cursor = 'pointer'; // v8 replaces buttonMode
+    rect.visible = true; // Start visible, culling will handle visibility
+
+    // Store dimensions for selection box
+    rect.userData = { width, height, type: 'rectangle' };
+
+    this.makeDraggable(rect, id);
+    this.makeSelectable(rect, id);
+
+    this.objects.set(id, rect);
+    this.viewport.addChild(rect);
+
+    return rect;
+  }
+  
+  createCircle(id, x, y, radius, color) {
+    const circle = new PIXI.Graphics();
+    // PixiJS v8 builder pattern
+    circle.circle(0, 0, radius).fill(color);
+    circle.x = x;
+    circle.y = y;
+    circle.interactive = true;
+    circle.cursor = 'pointer'; // v8 replaces buttonMode
+    circle.visible = true; // Start visible, culling will handle visibility
+
+    // Store dimensions for selection box
+    circle.userData = { radius, type: 'circle' };
+
+    this.makeDraggable(circle, id);
+    this.makeSelectable(circle, id);
+
+    this.objects.set(id, circle);
+    this.viewport.addChild(circle);
+
+    return circle;
+  }
+  
+  createText(id, text, x, y, fontSize, color) {
+    const textObj = new PIXI.Text(text, {
+      fontSize,
+      fill: color,
+      fontFamily: 'Arial'
+    });
+    textObj.x = x;
+    textObj.y = y;
+    textObj.interactive = true;
+    textObj.buttonMode = true;
+    textObj.visible = true; // Start visible, culling will handle visibility
+
+    this.makeDraggable(textObj, id);
+    this.makeSelectable(textObj, id);
+
+    this.objects.set(id, textObj);
+    this.viewport.addChild(textObj);
+
+    return textObj;
+  }
+  
+  // ==================== Interaction ====================
+  
+  makeDraggable(obj, id) {
+    // Only handle pointerdown - centralized handler does the rest
+    obj.on('pointerdown', (event) => {
+      if (this.currentTool !== 'select') return;
+
+      const worldPos = this.screenToWorld(event.data.global.x, event.data.global.y);
+
+      // Set centralized drag state
+      this.isDragging = true;
+      this.draggedObject = obj;
+      this.draggedObjectId = id;
+      this.dragOffset.x = worldPos.x - obj.x;
+      this.dragOffset.y = worldPos.y - obj.y;
+
+      obj.alpha = 0.7;
+      event.stopPropagation();
+    });
+  }
+  
+  makeSelectable(obj, id) {
+    obj.on('click', (event) => {
+      if (this.currentTool === 'select') {
+        if (event.data.originalEvent.shiftKey) {
+          // Multi-select
+          if (this.selectedObjects.has(id)) {
+            this.deselectObject(id);
+          } else {
+            this.selectObject(id);
+          }
+        } else {
+          // Single select
+          this.clearSelection();
+          this.selectObject(id);
+        }
+        event.stopPropagation();
+      }
+    });
+  }
+  
+  selectObject(id) {
+    const obj = this.objects.get(id);
+    if (!obj) return;
+
+    this.selectedObjects.add(id);
+
+    // Remove existing selection indicator if any
+    const existingIndicator = this.selectionIndicators.get(id);
+    if (existingIndicator) {
+      this.viewport.removeChild(existingIndicator);
+      existingIndicator.destroy();
+    }
+
+    // Create selection indicator
+    const indicator = new PIXI.Graphics();
+
+    if (obj.userData) {
+      if (obj.userData.type === 'rectangle') {
+        // Draw selection box around rectangle using v8 builder pattern
+        const { width, height } = obj.userData;
+        indicator.rect(-2, -2, width + 4, height + 4).stroke({ width: 2, color: 0x00FF00 });
+        indicator.x = obj.x;
+        indicator.y = obj.y;
+      } else if (obj.userData.type === 'circle') {
+        // Draw selection box around circle using v8 builder pattern
+        const { radius } = obj.userData;
+        indicator.circle(0, 0, radius + 2).stroke({ width: 2, color: 0x00FF00 });
+        indicator.x = obj.x;
+        indicator.y = obj.y;
+      }
+    }
+
+    // Selection indicators are non-interactive - optimize event traversal
+    indicator.interactive = false;
+    indicator.interactiveChildren = false;
+
+    // Add to viewport and store reference
+    this.viewport.addChild(indicator);
+    this.selectionIndicators.set(id, indicator);
+  }
+
+  deselectObject(id) {
+    const obj = this.objects.get(id);
+    if (!obj) return;
+
+    this.selectedObjects.delete(id);
+
+    // Remove selection indicator
+    const indicator = this.selectionIndicators.get(id);
+    if (indicator) {
+      this.viewport.removeChild(indicator);
+      indicator.destroy();
+      this.selectionIndicators.delete(id);
+    }
+  }
+  
+  clearSelection() {
+    this.selectedObjects.forEach(id => this.deselectObject(id));
+    this.selectedObjects.clear();
+  }
+  
+  deleteSelected() {
+    if (this.selectedObjects.size === 0) {
+      return;
+    }
+
+    const idsToDelete = Array.from(this.selectedObjects);
+
+    // Use bulk deletion for better performance
+    const deletedIds = this.deleteObjects(idsToDelete);
+
+    // Clear selection
+    this.selectedObjects.clear();
+
+    // Notify about bulk deletion
+    if (this.onObjectsDeleted && deletedIds.length > 0) {
+      this.onObjectsDeleted(deletedIds);
+    }
+
+    console.log(`Deleted ${deletedIds.length} selected objects`);
+  }
+  
+  // ==================== Object Management ====================
+
+  loadState(canvasState) {
+    console.error('========================================');
+    console.error('=== LOAD STATE CALLED ===');
+    console.error('========================================');
+    console.error('Canvas state received:', canvasState);
+    console.error('Canvas state type:', typeof canvasState);
+    console.error('Is array?', Array.isArray(canvasState));
+
+    // Clear existing objects
+    console.error('Clearing existing objects...');
+    this.objects.forEach((obj, id) => {
+      this.deleteObject(id);
+    });
+    console.error('Objects cleared. Map size:', this.objects.size);
+
+    // Load objects from state
+    if (canvasState && typeof canvasState === 'object') {
+      // If it's an array, iterate through it
+      if (Array.isArray(canvasState)) {
+        console.error(`=== Loading ${canvasState.length} objects from ARRAY ===`);
+        canvasState.forEach((objData, index) => {
+          console.error(`Loading object ${index}:`, JSON.stringify(objData));
+          this.createRemoteObject(objData);
+        });
+      } else {
+        // If it's an object/hash, iterate through its values
+        const values = Object.values(canvasState);
+        console.error(`=== Loading ${values.length} objects from OBJECT ===`);
+        values.forEach((objData, index) => {
+          console.error(`Loading object ${index}:`, JSON.stringify(objData));
+          this.createRemoteObject(objData);
+        });
+      }
+    } else {
+      console.error('!!! INVALID canvas state !!!:', canvasState);
+    }
+
+    console.error('========================================');
+    console.error(`=== LOAD STATE COMPLETE: ${this.objects.size} objects ===`);
+    console.error('Current objects in map:', Array.from(this.objects.keys()));
+    console.error('========================================');
+
+    // Trigger viewport culling after loading objects
+    if (this.cullingEnabled) {
+      this.updateVisibleObjects();
+    }
+  }
+
+  applyDelta(id, delta) {
+    const obj = this.objects.get(id);
+    if (!obj) return;
+
+    // Apply all properties from delta
+    for (const [key, value] of Object.entries(delta)) {
+      obj[key] = value;
+    }
+
+    // Handle special cases for Graphics objects
+    if (obj instanceof PIXI.Graphics) {
+      if (delta.width !== undefined || delta.height !== undefined ||
+          delta.color !== undefined || delta.rotation !== undefined) {
+        // Trigger redraw for visual properties
+        this.redrawGraphicsObject(obj);
+      }
+    }
+  }
+
+  redrawGraphicsObject(obj) {
+    // Clear and redraw the graphics object based on its current properties
+    obj.clear();
+
+    // Basic rectangle drawing using v8 builder pattern
+    if (obj.width && obj.height) {
+      obj.rect(0, 0, obj.width, obj.height).fill(obj.color || 0xFF0000);
+    }
+
+    // Apply rotation if set
+    if (obj.rotation) {
+      obj.rotation = obj.rotation;
+    }
+  }
+
+  updateObject(id, updates) {
+    const obj = this.objects.get(id);
+    if (!obj) return;
+
+    if (updates.x !== undefined) obj.x = updates.x;
+    if (updates.y !== undefined) obj.y = updates.y;
+
+    // For Graphics objects, need to redraw if dimensions change
+    if (obj instanceof PIXI.Graphics) {
+      if (updates.width !== undefined || updates.height !== undefined) {
+        // Recreate the shape - this is simplistic, you might want a better approach
+        console.log('Dimension updates for Graphics require recreation');
+      }
+    }
+  }
+
+  deleteObject(id) {
+    const obj = this.objects.get(id);
+    if (obj) {
+      this.viewport.removeChild(obj);
+      this.objects.delete(id);
+
+      // Destroy object but preserve shared textures
+      obj.destroy({ children: true, texture: false, baseTexture: false });
+
+      // Clean up selection indicator if it exists
+      const indicator = this.selectionIndicators.get(id);
+      if (indicator) {
+        this.viewport.removeChild(indicator);
+        indicator.destroy({ children: true, texture: false, baseTexture: false });
+        this.selectionIndicators.delete(id);
+      }
+
+      // Remove from selected objects set
+      this.selectedObjects.delete(id);
+
+      console.log(`Deleted object ${id} with proper texture preservation`);
+    }
+  }
+
+  deleteObjects(ids) {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      console.warn('deleteObjects: Expected non-empty array of IDs');
+      return;
+    }
+
+    console.log(`Bulk deleting ${ids.length} objects:`, ids);
+
+    // Collect objects to delete for broadcasting
+    const deletedObjects = [];
+
+    // Delete each object
+    ids.forEach(id => {
+      const obj = this.objects.get(id);
+      if (obj) {
+        this.viewport.removeChild(obj);
+        this.objects.delete(id);
+
+        // Destroy object but preserve shared textures
+        obj.destroy({ children: true, texture: false, baseTexture: false });
+
+        // Clean up selection indicator if it exists
+        const indicator = this.selectionIndicators.get(id);
+        if (indicator) {
+          this.viewport.removeChild(indicator);
+          indicator.destroy({ children: true, texture: false, baseTexture: false });
+          this.selectionIndicators.delete(id);
+        }
+
+        // Remove from selected objects set
+        this.selectedObjects.delete(id);
+
+        deletedObjects.push(id);
+      } else {
+        console.warn(`Object ${id} not found for deletion`);
+      }
+    });
+
+    console.log(`Bulk deleted ${deletedObjects.length} objects successfully`);
+
+    // Return deleted IDs for broadcasting
+    return deletedObjects;
+  }
+
+  verifyObjectDeletion(ids) {
+    if (!Array.isArray(ids)) {
+      ids = [ids];
+    }
+
+    let allClean = true;
+    const issues = [];
+
+    ids.forEach(id => {
+      // Check if object still exists in maps
+      if (this.objects.has(id)) {
+        issues.push(`Object ${id} still in objects map`);
+        allClean = false;
+      }
+
+      if (this.selectionIndicators.has(id)) {
+        issues.push(`Selection indicator for ${id} still exists`);
+        allClean = false;
+      }
+
+      if (this.selectedObjects.has(id)) {
+        issues.push(`Object ${id} still in selectedObjects set`);
+        allClean = false;
+      }
+
+      // Check if PIXI object still has parent (indicating it's still in scene)
+      const obj = this.viewport.children.find(child => child._objectId === id);
+      if (obj) {
+        issues.push(`Object ${id} still in viewport children`);
+        allClean = false;
+      }
+    });
+
+    // Check for orphaned PIXI objects in viewport
+    const orphanedPixiObjects = this.viewport.children.filter(child => {
+      // Look for objects that don't have corresponding entries in our maps
+      return child._objectId && !this.objects.has(child._objectId);
+    });
+
+    if (orphanedPixiObjects.length > 0) {
+      issues.push(`${orphanedPixiObjects.length} orphaned PIXI objects found in viewport`);
+      allClean = false;
+    }
+
+    // Check texture memory (basic check)
+    // Note: In PixiJS v8, texture cache access has changed
+    const textureCount = PIXI.Cache ? Object.keys(PIXI.Cache._cache).length : 0;
+    if (textureCount > 100) { // Arbitrary threshold
+      issues.push(`High texture count detected: ${textureCount} textures in cache`);
+    }
+
+    if (!allClean) {
+      console.warn('Memory leak verification failed:', issues);
+    } else {
+      console.log(`Memory leak verification passed for ${ids.length} deleted objects`);
+    }
+
+    return {
+      success: allClean,
+      issues: issues,
+      textureCount: textureCount,
+      orphanedObjects: orphanedPixiObjects.length
+    };
+  }
+
+  getMemoryStats() {
+    const pixiChildren = this.viewport.children.length;
+    const objectsInMap = this.objects.size;
+    const selectionIndicators = this.selectionIndicators.size;
+    const selectedObjects = this.selectedObjects.size;
+    const remoteCursors = this.remoteCursors.size;
+
+    return {
+      pixiChildren,
+      objectsInMap,
+      selectionIndicators,
+      selectedObjects,
+      remoteCursors,
+      totalTrackedObjects: objectsInMap + selectionIndicators + selectedObjects + remoteCursors,
+      // PixiJS v8: Cache API has changed
+      textureCacheSize: PIXI.Cache ? Object.keys(PIXI.Cache._cache).length : 0,
+      baseTextureCacheSize: 0 // BaseTextureCache deprecated in v8
+    };
+  }
+
+  // ==================== Remote Object Sync ====================
+
+  createRemoteObject(objData) {
+    console.log('Creating remote object:', objData);
+    console.log('Object properties:', {
+      id: objData.id,
+      type: objData.type,
+      x: objData.x,
+      y: objData.y,
+      width: objData.width,
+      height: objData.height,
+      radius: objData.radius,
+      color: objData.color,
+      colorType: typeof objData.color
+    });
+
+    // Convert color to proper format (ensure it's a number)
+    const color = this.normalizeColor(objData.color);
+    console.log('Normalized color:', color, 'type:', typeof color);
+
+    // Infer type from data if missing (backwards compatibility)
+    let type = objData.type;
+    if (!type) {
+      console.warn('Object missing type field, inferring from properties:', objData);
+      if (objData.radius !== undefined) {
+        type = 'circle';
+      } else if (objData.width !== undefined && objData.height !== undefined) {
+        type = 'rectangle';
+      } else if (objData.text !== undefined) {
+        type = 'text';
+      } else {
+        console.error('Cannot infer type for object:', objData);
+        return;
+      }
+    }
+
+    if (type === 'rectangle') {
+      // Validate dimensions
+      if (!objData.width || !objData.height || objData.width <= 0 || objData.height <= 0) {
+        console.warn('Skipping rectangle with invalid dimensions:', objData);
+        return;
+      }
+
+      console.log('Creating rectangle with:', {
+        id: objData.id,
+        x: objData.x,
+        y: objData.y,
+        width: objData.width,
+        height: objData.height,
+        color: color
+      });
+      this.createRectangle(
+        objData.id,
+        objData.x,
+        objData.y,
+        objData.width,
+        objData.height,
+        color
+      );
+      console.log('Rectangle created successfully. Objects in map:', this.objects.size);
+    } else if (type === 'circle') {
+      console.log('Creating circle with:', {
+        id: objData.id,
+        x: objData.x,
+        y: objData.y,
+        radius: objData.radius,
+        color: color
+      });
+      this.createCircle(
+        objData.id,
+        objData.x,
+        objData.y,
+        objData.radius,
+        color
+      );
+      console.log('Circle created successfully');
+    } else if (type === 'text') {
+      console.log('Creating text with:', {
+        id: objData.id,
+        text: objData.text,
+        x: objData.x,
+        y: objData.y,
+        fontSize: objData.fontSize,
+        color: color
+      });
+      this.createText(
+        objData.id,
+        objData.text,
+        objData.x,
+        objData.y,
+        objData.fontSize,
+        color
+      );
+      console.log('Text created successfully');
+    } else {
+      console.error('Unknown object type:', type);
+    }
+  }
+
+  normalizeColor(color) {
+    // If it's already a number (0xRRGGBB format), return it
+    if (typeof color === 'number') {
+      return color;
+    }
+
+    // If it's a hex string like "#3498db", convert to number
+    if (typeof color === 'string') {
+      if (color.startsWith('#')) {
+        return parseInt(color.substring(1), 16);
+      }
+      // If it's a string number like "3498db", convert to number
+      return parseInt(color, 16);
+    }
+
+    // Default color if something goes wrong
+    return 0x3498db;
+  }
+
+  updateRemoteObject(objectId, delta) {
+    console.log('Updating remote object with delta:', objectId, delta);
+    this.applyDelta(objectId, delta);
+  }
+
+  deleteRemoteObject(objectId) {
+    console.log('Deleting remote object:', objectId);
+    this.deleteObject(objectId);
+  }
+  
+  getObject(id) {
+    return this.objects.get(id);
+  }
+  
+  getAllObjects() {
+    return Array.from(this.objects.entries()).map(([id, obj]) => ({
+      id,
+      type: obj.constructor.name,
+      x: obj.x,
+      y: obj.y
+    }));
+  }
+
+  getPerformanceStats() {
+    return this.performanceMonitor.getStats();
+  }
+  
+  // ==================== Remote Cursors ====================
+  
+  updateRemoteCursor(userId, username, x, y, color) {
+    let cursor = this.remoteCursors.get(userId);
+
+    // Convert color string (like "#FF6B6B") to number
+    const colorNum = color && typeof color === 'string' && color.startsWith('#')
+      ? parseInt(color.substring(1), 16)
+      : 0xFF6B6B;
+
+    if (!cursor) {
+      // Create new cursor
+      cursor = new PIXI.Container();
+
+      // Cursor pointer using shared texture and sprite
+      const pointer = new PIXI.Sprite(this.cursorTexture);
+      pointer.tint = colorNum; // Apply color using tint instead of recreating graphics
+
+      // Username label
+      const label = new PIXI.Text(username, {
+        fontSize: 12,
+        fill: 0xFFFFFF,
+        fontWeight: 'bold',
+        stroke: colorNum,
+        strokeThickness: 2,
+        dropShadow: true,
+        dropShadowColor: 0x000000,
+        dropShadowAlpha: 0.7,
+        dropShadowDistance: 1
+      });
+      label.x = 15;
+      label.y = -5; // Position above cursor tip
+
+      cursor.addChild(pointer);
+      cursor.addChild(label);
+      cursor.zIndex = 1000;
+
+      // Remote cursors are non-interactive - optimize event traversal
+      cursor.interactive = false;
+      cursor.interactiveChildren = false;
+
+      this.remoteCursors.set(userId, cursor);
+      this.viewport.addChild(cursor);
+    }
+
+    // Add interpolation for smooth rendering despite batching/throttling
+    if (!cursor.lastUpdate) {
+      cursor.lastUpdate = { x, y, time: performance.now() };
+    }
+
+    const now = performance.now();
+    const dt = now - cursor.lastUpdate.time;
+
+    if (dt > 0 && dt < 100) { // Interpolate over last 100ms for smoothness
+      const lerpFactor = Math.min(dt / 100, 1);
+      cursor.x = cursor.lastUpdate.x + (x - cursor.lastUpdate.x) * lerpFactor;
+      cursor.y = cursor.lastUpdate.y + (y - cursor.lastUpdate.y) * lerpFactor;
+    } else {
+      // Large time gap or first update - jump to position
+      cursor.x = x;
+      cursor.y = y;
+    }
+
+    cursor.lastUpdate = { x, y, time: now };
+  }
+
+  removeRemoteCursor(userId) {
+    const cursor = this.remoteCursors.get(userId);
+    if (cursor) {
+      this.viewport.removeChild(cursor);
+      cursor.destroy();
+      this.remoteCursors.delete(userId);
+    }
+  }
+
+  clearAllRemoteCursors() {
+    console.log(`Clearing all remote cursors (${this.remoteCursors.size} cursors)`)
+    this.remoteCursors.forEach((cursor, userId) => {
+      this.viewport.removeChild(cursor)
+      cursor.destroy()
+    })
+    this.remoteCursors.clear()
+    console.log('All remote cursors cleared')
+  }
+
+  startPeriodicCleanup(intervalMs = 60000) {
+    // Run cleanup every minute to catch any orphaned objects
+    this.cleanupInterval = setInterval(() => {
+      this.performCleanup()
+    }, intervalMs)
+    console.log(`Started periodic cleanup (every ${intervalMs / 1000}s)`)
+  }
+
+  stopPeriodicCleanup() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval)
+      this.cleanupInterval = null
+      console.log('Stopped periodic cleanup')
+    }
+  }
+
+  performCleanup() {
+    console.log('=== Performing periodic cleanup ===')
+    let orphanedIndicators = 0
+    let orphanedCursors = 0
+
+    // Clean up selection indicators for deleted objects
+    this.selectionIndicators.forEach((indicator, id) => {
+      if (!this.objects.has(id)) {
+        this.viewport.removeChild(indicator)
+        indicator.destroy()
+        this.selectionIndicators.delete(id)
+        orphanedIndicators++
+      }
+    })
+
+    // Clean up selected objects that no longer exist
+    this.selectedObjects.forEach(id => {
+      if (!this.objects.has(id)) {
+        this.selectedObjects.delete(id)
+      }
+    })
+
+    // Clean up remote cursors that haven't updated in a while (>5 minutes)
+    const fiveMinutesAgo = performance.now() - (5 * 60 * 1000)
+    this.remoteCursors.forEach((cursor, userId) => {
+      if (cursor.lastUpdate && cursor.lastUpdate.time < fiveMinutesAgo) {
+        this.removeRemoteCursor(userId)
+        orphanedCursors++
+      }
+    })
+
+    if (orphanedIndicators > 0 || orphanedCursors > 0) {
+      console.log(`Cleanup complete: ${orphanedIndicators} indicators, ${orphanedCursors} cursors removed`)
+    } else {
+      console.log('Cleanup complete: No orphaned objects found')
+    }
+  }
+
+  // ==================== Utilities ====================
+  
+  generateId() {
+    return 'obj-' + Math.random().toString(36).substr(2, 9);
+  }
+  
+  setColor(color) {
+    this.currentColor = color;
+  }
+
+  colorToHexString(color) {
+    // Convert JavaScript color number (0x3498db) to CSS hex string ("#3498db")
+    if (typeof color === 'number') {
+      return '#' + color.toString(16).padStart(6, '0');
+    }
+    // If it's already a string with #, return as-is
+    if (typeof color === 'string' && color.startsWith('#')) {
+      return color;
+    }
+    // Default fallback
+    return '#3498db';
+  }
+
+  getCanvasState() {
+    const objects = [];
+    this.objects.forEach((obj, id) => {
+      // Serialize object data
+      objects.push({
+        id,
+        type: obj.constructor.name,
+        x: obj.x,
+        y: obj.y,
+        // Add more properties as needed
+      });
+    });
+    return { objects };
+  }
+
+  destroy() {
+    // Clean up performance monitor
+    if (this.performanceMonitor) {
+      this.performanceMonitor.destroy();
+    }
+
+    // Clean up shared cursor texture
+    if (this.cursorTexture) {
+      this.cursorTexture.destroy();
+    }
+
+    // Clean up PIXI objects
+    this.objects.forEach(obj => {
+      if (obj && typeof obj.destroy === 'function') {
+        obj.destroy();
+      }
+    });
+    this.objects.clear();
+
+    this.selectionIndicators.forEach(indicator => {
+      if (indicator && typeof indicator.destroy === 'function') {
+        indicator.destroy();
+      }
+    });
+    this.selectionIndicators.clear();
+
+    this.remoteCursors.forEach(cursor => {
+      if (cursor && typeof cursor.destroy === 'function') {
+        cursor.destroy();
+      }
+    });
+    this.remoteCursors.clear();
+  }
+  
+  // Callbacks - set these from outside
+  onObjectCreated = null;
+  onObjectMoved = null;
+  onObjectDeleted = null;
+  onCursorMoved = null;
+}
+</file>
+
+</files>

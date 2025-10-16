@@ -1,10 +1,49 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CollabCanvas - Real-time Collaborative Design</title>
     <style>
+        :root[data-theme="dark"] {
+            /* Dark theme color variables */
+            --bg-primary: #0f0f1e;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #1e1e30;
+            --bg-glass: rgba(30, 30, 46, 0.85);
+            --border-primary: rgba(255, 255, 255, 0.08);
+            --border-secondary: rgba(255, 255, 255, 0.06);
+            --text-primary: #e8eaed;
+            --text-secondary: #9ca3af;
+            --text-tertiary: #6b7280;
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #6366f1;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+            --canvas-bg: #16161f;
+        }
+
+        :root[data-theme="light"] {
+            /* Light theme color variables */
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f3f5;
+            --bg-glass: rgba(255, 255, 255, 0.85);
+            --border-primary: rgba(0, 0, 0, 0.08);
+            --border-secondary: rgba(0, 0, 0, 0.06);
+            --text-primary: #1a1a1a;
+            --text-secondary: #4b5563;
+            --text-tertiary: #9ca3af;
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #6366f1;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
+            --canvas-bg: #ffffff;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,161 +52,349 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #1a1a1a;
-            color: #e0e0e0;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             overflow: hidden;
-            position: relative;
             width: 100vw;
             height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
         }
 
+        /* Three-panel layout with sidebars */
         #app {
             width: 100%;
             height: 100%;
+            display: flex;
+        }
+
+        /* Left sidebar for tools */
+        #left-sidebar {
+            width: 72px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-right: 1px solid var(--border-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px 0;
+            gap: 8px;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        /* Center canvas area */
+        #canvas-wrapper {
+            flex: 1;
             position: relative;
+            background: var(--canvas-bg);
+            overflow: hidden;
+            transition: background 0.3s ease;
         }
 
         #canvas-container {
             width: 100%;
             height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
             cursor: crosshair;
         }
 
-        /* Toolbar */
-        #toolbar {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(40, 40, 40, 0.95);
-            border-radius: 8px;
-            padding: 10px;
+        /* Right sidebar for info and objects */
+        #right-sidebar {
+            width: 320px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-left: 1px solid var(--border-primary);
             display: flex;
-            gap: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            flex-direction: column;
             z-index: 100;
+            transition: all 0.3s ease;
         }
 
-        .tool-btn {
-            width: 40px;
-            height: 40px;
-            border: 2px solid #444;
-            background: #2a2a2a;
-            color: #e0e0e0;
-            border-radius: 4px;
+        /* Theme toggle button at top of left sidebar */
+        #theme-toggle {
+            width: 44px;
+            height: 44px;
+            border: 1px solid var(--border-secondary);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            border-radius: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
-            font-size: 18px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+
+        #theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+            transform: scale(1.05);
+        }
+
+        /* Vertical toolbar in left sidebar */
+        #toolbar {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .tool-btn {
+            width: 44px;
+            height: 44px;
+            border: 1px solid var(--border-secondary);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 20px;
+            position: relative;
         }
 
         .tool-btn:hover {
-            background: #3a3a3a;
-            border-color: #666;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent-primary);
+            color: var(--text-primary);
+            transform: scale(1.05);
         }
 
         .tool-btn.active {
-            background: #4a7c8e;
-            border-color: #5a9cb0;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            border-color: var(--accent-primary);
+            color: #ffffff;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
         }
 
         .tool-separator {
-            width: 1px;
-            background: #444;
-            margin: 0 5px;
+            height: 1px;
+            width: 32px;
+            background: var(--border-primary);
+            margin: 8px 0;
         }
 
         #color-picker {
-            width: 40px;
-            height: 40px;
-            border: 2px solid #444;
-            border-radius: 4px;
+            width: 44px;
+            height: 44px;
+            border: 1px solid var(--border-secondary);
+            border-radius: 12px;
             cursor: pointer;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 6px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Presence List */
-        #presence-list {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(40, 40, 40, 0.95);
-            border-radius: 8px;
-            padding: 15px;
-            min-width: 200px;
-            max-width: 300px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            z-index: 100;
+        #color-picker:hover {
+            border-color: var(--accent-primary);
+            transform: scale(1.05);
         }
 
-        #presence-list h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        /* Online users at bottom of left sidebar */
+        #users-mini {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-primary);
         }
 
-        .user-item {
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
-            padding: 5px 0;
+            justify-content: center;
             font-size: 14px;
+            font-weight: 600;
+            color: white;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        .user-indicator {
-            width: 8px;
-            height: 8px;
+        .user-avatar:hover {
+            transform: scale(1.1);
+        }
+
+        .user-avatar::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 10px;
+            height: 10px;
+            background: #10b981;
+            border: 2px solid var(--bg-glass);
             border-radius: 50%;
-            margin-right: 10px;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
         }
 
-        /* Status Bar */
-        #status-bar {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(30, 30, 30, 0.95);
-            padding: 8px 20px;
+        /* Right sidebar sections */
+        .sidebar-section {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .sidebar-section:last-child {
+            border-bottom: none;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 16px;
+        }
+
+        /* Canvas info section */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-secondary);
+            border-radius: 10px;
+            padding: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .info-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--accent-primary);
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Objects list section */
+        .objects-list {
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .object-item {
+            display: flex;
             align-items: center;
-            font-size: 12px;
-            color: #999;
-            z-index: 100;
+            gap: 12px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-secondary);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        .status-section {
-            display: flex;
-            gap: 20px;
+        .object-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--accent-primary);
+            transform: translateX(2px);
         }
 
-        .status-item {
+        .object-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
-            gap: 5px;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
         }
 
-        .status-label {
-            color: #666;
+        .object-info {
+            flex: 1;
+            min-width: 0;
         }
 
-        /* Auth Modal */
+        .object-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .object-details {
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+
+        .object-delete {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .object-item:hover .object-delete {
+            opacity: 1;
+        }
+
+        .object-delete:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: scale(1.1);
+        }
+
+        /* Auth modal styles */
         #auth-modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         #auth-modal.hidden {
@@ -175,34 +402,69 @@
         }
 
         .modal-content {
-            background: #2a2a2a;
-            border-radius: 12px;
-            padding: 30px;
-            width: 400px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border-primary);
+            border-radius: 20px;
+            padding: 36px;
+            width: 420px;
             max-width: 90%;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .modal-tabs {
             display: flex;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #444;
+            margin-bottom: 28px;
+            border-bottom: 1px solid var(--border-primary);
+            gap: 8px;
         }
 
         .tab-btn {
             flex: 1;
-            padding: 10px;
+            padding: 12px;
             background: none;
             border: none;
-            color: #999;
+            color: var(--text-secondary);
             cursor: pointer;
-            transition: color 0.2s;
-            font-size: 16px;
+            transition: all 0.2s ease;
+            font-size: 15px;
+            font-weight: 600;
+            position: relative;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
         }
 
         .tab-btn.active {
-            color: #e0e0e0;
-            border-bottom: 2px solid #5a9cb0;
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 2px 2px 0 0;
         }
 
         .auth-form {
@@ -211,70 +473,90 @@
 
         .auth-form.active {
             display: block;
+            animation: fadeIn 0.2s ease;
         }
 
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 5px;
-            color: #aaa;
-            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
         }
 
         .form-group input {
             width: 100%;
-            padding: 10px;
-            background: #1a1a1a;
-            border: 1px solid #444;
-            border-radius: 4px;
-            color: #e0e0e0;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-primary);
+            border-radius: 10px;
+            color: var(--text-primary);
             font-size: 14px;
+            transition: all 0.2s ease;
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: #5a9cb0;
+            border-color: var(--accent-primary);
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-tertiary);
         }
 
         .submit-btn {
             width: 100%;
-            padding: 12px;
-            background: #4a7c8e;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
             border: none;
-            border-radius: 4px;
+            border-radius: 10px;
             color: white;
-            font-size: 16px;
+            font-size: 15px;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.2s;
-            margin-top: 10px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-top: 8px;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
         }
 
         .submit-btn:hover {
-            background: #5a9cb0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(139, 92, 246, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
         }
 
         .error-message {
-            color: #ff6b6b;
-            font-size: 14px;
-            margin-top: 10px;
+            color: #f87171;
+            font-size: 13px;
+            margin-top: 12px;
             text-align: center;
+            font-weight: 500;
         }
 
-        /* Loading Screen */
         #loading-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: #1a1a1a;
+            background: var(--bg-primary);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 24px;
             z-index: 2000;
+            transition: background 0.3s ease;
         }
 
         #loading-screen.hidden {
@@ -282,68 +564,115 @@
         }
 
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid #333;
-            border-top-color: #5a9cb0;
+            width: 56px;
+            height: 56px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--accent-primary);
+            border-right-color: var(--accent-secondary);
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 0.8s linear infinite;
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-primary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--border-secondary);
         }
     </style>
 </head>
+
 <body>
     <div id="app">
-        <div id="canvas-container"></div>
+        <!-- Left sidebar with tools and users -->
+        <div id="left-sidebar">
+            <button id="theme-toggle" title="Toggle theme">
+                <span id="theme-icon">☀️</span>
+            </button>
 
-        <!-- Toolbar -->
-        <div id="toolbar">
-            <button class="tool-btn active" data-tool="select" title="Select (V)">
-                <span>↖</span>
-            </button>
-            <button class="tool-btn" data-tool="rectangle" title="Rectangle (R)">
-                <span>□</span>
-            </button>
-            <button class="tool-btn" data-tool="circle" title="Circle (C)">
-                <span>○</span>
-            </button>
-            <div class="tool-separator"></div>
-            <input type="color" id="color-picker" value="#5a9cb0" title="Color">
+            <div id="toolbar">
+                <button class="tool-btn active" data-tool="select" title="Select (V)">
+                    <span>↖</span>
+                </button>
+                <button class="tool-btn" data-tool="rectangle" title="Rectangle (R)">
+                    <span>□</span>
+                </button>
+                <button class="tool-btn" data-tool="circle" title="Circle (C)">
+                    <span>○</span>
+                </button>
+                <div class="tool-separator"></div>
+                <input type="color" id="color-picker" value="#8b5cf6" title="Color">
+            </div>
+
+            <div id="users-mini"></div>
         </div>
 
-        <!-- Presence List -->
-        <div id="presence-list">
-            <h3>Online Users</h3>
-            <div id="users-container"></div>
+        <!-- Center canvas area -->
+        <div id="canvas-wrapper">
+            <div id="canvas-container"></div>
         </div>
 
-        <!-- Status Bar -->
-        <div id="status-bar">
-            <div class="status-section">
-                <div class="status-item">
-                    <span class="status-label">Tool:</span>
-                    <span id="current-tool">Select</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Position:</span>
-                    <span id="mouse-position">0, 0</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Zoom:</span>
-                    <span id="zoom-level">100%</span>
+        <!-- Right sidebar with info and objects -->
+        <div id="right-sidebar">
+            <div class="sidebar-section">
+                <h3 class="section-title">Canvas Info</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Canvas ID</div>
+                        <div class="info-value" id="canvas-id">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Tool</div>
+                        <div class="info-value" id="current-tool">Select</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Zoom</div>
+                        <div class="info-value" id="zoom-level">100%</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Position</div>
+                        <div class="info-value" id="mouse-position">0, 0</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Objects</div>
+                        <div class="info-value" id="object-count">0</div>
+                    </div>
                 </div>
             </div>
-            <div class="status-section">
-                <div class="status-item">
-                    <span class="status-label">Objects:</span>
-                    <span id="object-count">0</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Canvas:</span>
-                    <span id="canvas-id">-</span>
+
+            <div class="sidebar-section">
+                <h3 class="section-title">Online Users</h3>
+                <div id="users-container"></div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="section-title">Objects</h3>
+                <div class="objects-list" id="objects-list">
+                    <!-- Objects will be dynamically added here -->
                 </div>
             </div>
         </div>
@@ -351,6 +680,7 @@
         <!-- Loading Screen -->
         <div id="loading-screen">
             <div class="spinner"></div>
+            <div class="loading-text">Loading CollabCanvas...</div>
         </div>
 
         <!-- Auth Modal -->
@@ -364,11 +694,11 @@
                 <form class="auth-form active" id="login-form">
                     <div class="form-group">
                         <label for="login-email">Email</label>
-                        <input type="email" id="login-email" required>
+                        <input type="email" id="login-email" required placeholder="you@example.com">
                     </div>
                     <div class="form-group">
                         <label for="login-password">Password</label>
-                        <input type="password" id="login-password" required>
+                        <input type="password" id="login-password" required placeholder="••••••••">
                     </div>
                     <button type="submit" class="submit-btn">Login</button>
                     <div class="error-message" id="login-error"></div>
@@ -377,15 +707,15 @@
                 <form class="auth-form" id="register-form">
                     <div class="form-group">
                         <label for="register-username">Username</label>
-                        <input type="text" id="register-username" required>
+                        <input type="text" id="register-username" required placeholder="johndoe">
                     </div>
                     <div class="form-group">
                         <label for="register-email">Email</label>
-                        <input type="email" id="register-email" required>
+                        <input type="email" id="register-email" required placeholder="you@example.com">
                     </div>
                     <div class="form-group">
                         <label for="register-password">Password</label>
-                        <input type="password" id="register-password" required>
+                        <input type="password" id="register-password" required placeholder="••••••••">
                     </div>
                     <button type="submit" class="submit-btn">Register</button>
                     <div class="error-message" id="register-error"></div>
@@ -394,6 +724,29 @@
         </div>
     </div>
 
+    <!-- Theme toggle script -->
+    <script>
+        // Theme toggle functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const html = document.documentElement;
+
+        // Load saved theme or default to dark
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        html.setAttribute('data-theme', savedTheme);
+        themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        });
+    </script>
+
     <script type="module" src="/src/main.js"></script>
 </body>
+
 </html>

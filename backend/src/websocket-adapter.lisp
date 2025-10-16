@@ -200,6 +200,10 @@
           ((string= msg-type "object-delete")
            (handle-object-delete-message conn-id data))
 
+          ;; AI command
+          ((string= msg-type "ai-command")
+           (handle-ai-command-message conn-id data))
+
           ;; Unknown message type
           (t
            (format t "[WS WARN] Unknown message type: ~A~%" msg-type))))
@@ -448,3 +452,64 @@
           conn-id)
 
         (format t "[WS] Object deleted: ~A by ~A~%" object-id username)))))
+
+(defun handle-ai-command-message (conn-id data)
+  "Handle AI command message - processes natural language commands to generate UI components."
+  (let* ((conn (get-ws-connection conn-id))
+         (command (cdr (assoc :command data)))
+         (user-id (ws-connection-user-id conn))
+         (username (ws-connection-username conn))
+         (canvas-id (ws-connection-canvas-id conn)))
+
+    (unless (and user-id command)
+      (format t "[WS WARN] AI command missing user-id or command~%")
+      (return-from handle-ai-command-message nil))
+
+    (format t "[WS AI] Processing command from ~A: ~A~%" username command)
+
+    ;; Execute AI command in background thread (async)
+    (bt:make-thread
+     (lambda ()
+       (handler-case
+           (progn
+             ;; Check rate limit
+             (check-ai-rate-limit user-id)
+
+             ;; Get canvas state for context
+             (let* ((canvas-state (get-canvas-objects canvas-id))
+                    (objects (execute-ai-command command canvas-id canvas-state user-id)))
+
+               ;; Broadcast each object creation
+               (dolist (obj objects)
+                 (let ((obj-id (cdr (assoc :id obj))))
+                   ;; Save to canvas state
+                   (update-canvas-object canvas-id obj-id obj user-id)
+
+                   ;; Broadcast to room
+                   (broadcast-to-canvas-room canvas-id
+                     (to-json-string
+                      `((:type . "object-create")
+                        (:object . ,obj)
+                        (:user-id . ,user-id)
+                        (:username . ,username)
+                        (:ai-generated . t)))
+                     nil)))  ; Send to everyone
+
+               ;; Send success message
+               (send-ws-message conn-id
+                 (to-json-string
+                  `((:type . "ai-command-success")
+                    (:objects-created . ,(length objects))
+                    (:command . ,command))))
+
+               (format t "[WS AI] Generated ~A objects for command: ~A~%"
+                      (length objects) command)))
+
+         (error (e)
+           (format t "[WS AI ERROR] AI command failed: ~A~%" e)
+           (send-ws-message conn-id
+             (to-json-string
+              `((:type . "ai-command-error")
+                (:error . ,(format nil "~A" e))
+                (:command . ,command)))))))
+     :name (format nil "ai-command-~A" (get-universal-time)))))
