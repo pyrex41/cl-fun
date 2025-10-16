@@ -7,7 +7,7 @@
 
 const puppeteer = require('puppeteer');
 
-const SERVER_URL = 'http://localhost:8080';
+const SERVER_URL = 'http://localhost:6465'; // Vite dev server (proxies to backend)
 const TEST_EMAIL = 'perftest@example.com';
 const TEST_USERNAME = 'perftest';
 const TEST_PASSWORD = 'perftest123';
@@ -182,7 +182,8 @@ async function runPerformanceTests() {
 // Check if server is running
 async function checkServer() {
   try {
-    const response = await fetch(`${SERVER_URL}/health`);
+    // Check backend health endpoint (frontend is Vite dev server)
+    const response = await fetch(`http://localhost:8080/health`);
     const data = await response.json();
     return data.status === 'healthy';
   } catch (error) {
