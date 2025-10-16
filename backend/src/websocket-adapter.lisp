@@ -118,6 +118,35 @@
   (bt:with-lock-held (*canvas-rooms-lock*)
     (copy-list (gethash canvas-id *canvas-rooms*))))
 
+(defun get-room-users (canvas-id)
+  "Get all authenticated users in a canvas room.
+   Returns list of alists with user-id, username, and color.
+   Deduplicates users by user-id (users may have multiple connections/tabs)."
+  (let ((conn-ids (get-room-connections canvas-id))
+        (seen-user-ids (make-hash-table :test 'equal))
+        (users nil))
+    (dolist (conn-id conn-ids)
+      (let ((conn (get-ws-connection conn-id)))
+        (when (and conn
+                   (ws-connection-user-id conn)
+                   (ws-connection-username conn))
+          (let ((user-id (ws-connection-user-id conn)))
+            ;; Only add user if we haven't seen this user-id yet
+            (unless (gethash user-id seen-user-ids)
+              (setf (gethash user-id seen-user-ids) t)
+              (push `((:user-id . ,user-id)
+                      (:username . ,(ws-connection-username conn))
+                      (:color . ,(generate-user-color user-id)))
+                    users))))))
+    (nreverse users)))
+
+(defun generate-user-color (user-id)
+  "Generate a consistent color for a user based on their ID."
+  (let* ((colors '("#3498db" "#e74c3c" "#2ecc71" "#f39c12" "#9b59b6"
+                   "#1abc9c" "#e67e22" "#34495e" "#16a085" "#c0392b"))
+         (index (mod user-id (length colors))))
+    (nth index colors)))
+
 ;;; Message Handling Stubs
 
 (defun handle-ws-connect (websocket)
@@ -179,10 +208,36 @@
       (format t "[WS ERROR] Failed to process message: ~A~%" e))))
 
 (defun handle-ws-disconnect (conn-id)
-  "Handle WebSocket disconnection.
-   TODO: Implement in Task 6 (Port WebSocket Logic)"
-  (format t "[WS] Connection closed: ~A~%" conn-id)
-  (unregister-ws-connection conn-id))
+  "Handle WebSocket disconnection."
+  (let* ((conn (get-ws-connection conn-id))
+         (user-id (when conn (ws-connection-user-id conn)))
+         (username (when conn (ws-connection-username conn)))
+         (canvas-id (when conn (ws-connection-canvas-id conn))))
+
+    (format t "[WS] Connection closed: ~A~%" conn-id)
+
+    ;; Unregister connection first
+    (unregister-ws-connection conn-id)
+
+    ;; If user was authenticated, notify others
+    (when (and user-id username canvas-id)
+      ;; Broadcast user disconnected
+      (broadcast-to-canvas-room canvas-id
+        (to-json-string
+         `((:type . "user-disconnected")
+           (:user-id . ,user-id)
+           (:username . ,username)))
+        nil)  ; nil = send to everyone
+
+      ;; Send updated presence list
+      (let ((users (get-room-users canvas-id)))
+        (broadcast-to-canvas-room canvas-id
+          (to-json-string
+           `((:type . "presence")
+             (:users . ,users)))
+          nil))
+
+      (format t "[WS] User ~A disconnected from canvas ~A~%" username canvas-id))))
 
 (defun send-ws-message (conn-id message)
   "Send a message to a specific WebSocket connection using websocket-driver."
@@ -250,8 +305,18 @@
           (to-json-string
            `((:type . "user-connected")
              (:user-id . ,user-id)
-             (:username . ,username)))
+             (:username . ,username)
+             (:color . ,(generate-user-color user-id))))
           conn-id)
+
+        ;; Send presence update to ALL users in the room (including this user)
+        (let ((users (get-room-users canvas-id)))
+          (format t "[WS AUTH DEBUG] Room users for ~A: ~A~%" canvas-id users)
+          (broadcast-to-canvas-room canvas-id
+            (to-json-string
+             `((:type . "presence")
+               (:users . ,users)))
+            nil))  ; nil = send to everyone, don't exclude anyone
 
         (format t "[WS] User ~A authenticated on canvas ~A~%" username canvas-id))
 
