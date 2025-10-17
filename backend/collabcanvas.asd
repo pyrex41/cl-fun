@@ -23,7 +23,9 @@
                :dexador
                :quri
                :babel
-               :cl-base64)
+               :cl-base64
+               ;; JWT library for RS256 verification
+               :jose)
   :components ((:module "src"
                 :components
                 ((:file "package")

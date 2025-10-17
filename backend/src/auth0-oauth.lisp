@@ -18,11 +18,38 @@
 (defconstant +rate-limit-window+ 3600
   "Rate limit time window in seconds (1 hour)")
 
-(defconstant +rate-limit-max-requests+ 10
-  "Maximum requests per IP per window")
+(defconstant +rate-limit-max-requests+ 1000
+  "Maximum requests per IP per window (increased for development)")
 
 (defconstant +rate-limit-cleanup-interval+ 300
   "Interval between rate limit cleanup runs in seconds (5 minutes)")
+
+;;; Helper Functions
+(defun cors-headers ()
+  "Return CORS headers as plist for Clack responses"
+  (list :access-control-allow-origin *cors-origin*
+        :access-control-allow-methods "GET, POST, PUT, DELETE, OPTIONS"
+        :access-control-allow-headers "Content-Type, Authorization, X-Session-ID"
+        :access-control-allow-credentials "true"))
+
+(defun parse-query-parameters (env)
+  "Parse query string from env into alist"
+  (let ((query-string (getf env :query-string)))
+    (when query-string
+      (mapcar (lambda (pair)
+                (let ((parts (cl-ppcre:split "=" pair)))
+                  (cons (first parts) (second parts))))
+              (cl-ppcre:split "&" query-string)))))
+
+(defun get-cookie (env cookie-name)
+  "Get cookie value from env by name"
+  (let ((cookie-header (getf env :http-cookie)))
+    (when cookie-header
+      (let ((cookies (cl-ppcre:split "; ?" cookie-header)))
+        (dolist (cookie cookies)
+          (let ((parts (cl-ppcre:split "=" cookie)))
+            (when (string= (first parts) cookie-name)
+              (return (second parts)))))))))
 
 ;;; Global state variables
 (defparameter *auth0-state-store* (make-hash-table :test 'equal)
@@ -94,12 +121,14 @@
          :name "auth0-state-cleanup")))
 
 ;;; Rate Limiting Functions
-(defun get-client-ip ()
+(defun get-client-ip (env)
   "Extract client IP address from request, considering proxy headers.
+   Parameters:
+     ENV - Clack request environment
    Returns IP address string (IPv4 or IPv6)."
-  (or (hunchentoot:header-in* :x-forwarded-for)
-      (hunchentoot:header-in* :x-real-ip)
-      (hunchentoot:remote-addr*)))
+  (or (gethash "x-forwarded-for" (getf env :headers))
+      (gethash "x-real-ip" (getf env :headers))
+      (getf env :remote-addr)))
 
 (defun check-rate-limit (ip)
   "Check if IP address has exceeded rate limit using sliding window.
@@ -160,11 +189,11 @@
          :name "rate-limit-cleanup")))
 
 (defun rate-limit-exceeded-response ()
-  "Return HTTP 429 Too Many Requests response"
-  (setf (hunchentoot:return-code*) 429)
-  (setf (hunchentoot:content-type*) "application/json")
-  (format nil "{\"error\":\"Too many requests. Please try again later.\",\"retry_after\":~A}"
-          +rate-limit-window+))
+  "Return HTTP 429 Too Many Requests response (Clack format)"
+  (list 429
+        (list :content-type "application/json")
+        (list (format nil "{\"error\":\"Too many requests. Please try again later.\",\"retry_after\":~A}"
+                      +rate-limit-window+))))
 
 (defun generate-oauth-state ()
   "Generate a secure random state token for OAuth CSRF protection.
@@ -194,9 +223,21 @@
     (remhash state *auth0-state-store*)))
 
 (defun http-post-form (url params)
-  "Minimal urlencoded POST using dexador"
-  (dexador:post url :content (dexador:urlencode params)
-                    :headers '(("Content-Type" . "application/x-www-form-urlencoded"))))
+  "Minimal urlencoded POST using dexador.
+   Parameters:
+     URL - Target URL string
+     PARAMS - Alist of (key . value) pairs to URL-encode
+   Returns dexador response"
+  (let ((body (with-output-to-string (s)
+                (loop for (key . value) in params
+                      for first = t then nil
+                      unless first do (write-string "&" s)
+                      do (format s "~A=~A"
+                                 (quri:url-encode key)
+                                 (quri:url-encode value))))))
+    (dexador:post url
+                  :content body
+                  :headers '(("Content-Type" . "application/x-www-form-urlencoded")))))
 
 (defun exchange-code-for-tokens (code)
   "Exchange OAuth authorization code for access and ID tokens.
@@ -212,10 +253,9 @@
                        ("client_secret" . ,*auth0-client-secret*)
                        ("code" . ,code)
                        ("redirect_uri" . ,*auth0-callback-url*)))
-             (resp (http-post-form (auth0-token-url) params))
-             (body (dexador:body-string resp)))
+             (resp (http-post-form (auth0-token-url) params)))
         (handler-case
-            (parse-json body)
+            (parse-json resp)
           (error (e)
             (format t "[ERROR] Failed to parse token response: ~A~%" e)
             (error "OAuth provider returned malformed JSON response"))))
@@ -226,25 +266,27 @@
       (format t "[ERROR] Unexpected error during token exchange: ~A~%" e)
       (error "Token exchange failed: ~A" e))))
 
-(defun handle-auth0-login ()
+(defun handle-auth0-login (env)
   "Initiate Auth0 login by redirecting to /authorize with CSRF state.
+   Parameters:
+     ENV - Clack request environment
+   Returns Clack response (status headers body).
    Rate limited to prevent abuse."
-  (set-cors-headers)
-
   ;; Check rate limit first
-  (let ((client-ip (get-client-ip)))
+  (let ((client-ip (get-client-ip env)))
     (unless (check-rate-limit client-ip)
       (format t "[WARN] Rate limit exceeded for IP: ~A on /auth0/login~%" client-ip)
       (return-from handle-auth0-login (rate-limit-exceeded-response))))
 
   (ensure-auth0-config!)
-  (let* ((params (hunchentoot:get-parameters*))
+  (let* ((params (parse-query-parameters env))
          (connection (cdr (assoc "connection" params :test #'string=)))
          (state (store-oauth-state (generate-oauth-state)))
          (url (auth0-authorize-url :state state :connection connection)))
-    (setf (hunchentoot:return-code*) 302)
-    (setf (hunchentoot:header-out :location) url)
-    ""))
+    (list 302
+          (append (cors-headers)
+                  (list :location url))
+          '(""))))
 
 (defun decode-jwt-segments (jwt)
   "Split JWT token into header, payload, and signature segments.
@@ -288,7 +330,7 @@
         *jwks-cache*
         (handler-case
             (let* ((url (format nil "~A/.well-known/jwks.json" (auth0-base-url)))
-                   (response (dexador:get url :timeout +http-timeout+)))
+                   (response (dexador:get url)))
               (handler-case
                   (let ((jwks (parse-json response)))
                     (setf *jwks-cache* jwks)
@@ -341,32 +383,13 @@
          (e (ironclad:octets-to-integer e-octets)))
     (ironclad:make-public-key :rsa :n n :e e)))
 
-(defun verify-jwt-signature-rs256 (jwt-string jwk)
-  "Verify JWT RS256 signature using public key from JWK.
+(defun unix-time-to-universal-time (unix-timestamp)
+  "Convert Unix timestamp (seconds since 1970-01-01) to Universal Time (seconds since 1900-01-01).
    Parameters:
-     JWT-STRING - Complete JWT token string (header.payload.signature)
-     JWK - JSON Web Key containing RSA public key parameters
-   Returns T if signature is valid, NIL otherwise."
-  (let* ((parts (cl-ppcre:split "\\." jwt-string))
-         (header-b64 (first parts))
-         (payload-b64 (second parts))
-         (signature-b64 (third parts))
-         ;; The signed data is header.payload
-         (signed-data (format nil "~A.~A" header-b64 payload-b64))
-         (signed-octets (babel:string-to-octets signed-data :encoding :utf-8))
-         ;; Decode the signature
-         (signature-octets (base64url-to-octets signature-b64))
-         ;; Get RSA public key
-         (public-key (jwk-to-rsa-public-key jwk)))
-    (handler-case
-        (ironclad:verify-signature public-key
-                                   signed-octets
-                                   signature-octets
-                                   :rsa-pkcs1
-                                   :sha256)
-      (error (e)
-        (format t "[ERROR] Signature verification failed: ~A~%" e)
-        nil))))
+     UNIX-TIMESTAMP - Integer seconds since Unix epoch (1970-01-01 00:00:00 UTC)
+   Returns Universal Time integer."
+  ;; Difference between Unix epoch (1970) and Universal Time epoch (1900) is 2208988800 seconds
+  (+ unix-timestamp 2208988800))
 
 (defun validate-jwt-claims (claims)
   "Validate JWT claims (issuer, audience, expiration)"
@@ -384,9 +407,14 @@
                 (and (listp aud) (member *auth0-client-id* aud :test #'string=)))
       (error "Invalid audience: ~A" aud))
     
-    ;; Check expiration
-    (when (and exp (numberp exp) (<= exp (get-universal-time)))
-      (error "Token expired"))
+    ;; Check expiration (convert Unix timestamp to Universal Time for comparison)
+    (when (and exp (numberp exp))
+      (let ((exp-universal (unix-time-to-universal-time exp))
+            (now-universal (get-universal-time)))
+        (format t "[DEBUG] Token exp (Unix): ~A, exp (Universal): ~A, now (Universal): ~A~%"
+                exp exp-universal now-universal)
+        (when (<= exp-universal now-universal)
+          (error "Token expired"))))
     
     (format t "[INFO] JWT claims validated successfully~%")
     t))
@@ -396,51 +424,91 @@
    Parameters:
      ID-TOKEN - Complete JWT token string
    Returns claims alist if valid, signals error otherwise.
-   Performs full cryptographic signature verification using Auth0's JWKS."
+   Performs full cryptographic signature verification using Auth0's JWKS and jose library."
   (let ((parts (decode-jwt-segments id-token)))
     (unless parts
       (error "Invalid JWT format"))
 
+    ;; First, parse header to get kid and algorithm
     (let* ((header-b64 (first parts))
-           (payload-b64 (second parts))
            (header-octets (base64url-to-octets header-b64))
-           (payload-octets (base64url-to-octets payload-b64))
            (header (parse-json (babel:octets-to-string header-octets :encoding :utf-8)))
-           (claims (parse-json (babel:octets-to-string payload-octets :encoding :utf-8))))
+           (kid (cdr (assoc :kid header)))
+           (alg (cdr (assoc :alg header))))
 
-      ;; Validate claims first (issuer, audience, expiration)
-      (validate-jwt-claims claims)
+      (format t "[DEBUG] JWT header kid: ~A, alg: ~A~%" kid alg)
 
-      ;; Verify RS256 signature
-      (let* ((kid (cdr (assoc :kid header)))
-             (alg (cdr (assoc :alg header))))
+      ;; Ensure RS256 algorithm
+      (unless (string= alg "RS256")
+        (error "Unsupported JWT algorithm: ~A (expected RS256)" alg))
 
-        ;; Ensure RS256 algorithm
-        (unless (string= alg "RS256")
-          (error "Unsupported JWT algorithm: ~A (expected RS256)" alg))
+      ;; Fetch JWKS and find matching key
+      (let* ((jwks (get-jwks))
+             (jwk (find-jwk-by-kid jwks kid)))
 
-        ;; Fetch JWKS and find matching key
-        (let* ((jwks (get-jwks))
-               (jwk (find-jwk-by-kid jwks kid)))
+        (format t "[DEBUG] JWKS fetched, searching for kid: ~A~%" kid)
 
-          (unless jwk
-            (error "JWT key ID '~A' not found in JWKS" kid))
+        (unless jwk
+          (format t "[ERROR] Available kids in JWKS: ~A~%"
+                  (mapcar (lambda (key) (cdr (assoc :kid key)))
+                          (cdr (assoc :keys jwks))))
+          (error "JWT key ID '~A' not found in JWKS" kid))
 
-          ;; Verify signature
-          (unless (verify-jwt-signature-rs256 id-token jwk)
-            (error "JWT signature verification failed"))
+        (format t "[DEBUG] Found matching JWK for kid: ~A~%" kid)
+        (format t "[DEBUG] JWK kty: ~A, use: ~A, alg: ~A~%"
+                (cdr (assoc :kty jwk))
+                (cdr (assoc :use jwk))
+                (cdr (assoc :alg jwk)))
 
-          (format t "[INFO] JWT signature verified successfully (kid: ~A)~%" kid)))
+        ;; Convert JWK to RSA public key
+        (let ((public-key (jwk-to-rsa-public-key jwk)))
+          (format t "[DEBUG] Public key created: ~A~%" public-key)
 
-      claims)))
+          ;; Use jose library to decode and verify signature
+          ;; jose:decode will raise an error if signature is invalid
+          (handler-case
+              (progn
+                (format t "[DEBUG] Calling jose:decode with :rs256~%")
+                (let ((claims (jose:decode :rs256 public-key id-token)))
+                  (format t "[INFO] JWT signature verified successfully by jose library (kid: ~A)~%" kid)
+                  (format t "[DEBUG] Claims type: ~A~%" (type-of claims))
+                  (format t "[DEBUG] Claims value: ~A~%" claims)
 
-(defun handle-auth0-link ()
+                  ;; Convert claims to alist with keyword keys
+                  (let ((claims-alist (cond
+                                        ;; Hash table: convert to alist with keyword keys
+                                        ((hash-table-p claims)
+                                         (let ((alist '()))
+                                           (maphash (lambda (k v)
+                                                     (push (cons (intern (string-upcase (string k)) :keyword) v) alist))
+                                                   claims)
+                                           alist))
+                                        ;; Already an alist: convert symbol keys to keyword keys
+                                        ((listp claims)
+                                         (mapcar (lambda (pair)
+                                                  (cons (intern (string-upcase (string (car pair))) :keyword)
+                                                        (cdr pair)))
+                                                claims))
+                                        ;; Unknown format
+                                        (t claims))))
+                    (format t "[DEBUG] Claims alist (after conversion): ~A~%" claims-alist)
+
+                    ;; Validate claims (issuer, audience, expiration)
+                    (validate-jwt-claims claims-alist)
+
+                    claims-alist)))
+            (error (e)
+              (format t "[ERROR] JWT verification failed: ~A~%" e)
+              (error "JWT signature verification failed: ~A" e))))))))
+
+(defun handle-auth0-link (env)
   "Initiate Auth0 account linking for already logged-in user.
+   Parameters:
+     ENV - Clack request environment
+   Returns Clack response (status headers body).
    Rate limited to prevent abuse."
-  (set-cors-headers)
-
   ;; Check rate limit first
-  (let ((client-ip (get-client-ip)))
+  (let ((client-ip (get-client-ip env)))
     (unless (check-rate-limit client-ip)
       (format t "[WARN] Rate limit exceeded for IP: ~A on /auth0/link~%" client-ip)
       (return-from handle-auth0-link (rate-limit-exceeded-response))))
@@ -448,15 +516,15 @@
   (ensure-auth0-config!)
 
   ;; Require existing session
-  (let ((session-id (hunchentoot:cookie-in *session-cookie-name*)))
+  (let ((session-id (get-cookie env *session-cookie-name*)))
     (unless session-id
       (return-from handle-auth0-link
-        (error-response "Must be logged in to link Auth0 account" :status 401)))
+        (clack-error-response "Must be logged in to link Auth0 account" :status 401)))
 
     (let ((session (validate-session session-id)))
       (unless session
         (return-from handle-auth0-link
-          (error-response "Invalid session" :status 401)))
+          (clack-error-response "Invalid session" :status 401)))
 
       ;; Store user-id in state metadata for linking
       (let* ((user-id (cdr (assoc :user-id session)))
@@ -464,9 +532,10 @@
                      (generate-oauth-state)
                      `(:link-user-id ,user-id)))
              (url (auth0-authorize-url :state state)))
-        (setf (hunchentoot:return-code*) 302)
-        (setf (hunchentoot:header-out :location) url)
-        ""))))
+        (list 302
+              (append (cors-headers)
+                      (list :location url))
+              '(""))))))
 
 (defun store-oauth-state-with-metadata (state metadata)
   "Store OAuth state with additional metadata and creation timestamp.
@@ -478,7 +547,7 @@
 (defun get-oauth-state-metadata (state)
   "Get metadata from OAuth state"
   (let ((state-data (gethash state *auth0-state-store*)))
-    (when state-data
+    (when (and state-data (listp state-data))
       (getf state-data :metadata))))
 
 ;; Pure internal functions for Clack compatibility
@@ -509,47 +578,52 @@
     (let ((link-user-id (and metadata (getf metadata :link-user-id))))
       (handler-case
           (let* ((token-resp (exchange-code-for-tokens code))
-                 (id-token (cdr (assoc :id-token token-resp)))
-                 (access-token (cdr (assoc :access-token token-resp)))
-                 (claims (and id-token (decode-and-validate-jwt id-token)))
-                 (sub (and claims (cdr (assoc :sub claims))))
-                 (email (and claims (cdr (assoc :email claims))))
-                 (name (and claims (cdr (assoc :name claims))))
-                 (picture (and claims (cdr (assoc :picture claims)))))
-            (unless sub
-              (error "Missing subject in ID token"))
+                 (id-token (cdr (assoc :id_token token-resp)))
+                 (access-token (cdr (assoc :access_token token-resp))))
+            (format t "[DEBUG] Token response keys: ~A~%" (mapcar #'car token-resp))
+            (format t "[DEBUG] ID token present: ~A~%" (if id-token "YES" "NO"))
+            (format t "[DEBUG] ID token length: ~A~%" (if id-token (length id-token) 0))
+            (let* ((claims (and id-token (decode-and-validate-jwt id-token)))
+                   (sub (and claims (cdr (assoc :sub claims))))
+                   (email (and claims (cdr (assoc :email claims))))
+                   (name (and claims (cdr (assoc :name claims))))
+                   (picture (and claims (cdr (assoc :picture claims)))))
+              (format t "[DEBUG] Claims present: ~A~%" (if claims "YES" "NO"))
+              (format t "[DEBUG] Sub claim: ~A~%" sub)
+              (unless sub
+                (error "Missing subject in ID token"))
 
-            ;; Ensure DB ready
-            (ensure-auth0-user-columns)
+              ;; Ensure DB ready
+              (ensure-auth0-user-columns)
 
-            (let ((user-id
-                   (if link-user-id
-                       ;; Linking flow: update existing user with auth0_sub
-                       (progn
-                         (format t "[INFO] Linking Auth0 account ~A to user ~A~%" sub link-user-id)
-                         (link-auth0-to-existing-user link-user-id sub email name picture)
-                         link-user-id)
-                       ;; Normal flow: find or create user
-                       (find-or-create-user-from-oauth
-                        :auth0-sub sub
-                        :email email
-                        :display-name name
-                        :avatar-url picture
-                        :email-verified (cdr (assoc :email-verified claims))))))
+              (let ((user-id
+                     (if link-user-id
+                         ;; Linking flow: update existing user with auth0_sub
+                         (progn
+                           (format t "[INFO] Linking Auth0 account ~A to user ~A~%" sub link-user-id)
+                           (link-auth0-to-existing-user link-user-id sub email name picture)
+                           link-user-id)
+                         ;; Normal flow: find or create user
+                         (find-or-create-user-from-oauth
+                          :auth0-sub sub
+                          :email email
+                          :display-name name
+                          :avatar-url picture
+                          :email-verified (cdr (assoc :email-verified claims))))))
 
-              ;; Get user info for response
-              (let ((user (get-user-by-id user-id)))
-                ;; Create session
-                (let* ((session-id (generate-session-id))
-                       (expires-at (local-time:format-timestring
-                                   nil (local-time:timestamp+
-                                        (local-time:now) *session-timeout* :sec))))
-                  (create-session user-id session-id expires-at)
+                ;; Get user info for response
+                (let ((user (get-user-by-id user-id)))
+                  ;; Create session
+                  (let* ((session-id (generate-session-id))
+                         (expires-at (local-time:format-timestring
+                                     nil (local-time:timestamp+
+                                          (local-time:now) *session-timeout* :sec))))
+                    (create-session user-id session-id expires-at)
 
-                  ;; Return session data
-                  `((:session-id . ,session-id)
-                    (:user-id . ,user-id)
-                    (:username . ,(cdr (assoc :username user))))))))
+                    ;; Return session data
+                    `((:session-id . ,session-id)
+                      (:user-id . ,user-id)
+                      (:username . ,(cdr (assoc :username user)))))))))
         (error (e)
           (format t "[ERROR] Callback processing failed: ~A~%" e)
           (error "Callback processing failed: ~A" e))))))
@@ -575,7 +649,7 @@
 
         (handler-case
             (let* ((token-resp (exchange-code-for-tokens code))
-                   (id-token (cdr (assoc :id-token token-resp)))
+                   (id-token (cdr (assoc :id_token token-resp)))
                    (claims (and id-token (decode-and-validate-jwt id-token)))
                    (sub (and claims (cdr (assoc :sub claims))))
                    (email (and claims (cdr (assoc :email claims))))
@@ -596,35 +670,36 @@
             (format t "[ERROR] Link processing failed: ~A~%" e)
             `((:success . nil) (:error . ,(format nil "~A" e)))))))))
 
-(defun handle-auth0-callback ()
+(defun handle-auth0-callback (env)
   "Process OAuth callback, validate state, exchange code, create session.
+   Parameters:
+     ENV - Clack request environment
+   Returns Clack response (status headers body).
    Rate limited to prevent abuse."
-  (set-cors-headers)
-
   ;; Check rate limit first
-  (let ((client-ip (get-client-ip)))
+  (let ((client-ip (get-client-ip env)))
     (unless (check-rate-limit client-ip)
       (format t "[WARN] Rate limit exceeded for IP: ~A on /auth0/callback~%" client-ip)
       (return-from handle-auth0-callback (rate-limit-exceeded-response))))
 
-  (let* ((params (hunchentoot:get-parameters*))
+  (let* ((params (parse-query-parameters env))
          (code (cdr (assoc "code" params :test #'string=)))
          (state (cdr (assoc "state" params :test #'string=)))
          (error-param (cdr (assoc "error" params :test #'string=))))
     (when error-param
-      (return-from handle-auth0-callback (error-response (format nil "OAuth error: ~A" error-param) :status 400)))
-    
+      (return-from handle-auth0-callback (clack-error-response (format nil "OAuth error: ~A" error-param) :status 400)))
+
     ;; Get metadata before popping state
     (let ((metadata (get-oauth-state-metadata state)))
       (unless (and code state (pop-oauth-state state))
-        (return-from handle-auth0-callback (error-response "Invalid or expired state" :status 400)))
-      
+        (return-from handle-auth0-callback (clack-error-response "Invalid or expired state" :status 400)))
+
       ;; Check if this is a linking flow
       (let ((link-user-id (and metadata (getf metadata :link-user-id))))
         (handler-case
             (let* ((token-resp (exchange-code-for-tokens code))
-                   (id-token (cdr (assoc :id-token token-resp)))
-                   (access-token (cdr (assoc :access-token token-resp)))
+                   (id-token (cdr (assoc :id_token token-resp)))
+                   (access-token (cdr (assoc :access_token token-resp)))
                    ;; Validate JWT claims (signature validation is basic)
                    (claims (and id-token (decode-and-validate-jwt id-token)))
                    (sub (and claims (cdr (assoc :sub claims))))
@@ -632,12 +707,12 @@
                    (name (and claims (cdr (assoc :name claims))))
                    (picture (and claims (cdr (assoc :picture claims)))))
               (unless sub
-                (return-from handle-auth0-callback (error-response "Missing subject in ID token" :status 400)))
-              
+                (return-from handle-auth0-callback (clack-error-response "Missing subject in ID token" :status 400)))
+
               ;; Ensure DB ready
               (ensure-auth0-user-columns)
-              
-              (let ((user-id 
+
+              (let ((user-id
                      (if link-user-id
                          ;; Linking flow: update existing user with auth0_sub
                          (progn
@@ -651,25 +726,27 @@
                           :display-name name
                           :avatar-url picture
                           :email-verified (cdr (assoc :email-verified claims))))))
-                
+
                 ;; Create session
                 (let* ((session-id (generate-session-id))
                        (expires-at (local-time:format-timestring
                                    nil (local-time:timestamp+
                                         (local-time:now) *session-timeout* :sec))))
                   (create-session user-id session-id expires-at)
-                  (hunchentoot:set-cookie *session-cookie-name*
-                                         :value session-id
-                                         :path "/"
-                                         :http-only t
-                                         :secure *use-secure-cookies*
-                                         :max-age *session-timeout*)
-                  
-                  ;; Redirect to app on success
-                  (setf (hunchentoot:return-code*) 302)
-                  (setf (hunchentoot:header-out :location) "/")
-                  "")))
+
+                  ;; Build Set-Cookie header value
+                  (let ((cookie-value (format nil "~A=~A; Path=/; HttpOnly~@[; Secure~]; Max-Age=~A"
+                                              *session-cookie-name*
+                                              session-id
+                                              *use-secure-cookies*
+                                              *session-timeout*)))
+                    ;; Redirect to app on success with session cookie
+                    (list 302
+                          (append (cors-headers)
+                                  (list :location "/"
+                                        :set-cookie cookie-value))
+                          '(""))))))
           (error (e)
-            (error-response (format nil "Callback processing failed: ~A" e) :status 500)))))))
+            (clack-error-response (format nil "Callback processing failed: ~A" e) :status 500)))))))
 
 

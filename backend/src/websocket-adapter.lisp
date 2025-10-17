@@ -279,7 +279,8 @@
   (format t "[WS AUTH DEBUG] Received data keys: ~A~%" (mapcar #'car data))
   (let* ((conn (get-ws-connection conn-id))
          (session-id (or (cdr (assoc :session-id data))
-                         (cdr (assoc :sessionid data))))  ; Try both formats
+                         (cdr (assoc :sessionid data))
+                         (cdr (assoc :SESSIONID data))))  ; Try uppercase (from JSON parser)
          (canvas-id (ws-connection-canvas-id conn)))
     (format t "[WS AUTH DEBUG] Extracted session-id: ~A~%" session-id)
 

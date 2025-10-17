@@ -57,10 +57,12 @@
     (:oauth-errors-today . ,(count-oauth-errors-today))
     (:migration-stats . ,(get-auth-migration-stats))))
 
-(defun handle-auth-metrics ()
-  "HTTP handler for auth metrics endpoint"
-  (set-cors-headers)
-  (setf (hunchentoot:content-type*) "application/json")
+(defun handle-auth-metrics (env)
+  "HTTP handler for auth metrics endpoint (Clack version).
+   Parameters:
+     ENV - Clack request environment
+   Returns Clack response (status headers body)"
+  (declare (ignore env))
   (success-response (get-auth-metrics)))
 
 (defun log-oauth-error (error-type details)
