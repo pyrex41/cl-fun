@@ -11,6 +11,10 @@ primary_region = 'ord'
 [env]
   DATABASE_PATH = "/data/canvas.db"
   FRONTEND_PATH = "/app/frontend/dist/"
+  # Auth0 OAuth - Set these as secrets with: fly secrets set KEY=value
+  # AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET, AUTH0_CALLBACK_URL
+  # Production callback URL should be: https://cl-fun.fly.dev/auth0/callback
+  CORS_ORIGIN = "https://cl-fun.fly.dev"
 
 [http_service]
   internal_port = 8080

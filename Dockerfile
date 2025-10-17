@@ -87,17 +87,27 @@ RUN mkdir -p /data
 # Expose port
 EXPOSE 8080
 
-# Create startup script - just initialize DB and run binary
+# Create startup script - initialize DB and run migrations
 RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
 # Check if database exists, if not initialize it\n\
 if [ ! -f /data/canvas.db ]; then\n\
-  echo "Initializing database..."\n\
+  echo "Initializing new database..."\n\
   sqlite3 /data/canvas.db < /app/backend/db/schema.sql\n\
-  echo "Database initialized."\n\
+  echo "Database initialized with latest schema."\n\
 else\n\
-  echo "Database already exists, skipping initialization."\n\
+  echo "Database exists, checking for migrations..."\n\
+  # Run migrations idempotently (ALTER TABLE IF NOT EXISTS)\n\
+  # These will fail gracefully if columns already exist\n\
+  sqlite3 /data/canvas.db "ALTER TABLE users ADD COLUMN auth0_sub TEXT UNIQUE;" 2>/dev/null || true\n\
+  sqlite3 /data/canvas.db "ALTER TABLE users ADD COLUMN display_name TEXT;" 2>/dev/null || true\n\
+  sqlite3 /data/canvas.db "ALTER TABLE users ADD COLUMN avatar_url TEXT;" 2>/dev/null || true\n\
+  sqlite3 /data/canvas.db "ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0;" 2>/dev/null || true\n\
+  sqlite3 /data/canvas.db "ALTER TABLE users ADD COLUMN last_login_at TEXT;" 2>/dev/null || true\n\
+  sqlite3 /data/canvas.db "ALTER TABLE users ADD COLUMN preferred_color TEXT DEFAULT '"'"'#3498db'"'"';" 2>/dev/null || true\n\
+  sqlite3 /data/canvas.db "CREATE INDEX IF NOT EXISTS idx_users_auth0_sub ON users(auth0_sub);" 2>/dev/null || true\n\
+  echo "Migrations applied (or already exist)."\n\
 fi\n\
 \n\
 # Start the server (binary already compiled, should start in <5 seconds)\n\
