@@ -10,7 +10,10 @@
       "Bash(git reset:*)",
       "Bash(git add:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Add setup-hooks.sh script for worktrees\n\nThis script makes it easy to install git pre-commit hooks in new worktrees.\n\nUsage: ./setup-hooks.sh\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git push)"
+      "Bash(git push)",
+      "mcp__task-master-ai__get_tasks",
+      "mcp__task-master-ai__set_task_status",
+      "mcp__task-master-ai__add_task"
     ]
   },
   "enableAllProjectMcpServers": true,

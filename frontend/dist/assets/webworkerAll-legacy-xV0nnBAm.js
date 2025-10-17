@@ -1,0 +1,2 @@
+System.register(["./pixi-legacy-CZ6miFXY.js"],function(d,a){"use strict";var e,t,i,r,s,n,c,u,g,o,f,j,l,m,p,x,y;return{setters:[d=>{e=d.e,t=d.R,i=d.g,r=d.h,s=d.i,n=d.M,c=d.j,u=d.k,g=d.l,o=d.m,f=d.B,j=d.H,l=d.n,m=d.o,p=d.N,x=d.p,y=d.q}],execute:function(){e.add(t),e.add(i),e.add(r),e.add(s),e.add(n),e.add(c),e.add(u),e.add(g),e.add(o),e.add(f),e.add(j),e.add(l),e.add(m),e.add(p),e.add(x),e.add(y)}}});
+//# sourceMappingURL=webworkerAll-legacy-xV0nnBAm.js.map
