@@ -18,6 +18,15 @@ class CollabCanvas {
         this.activeUsers = [] // Track active users
     }
 
+    getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) {
+            return parts.pop().split(';').shift();
+        }
+        return null;
+    }
+
     getCanvasId() {
         // Get canvas ID from URL or use default shared canvas
         const params = new URLSearchParams(window.location.search)
@@ -36,28 +45,55 @@ class CollabCanvas {
     }
 
     async init() {
-        console.log('Initializing CollabCanvas...')
+        console.log('[INIT] Initializing CollabCanvas...')
 
         // Update canvas ID in status bar
         document.getElementById('canvas-id').textContent = this.canvasId
 
         // Initialize authentication
+        console.log('[INIT] Creating AuthManager...')
         this.authManager = new AuthManager()
 
-        // Check for existing session
-        this.sessionId = localStorage.getItem('sessionId')
+        // Debug: Log all cookies
+        console.log('[INIT] All cookies:', document.cookie)
 
-        if (this.sessionId) {
-            // Validate session with backend
-            const isValid = await this.validateSession()
+        // Check for session ID in cookie first (backend sets it as 'session')
+        const sessionCookie = this.getCookie('session')
+        console.log('[INIT] Session ID from cookie (session):', sessionCookie || 'NULL')
 
-            if (!isValid) {
-                this.sessionId = null
-                localStorage.removeItem('sessionId')
+        // Then check localStorage
+        const sessionStorage = localStorage.getItem('sessionId')
+        console.log('[INIT] Session ID from localStorage:', sessionStorage || 'NULL')
+
+        // Use cookie value if available, otherwise fall back to localStorage
+        this.sessionId = sessionCookie || sessionStorage
+        console.log('[INIT] Using session ID:', this.sessionId || 'NULL')
+
+        // Always try to validate with backend (uses session cookie even if localStorage is empty)
+        console.log('[INIT] Validating session with backend...')
+        const isValid = await this.validateSession()
+        console.log('[INIT] Session validation result:', isValid)
+
+        if (isValid) {
+            console.log('[INIT] Valid session found - saving to localStorage')
+            // Session is valid - save sessionId to localStorage if we have one
+            if (this.sessionId) {
+                localStorage.setItem('sessionId', this.sessionId)
+                console.log('[INIT] Session ID saved to localStorage:', this.sessionId)
             }
-        }
 
-        if (!this.sessionId) {
+            // Hide auth modal and loading screen
+            console.log('[INIT] Hiding modal and loading screen...')
+            this.authManager.hideModal()
+            this.hideLoadingScreen()
+        } else {
+            console.log('[INIT] No valid session - showing auth modal...')
+            // Clear invalid session from localStorage
+            if (this.sessionId) {
+                localStorage.removeItem('sessionId')
+                this.sessionId = null
+            }
+
             // Hide loading screen and show auth modal
             this.hideLoadingScreen()
             const authData = await this.authManager.showModal()
@@ -65,11 +101,13 @@ class CollabCanvas {
             this.userId = authData.userId
             this.username = authData.username
             localStorage.setItem('sessionId', this.sessionId)
+            console.log('[INIT] Authentication complete, session stored')
+
+            // Hide loading screen after authentication
+            this.hideLoadingScreen()
         }
 
-        // Hide loading screen (session is valid)
-        this.hideLoadingScreen()
-
+        console.log('[INIT] Proceeding to initialize canvas...')
         // Initialize canvas (async in v8)
         await this.initCanvas()
 
@@ -90,38 +128,52 @@ class CollabCanvas {
     }
 
     async validateSession() {
-        console.log('[FRONTEND] Validating session...')
-        console.log('[FRONTEND] sessionId from localStorage:', this.sessionId)
+        console.log('[VALIDATE] Validating session...')
+        console.log('[VALIDATE] sessionId from localStorage:', this.sessionId || 'NULL')
 
         try {
+            const headers = { }
+            if (this.sessionId) {
+                headers['X-Session-ID'] = this.sessionId
+            }
+
             const response = await fetch('/api/session', {
                 credentials: 'include',
-                headers: {
-                    'X-Session-ID': this.sessionId
-                }
+                headers: headers
             })
 
-            console.log('[FRONTEND] Response status:', response.status)
-            console.log('[FRONTEND] Response ok:', response.ok)
+            console.log('[VALIDATE] Response status:', response.status)
+            console.log('[VALIDATE] Response ok:', response.ok)
 
             if (response.ok) {
                 const data = await response.json()
-                console.log('[FRONTEND] Response data:', data)
+                console.log('[VALIDATE] Response data:', data)
 
                 if (data.success && data.data && data.data.valid) {
+                    // Extract session info from backend
                     this.userId = data.data['user-id']
                     this.username = data.data.username
-                    console.log('[FRONTEND] Session restored:', this.username)
+                    // Extract session ID from response (backend should provide this)
+                    if (data.data['session-id']) {
+                        this.sessionId = data.data['session-id']
+                        console.log('[VALIDATE] Session ID from backend:', this.sessionId)
+                    }
+                    // Extract preferred color and save it
+                    if (data.data['preferred-color']) {
+                        this.preferredColor = data.data['preferred-color']
+                        console.log('[VALIDATE] Preferred color from backend:', this.preferredColor)
+                    }
+                    console.log('[VALIDATE] Session restored:', this.username)
                     return true
                 } else {
-                    console.log('[FRONTEND] Session validation failed - data.success:', data.success, 'data.data:', data.data, 'data.data.valid:', data.data?.valid)
+                    console.log('[VALIDATE] Session validation failed - data.success:', data.success, 'data.data:', data.data, 'data.data.valid:', data.data?.valid)
                 }
             } else {
                 const errorData = await response.json()
-                console.log('[FRONTEND] Error response:', errorData)
+                console.log('[VALIDATE] Error response:', errorData)
             }
         } catch (error) {
-            console.error('[FRONTEND] Session validation exception:', error)
+            console.error('[VALIDATE] Session validation exception:', error)
         }
 
         return false
@@ -161,6 +213,17 @@ class CollabCanvas {
         }
 
         this.canvasManager = new CanvasManager(app)
+
+        // Apply user's preferred color if available
+        if (this.preferredColor) {
+            console.log('[INIT] Setting canvas color to:', this.preferredColor)
+            this.canvasManager.setColor(this.preferredColor)
+            // Update color picker to match
+            const colorPicker = document.getElementById('color-picker')
+            if (colorPicker) {
+                colorPicker.value = this.preferredColor
+            }
+        }
 
         // Make performance stats available globally for console access
         window.getPerformanceStats = () => {
@@ -375,8 +438,27 @@ class CollabCanvas {
 
         // Color picker
         const colorPicker = document.getElementById('color-picker')
-        colorPicker.addEventListener('change', (e) => {
-            this.canvasManager.setColor(e.target.value)
+        colorPicker.addEventListener('change', async (e) => {
+            const newColor = e.target.value
+            this.canvasManager.setColor(newColor)
+
+            // Save color preference to backend
+            if (this.sessionId) {
+                try {
+                    await fetch('/api/user/color', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ color: newColor })
+                    })
+                    console.log('[COLOR] Saved preferred color:', newColor)
+                    this.preferredColor = newColor
+                } catch (error) {
+                    console.error('[COLOR] Failed to save color preference:', error)
+                }
+            }
         })
 
         // Keyboard shortcuts

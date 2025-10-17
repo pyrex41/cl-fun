@@ -16,7 +16,9 @@
 
 (defun get-env-cookie (env cookie-name)
   "Get a cookie value from Clack environment"
-  (let ((cookie-header (getf env :http-cookie)))
+  (let* ((headers (getf env :headers))
+         (cookie-header (when headers
+                         (gethash "cookie" headers))))
     (when cookie-header
       (let ((cookies (cl-ppcre:split "; ?" cookie-header)))
         (dolist (cookie cookies)
@@ -147,17 +149,14 @@
               (handle-health env))
 
              ;; API endpoints
-             ((string= path-info "/api/register")
-              (handle-register env))
-
-             ((string= path-info "/api/login")
-              (handle-login env))
-
              ((string= path-info "/api/logout")
               (handle-logout env))
 
              ((string= path-info "/api/session")
               (handle-session-check env))
+
+             ((string= path-info "/api/user/color")
+              (handle-update-color env))
 
              ((cl-ppcre:scan "^/api/canvas/state" path-info)
               (handle-canvas-state env))
@@ -195,51 +194,6 @@
    `((:status . "ok")
      (:service . "collabcanvas")
      (:timestamp . ,(get-universal-time)))))
-
-(defun handle-register (env)
-  "User registration endpoint handler - Clack format.
-   Expects JSON body with :email, :username, :password"
-  (let ((data (parse-env-body env)))
-    (unless data
-      (return-from handle-register
-        (clack-error-response "Invalid request body")))
-
-    (let ((email (cdr (assoc :email data)))
-          (username (cdr (assoc :username data)))
-          (password (cdr (assoc :password data))))
-
-      (unless (and email username password)
-        (return-from handle-register
-          (clack-error-response "Email, username, and password are required")))
-
-      (handler-case
-          (let ((result (register-user email username password)))
-            (clack-success-response result))
-        (error (e)
-          (clack-error-response (format nil "~A" e)))))))
-
-(defun handle-login (env)
-  "User login endpoint handler - Clack format.
-   Expects JSON body with :email/:username and :password"
-  (let ((data (parse-env-body env)))
-    (unless data
-      (return-from handle-login
-        (clack-error-response "Invalid request body")))
-
-    (let ((email-or-username (or (cdr (assoc :email data))
-                                 (cdr (assoc :username data))))
-          (password (cdr (assoc :password data))))
-
-      (unless (and email-or-username password)
-        (return-from handle-login
-          (clack-error-response "Email/username and password are required")))
-
-      (handler-case
-          (let ((result (login-user email-or-username password)))
-            ;; TODO: Set session cookie when we implement cookie support
-            (clack-success-response result))
-        (error (e)
-          (clack-error-response (format nil "~A" e)))))))
 
 (defun handle-logout (env)
   "User logout endpoint handler - Clack format.
@@ -294,6 +248,29 @@
               (clack-json-response state)
               (clack-json-response '((:objects . #())))))
         (clack-error-response "Missing canvasId parameter"))))
+
+(defun handle-update-color (env)
+  "Update user's preferred color - Clack format.
+   Expects JSON body: {\"color\": \"#3498db\"}"
+  (let* ((session-id (or (get-env-cookie env "session")
+                         (get-env-header env :x-session-id)
+                         (get-env-header env :authorization)))
+         (body (parse-env-body env))
+         (color (cdr (assoc :color body))))
+
+    (unless session-id
+      (return-from handle-update-color
+        (clack-error-response "Not authenticated" :status 401)))
+
+    (unless color
+      (return-from handle-update-color
+        (clack-error-response "Missing color parameter" :status 400)))
+
+    (if-let ((session (validate-session session-id)))
+      (let ((user-id (cdr (assoc :user-id session))))
+        (set-user-color user-id color)
+        (clack-success-response `((:color . ,color))))
+      (clack-error-response "Invalid or expired session" :status 401))))
 
 ;;; Auth0 OAuth Handler Implementations (Clack format)
 
@@ -378,7 +355,7 @@
                  (let ((session-id (cdr (assoc :session-id result))))
                    (list 302
                          (list :location "/"
-                               :set-cookie (format nil "session=~A; Path=/; HttpOnly~A; SameSite=Lax"
+                               :set-cookie (format nil "session=~A; Path=/~A; SameSite=Lax"
                                                   session-id
                                                   (if *use-secure-cookies* "; Secure" ""))
                                :access-control-allow-origin *cors-origin*
@@ -393,7 +370,7 @@
       (format t "[ERROR] Auth0 callback error: ~A~%" e)
       (list 302
             (list :location (format nil "/?error=server_error&error_description=~A"
-                                   (dexador:urlencode (format nil "~A" e)))
+                                   (quri:url-encode (format nil "~A" e)))
                   :access-control-allow-origin *cors-origin*)
             '("")))))
 

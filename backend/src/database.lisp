@@ -168,28 +168,26 @@
 (defun get-user-by-email (email)
   "Get user by email"
   (let ((row (execute-single
-              "SELECT id, email, username, password_hash, created_at
+              "SELECT id, email, username, created_at
                FROM users WHERE email = ?"
               email)))
     (when row
       `((:id . ,(first row))
         (:email . ,(second row))
         (:username . ,(third row))
-        (:password-hash . ,(fourth row))
-        (:created-at . ,(fifth row))))))
+        (:created-at . ,(fourth row))))))
 
 (defun get-user-by-username (username)
   "Get user by username"
   (let ((row (execute-single
-              "SELECT id, email, username, password_hash, created_at
+              "SELECT id, email, username, created_at
                FROM users WHERE username = ?"
               username)))
     (when row
       `((:id . ,(first row))
         (:email . ,(second row))
         (:username . ,(third row))
-        (:password-hash . ,(fourth row))
-        (:created-at . ,(fifth row))))))
+        (:created-at . ,(fourth row))))))
 
 (defun get-user-by-id (user-id)
   "Get user by ID"
@@ -203,6 +201,20 @@
         (:username . ,(third row))
         (:created-at . ,(fourth row))))))
 
+(defun get-user-color (user-id)
+  "Get user's preferred color"
+  (let ((row (execute-single
+              "SELECT preferred_color FROM users WHERE id = ?"
+              user-id)))
+    (when row
+      (first row))))
+
+(defun set-user-color (user-id color)
+  "Set user's preferred color"
+  (execute-non-query
+   "UPDATE users SET preferred_color = ?, updated_at = datetime('now') WHERE id = ?"
+   color user-id))
+
 ;;; Session operations
 (defun create-session (user-id session-id expires-at)
   "Create a new session"
@@ -214,7 +226,7 @@
   "Get session by ID"
   (let ((row (execute-single
               "SELECT s.id, s.user_id, s.session_id, s.expires_at,
-                      u.email, u.username
+                      u.email, u.username, u.preferred_color
                FROM sessions s
                JOIN users u ON s.user_id = u.id
                WHERE s.session_id = ?"
@@ -225,7 +237,8 @@
         (:session-id . ,(third row))
         (:expires-at . ,(fourth row))
         (:email . ,(fifth row))
-        (:username . ,(sixth row))))))
+        (:username . ,(sixth row))
+        (:preferred-color . ,(or (seventh row) "#3498db"))))))
 
 (defun delete-session (session-id)
   "Delete a session"

@@ -1,14 +1,16 @@
--- CollabCanvas Database Schema
+-- CollabCanvas Database Schema (Auth0-only)
 
 -- Enable foreign key constraints
 PRAGMA foreign_keys = ON;
 
--- Users table
+-- Users table (Auth0 authentication only)
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT UNIQUE NOT NULL,
     username TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
+    auth0_sub TEXT UNIQUE,  -- Auth0 subject ID (nullable for migration)
+    preferred_color TEXT DEFAULT '#3498db',  -- User's preferred drawing color
+    last_login_at TEXT,     -- Last login timestamp
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
@@ -16,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Create indexes for users
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_auth0_sub ON users(auth0_sub);
 
 -- Sessions table
 CREATE TABLE IF NOT EXISTS sessions (

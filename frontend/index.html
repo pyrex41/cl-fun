@@ -370,6 +370,35 @@
             transform: scale(1.1);
         }
 
+        /* Logout button */
+        #logout-btn {
+            margin: 16px 20px;
+            padding: 10px 16px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 10px;
+            color: #ef4444;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        #logout-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.5);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+        }
+
+        #logout-btn:active {
+            transform: translateY(0);
+        }
+
         /* Auth modal styles */
         #auth-modal {
             position: fixed;
@@ -662,7 +691,7 @@
                     <span>○</span>
                 </button>
                 <div class="tool-separator"></div>
-                <input type="color" id="color-picker" value="#8b5cf6" title="Color">
+                <input type="color" id="color-picker" value="#3498db" title="Color">
             </div>
 
             <div id="users-mini"></div>
@@ -675,6 +704,11 @@
 
         <!-- Right sidebar with info and objects -->
         <div id="right-sidebar">
+            <button id="logout-btn">
+                <span>🚪</span>
+                <span>Logout</span>
+            </button>
+
             <div class="sidebar-section">
                 <h3 class="section-title">Canvas Info</h3>
                 <div class="info-grid">
@@ -723,53 +757,22 @@
         <!-- Auth Modal -->
         <div id="auth-modal" class="hidden">
             <div class="modal-content">
-                <div class="modal-tabs">
-                    <button class="tab-btn active" data-tab="login">Login</button>
-                    <button class="tab-btn" data-tab="register">Register</button>
+                <h2 style="text-align: center; margin-bottom: 24px; font-size: 24px; font-weight: 700; background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Welcome to CollabCanvas</h2>
+                <p style="text-align: center; color: var(--text-secondary); margin-bottom: 32px; font-size: 14px;">Sign in to start collaborating in real-time</p>
+
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button type="button" id="google-login-btn" class="oauth-btn">
+                        🔐 Continue with Google
+                    </button>
+                    <button type="button" id="github-login-btn" class="oauth-btn">
+                        🐙 Continue with GitHub
+                    </button>
+                    <button type="button" id="auth0-login-btn" class="oauth-btn">
+                        🔒 Continue with Auth0
+                    </button>
                 </div>
 
-                <form class="auth-form active" id="login-form">
-                    <div class="form-group">
-                        <label for="login-email">Email</label>
-                        <input type="email" id="login-email" required placeholder="you@example.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="login-password">Password</label>
-                        <input type="password" id="login-password" required placeholder="••••••••">
-                    </div>
-                    <button type="submit" class="submit-btn">Login</button>
-                    <div class="error-message" id="login-error"></div>
-
-                    <div class="oauth-section">
-                        <div class="oauth-divider">or continue with</div>
-                        <button type="button" id="google-login-btn" class="oauth-btn">
-                            🔐 Continue with Google
-                        </button>
-                        <button type="button" id="github-login-btn" class="oauth-btn">
-                            🐙 Continue with GitHub
-                        </button>
-                        <button type="button" id="auth0-login-btn" class="oauth-btn">
-                            🔒 Continue with Auth0
-                        </button>
-                    </div>
-                </form>
-
-                <form class="auth-form" id="register-form">
-                    <div class="form-group">
-                        <label for="register-username">Username</label>
-                        <input type="text" id="register-username" required placeholder="johndoe">
-                    </div>
-                    <div class="form-group">
-                        <label for="register-email">Email</label>
-                        <input type="email" id="register-email" required placeholder="you@example.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="register-password">Password</label>
-                        <input type="password" id="register-password" required placeholder="••••••••">
-                    </div>
-                    <button type="submit" class="submit-btn">Register</button>
-                    <div class="error-message" id="register-error"></div>
-                </form>
+                <div class="error-message" id="auth-error" style="display: none;"></div>
             </div>
         </div>
     </div>
