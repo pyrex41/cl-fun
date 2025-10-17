@@ -37,8 +37,10 @@
                  (:file "canvas-state" :depends-on ("package" "database"))
                  (:file "components" :depends-on ("package" "utils"))
                  (:file "ai-agent" :depends-on ("package" "config" "utils" "components"))
-                 (:file "websocket-adapter" :depends-on ("package" "auth" "canvas-state" "ai-agent"))
-                 (:file "app" :depends-on ("package" "websocket-adapter" "auth" "canvas-state" "auth0-oauth" "auth-metrics"))
+                 (:file "physics" :depends-on ("package"))
+                 (:file "physics-loop" :depends-on ("package" "physics" "canvas-state"))
+                 (:file "websocket-adapter" :depends-on ("package" "auth" "canvas-state" "ai-agent" "physics"))
+                 (:file "app" :depends-on ("package" "websocket-adapter" "auth" "canvas-state" "auth0-oauth" "auth-metrics" "physics-loop"))
                  (:file "server" :depends-on ("package" "app" "database"))
                  (:file "main" :depends-on ("package" "server" "auth"))))))
 

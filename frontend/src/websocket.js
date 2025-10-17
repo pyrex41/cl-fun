@@ -223,6 +223,8 @@ export class WebSocketClient {
         this.onObjectUpdated = () => {}
         this.onObjectDeleted = () => {}
         this.onObjectsDeleted = () => {}
+        this.onPhysicsSnapshot = () => {}  // New: Physics state snapshot from server
+        this.onPhysicsStateChange = () => {}  // New: Physics state change notification
         this.onError = () => {}
         this.onReconnecting = () => {}
         this.onReconnected = () => {}
@@ -347,6 +349,18 @@ export class WebSocketClient {
 
             case 'objects-delete':
                 this.onObjectsDeleted(data)
+                break
+
+            case 'physics-snapshot':
+                // Handle physics state snapshot from server (~20 Hz)
+                if (data.snapshot && Array.isArray(data.snapshot)) {
+                    this.onPhysicsSnapshot(data.snapshot)
+                }
+                break
+
+            case 'physics-state-change':
+                // Handle physics state change (play/pause/reset)
+                this.onPhysicsStateChange(data)
                 break
 
             case 'error':
@@ -485,10 +499,16 @@ export class WebSocketClient {
         })
     }
 
-    sendObjectsDelete(objectIds) {
-        this.send({
-            type: 'objects-delete',
-            'object-ids': objectIds
-        })
+    sendPhysicsControl(action, value = null) {
+        const message = {
+            type: 'physics-control',
+            action: action
+        }
+
+        if (value !== null) {
+            message.value = value
+        }
+
+        this.send(message)
     }
 }

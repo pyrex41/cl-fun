@@ -76,6 +76,9 @@
     ;; Start connection stats monitoring
     (start-stats-logging)
 
+    ;; Initialize and start physics system
+    (initialize-physics-system)
+
     *woo-server*))
 
 (defun stop-server ()
@@ -87,6 +90,9 @@
     (return-from stop-server nil))
 
   (format t "~%Stopping CollabCanvas server...~%")
+
+  ;; Stop physics system
+  (shutdown-physics-system)
 
   ;; Stop stats monitoring
   (stop-stats-logging)

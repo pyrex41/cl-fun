@@ -204,6 +204,10 @@
           ((string= msg-type "ai-command")
            (handle-ai-command-message conn-id data))
 
+          ;; Physics control
+          ((string= msg-type "physics-control")
+           (handle-physics-control-message conn-id data))
+
           ;; Unknown message type
           (t
            (format t "[WS WARN] Unknown message type: ~A~%" msg-type))))
@@ -297,6 +301,20 @@
           (format t "[WS AUTH] Loading canvas state for ~A: ~A objects~%"
                   canvas-id (length canvas-objects))
           (format t "[WS AUTH] Canvas objects: ~A~%" canvas-objects)
+
+          ;; Sync all canvas objects to physics engine if not already loaded
+          (handler-case
+              (progn
+                (format t "[WS AUTH] Syncing ~A objects to physics engine~%" (length canvas-objects))
+                (dolist (obj canvas-objects)
+                  (handler-case
+                      (sync-canvas-object-to-physics obj)
+                    (error (e)
+                      (format t "[WS AUTH WARN] Failed to sync object ~A to physics: ~A~%"
+                              (cdr (assoc :id obj)) e)))))
+            (error (e)
+              (format t "[WS AUTH WARN] Failed to sync canvas to physics: ~A~%" e)))
+
           (send-ws-message conn-id
             (to-json-string
              `((:type . "auth-success")
@@ -376,6 +394,12 @@
         ;; Save to canvas state with converted keys
         (update-canvas-object canvas-id object-id object-data-keywords user-id)
 
+        ;; Sync to physics engine
+        (handler-case
+            (sync-canvas-object-to-physics object-data-keywords)
+          (error (e)
+            (format t "[WS WARN] Failed to sync object ~A to physics: ~A~%" object-id e)))
+
         ;; Broadcast to room (use converted keys for consistency)
         (broadcast-to-canvas-room canvas-id
           (to-json-string
@@ -419,6 +443,19 @@
             ;; Save updated object to database
             (update-canvas-object canvas-id object-id updated-object user-id)
 
+            ;; Sync position to physics engine if x/y changed (user drag)
+            (when (or (assoc :X updates-alist) (assoc :Y updates-alist))
+              (handler-case
+                  (let ((x (or (cdr (assoc :X updates-alist))
+                               (cdr (assoc :X current-object))))
+                        (y (or (cdr (assoc :Y updates-alist))
+                               (cdr (assoc :Y current-object)))))
+                    (when (and x y)
+                      (update-physics-object-position object-id x y)
+                      (format t "[WS] Synced physics position for ~A: (~A, ~A)~%" object-id x y)))
+                (error (e)
+                  (format t "[WS WARN] Failed to sync position to physics: ~A~%" e))))
+
             ;; Broadcast update to other users in the room
             (broadcast-to-canvas-room canvas-id
               (to-json-string
@@ -442,6 +479,14 @@
     (when (and user-id object-id)
       ;; Delete from canvas state
       (when (delete-canvas-object canvas-id object-id user-id)
+        ;; Remove from physics engine
+        (handler-case
+            (progn
+              (remove-physics-object object-id)
+              (format t "[WS] Removed object ~A from physics~%" object-id))
+          (error (e)
+            (format t "[WS WARN] Failed to remove object from physics: ~A~%" e)))
+
         ;; Broadcast deletion
         (broadcast-to-canvas-room canvas-id
           (to-json-string
@@ -512,4 +557,108 @@
               `((:type . "ai-command-error")
                 (:error . ,(format nil "~A" e))
                 (:command . ,command)))))))
-     :name (format nil "ai-command-~A" (get-universal-time)))))
+     :name (format nil "ai-command-~A" (get-universal-time))))
+
+(defun handle-physics-control-message (conn-id data)
+  "Handle physics control message - processes simulation control commands."
+  (let* ((conn (get-ws-connection conn-id))
+         (action (cdr (assoc :action data)))
+         (value (cdr (assoc :value data)))
+         (user-id (ws-connection-user-id conn))
+         (username (ws-connection-username conn))
+         (canvas-id (ws-connection-canvas-id conn)))
+
+    (unless (and user-id action)
+      (format t "[WS WARN] Physics control missing user-id or action~%")
+      (return-from handle-physics-control-message nil))
+
+    (format t "[WS PHYSICS] Processing control from ~A: ~A~@[ (value: ~A)~]~%"
+            username action value)
+
+    (handler-case
+        (cond
+          ;; Play: Resume physics simulation
+          ((string= action "play")
+           (resume-physics)
+           (format t "[WS PHYSICS] Physics resumed by ~A~%" username)
+           ;; Broadcast state change to all clients in canvas
+           (broadcast-to-canvas-room canvas-id
+             (to-json-string
+              `((:type . "physics-state-change")
+                (:action . "play")
+                (:user-id . ,user-id)
+                (:username . ,username)))
+             nil))
+
+          ;; Pause: Pause physics simulation
+          ((string= action "pause")
+           (pause-physics)
+           (format t "[WS PHYSICS] Physics paused by ~A~%" username)
+           ;; Broadcast state change to all clients in canvas
+           (broadcast-to-canvas-room canvas-id
+             (to-json-string
+              `((:type . "physics-state-change")
+                (:action . "pause")
+                (:user-id . ,user-id)
+                (:username . ,username)))
+             nil))
+
+          ;; Reset: Clear all physics objects and reload from canvas
+          ((string= action "reset")
+           (format t "[WS PHYSICS] Resetting physics by ~A~%" username)
+           ;; Clear physics engine
+           (clear-all-physics-objects)
+           ;; Reload objects from canvas
+           (load-canvas-objects-into-physics canvas-id)
+           ;; Reset velocities to zero
+           (reset-all-velocities)
+           ;; Broadcast state change to all clients in canvas
+           (broadcast-to-canvas-room canvas-id
+             (to-json-string
+              `((:type . "physics-state-change")
+                (:action . "reset")
+                (:user-id . ,user-id)
+                (:username . ,username)))
+             nil))
+
+          ;; Set Gravity: Update global gravity value
+          ((string= action "set-gravity")
+           (when value
+             (let ((gravity-value (if (numberp value) value (parse-float value))))
+               (set-global-gravity gravity-value)
+               (format t "[WS PHYSICS] Gravity set to ~A by ~A~%" gravity-value username)
+               ;; Broadcast state change to all clients in canvas
+               (broadcast-to-canvas-room canvas-id
+                 (to-json-string
+                  `((:type . "physics-state-change")
+                    (:action . "set-gravity")
+                    (:value . ,gravity-value)
+                    (:user-id . ,user-id)
+                    (:username . ,username)))
+                 nil))))
+
+          ;; Set Boundary: Update boundary rule (contain/wrap)
+          ((string= action "set-boundary")
+           (when value
+             (format t "[WS PHYSICS] Boundary rule set to ~A by ~A~%" value username)
+             ;; TODO: Implement boundary rule setting in physics engine
+             ;; For now, just broadcast the change
+             (broadcast-to-canvas-room canvas-id
+               (to-json-string
+                `((:type . "physics-state-change")
+                  (:action . "set-boundary")
+                  (:value . ,value)
+                  (:user-id . ,user-id)
+                  (:username . ,username)))
+               nil)))
+
+          ;; Unknown action
+          (t
+           (format t "[WS PHYSICS WARN] Unknown physics control action: ~A~%" action)))
+
+      (error (e)
+        (format t "[WS PHYSICS ERROR] Failed to process physics control: ~A~%" e)
+        (send-ws-message conn-id
+          (to-json-string
+           `((:type . "error")
+             (:message . ,(format nil "Physics control failed: ~A" e))))))))))

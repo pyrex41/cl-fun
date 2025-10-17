@@ -640,6 +640,135 @@
         ::-webkit-scrollbar-thumb:hover {
             background: var(--border-secondary);
         }
+
+        /* Physics Controls Styling */
+        .physics-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+
+        .control-btn {
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-secondary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent-primary);
+            transform: translateY(-1px);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .control-btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            border-color: var(--accent-primary);
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+
+        .control-btn-primary:hover {
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .control-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        .control-slider::-webkit-slider-thumb:hover {
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.6);
+            transform: scale(1.1);
+        }
+
+        .control-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .control-slider::-moz-range-thumb:hover {
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.6);
+            transform: scale(1.1);
+        }
+
+        .control-select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .control-select:hover {
+            border-color: var(--accent-primary);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .control-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+
+        #gravity-value {
+            color: var(--accent-primary);
+            font-weight: 700;
+        }
     </style>
 </head>
 
@@ -660,6 +789,9 @@
                 </button>
                 <button class="tool-btn" data-tool="circle" title="Circle (C)">
                     <span>○</span>
+                </button>
+                <button class="tool-btn" data-tool="emitter" title="Particle Emitter (E)">
+                    <span>✨</span>
                 </button>
                 <div class="tool-separator"></div>
                 <input type="color" id="color-picker" value="#8b5cf6" title="Color">
@@ -697,6 +829,57 @@
                     <div class="info-item">
                         <div class="info-label">Objects</div>
                         <div class="info-value" id="object-count">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3 class="section-title">Physics Controls</h3>
+                <div class="physics-controls">
+                    <div class="control-buttons">
+                        <button id="play-btn" class="control-btn control-btn-primary">▶ Play</button>
+                        <button id="pause-btn" class="control-btn">⏸ Pause</button>
+                        <button id="reset-btn" class="control-btn">⟲ Reset</button>
+                    </div>
+                    <div class="control-group">
+                        <label for="gravity-slider" class="control-label">
+                            Gravity: <span id="gravity-value">9.8</span>
+                        </label>
+                        <input type="range" id="gravity-slider" min="0" max="20" step="0.1" value="9.8" class="control-slider">
+                    </div>
+                    <div class="control-group">
+                        <label for="boundary-selector" class="control-label">Boundary Rule</label>
+                        <select id="boundary-selector" class="control-select">
+                            <option value="contain" selected>Contain</option>
+                            <option value="wrap">Wrap</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section" id="properties-section" style="display: none;">
+                <h3 class="section-title">Object Properties</h3>
+                <div id="properties-panel">
+                    <div class="control-group">
+                        <label class="control-label">
+                            <input type="checkbox" id="prop-isDynamic" style="margin-right: 8px;">
+                            Dynamic (affected by physics)
+                        </label>
+                        <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px; margin-left: 24px;">
+                            <span id="prop-isDynamic-hint"></span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label for="prop-friction" class="control-label">
+                            Friction: <span id="prop-friction-value">0.02</span>
+                        </label>
+                        <input type="range" id="prop-friction" min="0" max="1" step="0.01" value="0.02" class="control-slider">
+                    </div>
+                    <div class="control-group">
+                        <label for="prop-restitution" class="control-label">
+                            Restitution (Bounciness): <span id="prop-restitution-value">0.7</span>
+                        </label>
+                        <input type="range" id="prop-restitution" min="0" max="1" step="0.01" value="0.7" class="control-slider">
                     </div>
                 </div>
             </div>

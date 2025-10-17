@@ -1,6 +1,7 @@
 // src/canvas.js
 // Complete PixiJS Canvas Manager for CollabCanvas
 import * as PIXI from 'pixi.js';
+import { PhysicsEngine, PHYSICS_TIMESTEP } from './physics.js';
 
 // Note: CullerPlugin may not be available in all PixiJS v8 builds
 // We have custom viewport culling as a fallback
@@ -118,6 +119,20 @@ export class CanvasManager {
 
     // Shared cursor texture for performance optimization
     this.cursorTexture = this.createSharedCursorTexture();
+
+    // Physics Engine for client-side prediction
+    this.physicsEngine = new PhysicsEngine();
+    this.physicsEngine.pause(); // Start paused, will resume when needed
+
+    // Physics prediction and reconciliation state
+    this.physicsEnabled = false; // Physics is opt-in per canvas
+    this.lastPhysicsUpdate = 0;
+    this.physicsAccumulator = 0; // For fixed timestep
+    this.reconciliationLerpFactor = 0.3; // Gentle interpolation for server corrections
+
+    // Server snapshot tracking
+    this.lastServerSnapshot = null;
+    this.serverSnapshotTime = 0;
 
     // Viewport setup
     this.app.stage.addChild(this.viewport);
@@ -328,6 +343,8 @@ export class CanvasManager {
         this.setTool('rectangle');
       } else if (e.key === 'c' || e.key === 'C') {
         this.setTool('circle');
+      } else if (e.key === 'e' || e.key === 'E') {
+        this.setTool('emitter');
       } else if (e.key === 't' || e.key === 'T') {
         this.setTool('text');
       } else if (e.key === 'v' || e.key === 'V' || e.key === 'Escape') {
@@ -391,17 +408,25 @@ export class CanvasManager {
 
     canvas.addEventListener('mousedown', (e) => {
       if (e.button !== 0 || e.altKey) return; // Left click only, not panning
-      
+
       const worldPos = this.screenToWorld(e.clientX, e.clientY);
-      
+
       if (this.currentTool === 'rectangle' || this.currentTool === 'circle') {
         drawStart = worldPos;
-        
+
         // Create preview shape with smooth rendering
         previewShape = new PIXI.Graphics();
         previewShape.alpha = 0.5;
         previewShape.roundPixels = false;
         this.viewport.addChild(previewShape);
+      } else if (this.currentTool === 'emitter') {
+        // Emitters are created immediately on click (no drag needed)
+        const objData = this.createToolObject(worldPos, worldPos);
+
+        // Notify about new object (callback to WebSocket)
+        if (this.onObjectCreated) {
+          this.onObjectCreated(objData);
+        }
       }
     });
 
@@ -432,6 +457,13 @@ export class CanvasManager {
     this.app.ticker.add(() => {
       if (this.cullingEnabled) {
         this.updateVisibleObjects();
+      }
+    });
+
+    // Setup physics prediction loop (runs at 60 FPS with fixed timestep)
+    this.app.ticker.add((deltaTime) => {
+      if (this.physicsEnabled && !this.physicsEngine.isPaused()) {
+        this.updatePhysicsPrediction(deltaTime);
       }
     });
   }
@@ -527,6 +559,171 @@ export class CanvasManager {
              objBounds.top > viewportBounds.bottom);
   }
 
+  // ==================== Physics Prediction and Reconciliation ====================
+
+  /**
+   * Update physics prediction at 60 FPS using fixed timestep
+   * Subtask 5.1: Integrate prediction in animation loop
+   */
+  updatePhysicsPrediction(deltaTime) {
+    // deltaTime is in PIXI frames (60 FPS ≈ 1.0), convert to seconds
+    const deltaSeconds = deltaTime / 60.0;
+    this.physicsAccumulator += deltaSeconds;
+
+    // Run physics at fixed timestep (50 Hz = 0.02s)
+    while (this.physicsAccumulator >= PHYSICS_TIMESTEP) {
+      this.physicsEngine.step();
+      this.physicsAccumulator -= PHYSICS_TIMESTEP;
+    }
+
+    // Sync visual positions from physics engine
+    this.syncVisualFromPhysics();
+  }
+
+  /**
+   * Sync PIXI visual objects from physics engine state
+   */
+  syncVisualFromPhysics() {
+    for (const [id, physicsObj] of this.physicsEngine.objects) {
+      const pixiObj = this.objects.get(id);
+      if (pixiObj && physicsObj.isDynamic) {
+        // Only update dynamic objects (circles)
+        pixiObj.x = physicsObj.x;
+        pixiObj.y = physicsObj.y;
+      }
+    }
+  }
+
+  /**
+   * Handle physics snapshot from server and reconcile
+   * Subtasks 5.2 and 5.3: Snapshot reception + reconciliation logic
+   */
+  handlePhysicsSnapshot(snapshot) {
+    if (!this.physicsEnabled) return;
+
+    this.lastServerSnapshot = snapshot;
+    this.serverSnapshotTime = performance.now();
+
+    // Reconcile each object in the snapshot
+    snapshot.forEach(serverState => {
+      const id = serverState.id;
+      const physicsObj = this.physicsEngine.getObject(id);
+      const pixiObj = this.objects.get(id);
+
+      if (!physicsObj || !pixiObj) {
+        // Object doesn't exist locally - create it
+        if (pixiObj) {
+          // Sync to physics engine
+          this.syncObjectToPhysics(id);
+        }
+        return;
+      }
+
+      if (!physicsObj.isDynamic) {
+        // Static objects don't need reconciliation
+        return;
+      }
+
+      // Calculate divergence between predicted and server positions
+      const dx = serverState.x - physicsObj.x;
+      const dy = serverState.y - physicsObj.y;
+      const divergence = Math.sqrt(dx * dx + dy * dy);
+
+      // Reconcile based on divergence magnitude
+      if (divergence > 100) {
+        // Large divergence - snap immediately (teleport)
+        console.warn(`Large divergence detected for ${id}: ${divergence.toFixed(2)}px - snapping`);
+        physicsObj.x = serverState.x;
+        physicsObj.y = serverState.y;
+        physicsObj.oldX = serverState.x;
+        physicsObj.oldY = serverState.y;
+        pixiObj.x = serverState.x;
+        pixiObj.y = serverState.y;
+      } else if (divergence > 1) {
+        // Small divergence - gentle interpolation using lerp factor
+        const lerpX = physicsObj.x + (dx * this.reconciliationLerpFactor);
+        const lerpY = physicsObj.y + (dy * this.reconciliationLerpFactor);
+
+        physicsObj.x = lerpX;
+        physicsObj.y = lerpY;
+
+        // Maintain velocity by adjusting oldX/oldY
+        const vx = physicsObj.x - physicsObj.oldX;
+        const vy = physicsObj.y - physicsObj.oldY;
+        physicsObj.oldX = lerpX - vx;
+        physicsObj.oldY = lerpY - vy;
+
+        pixiObj.x = lerpX;
+        pixiObj.y = lerpY;
+      }
+      // Divergence < 1px: prediction is accurate, no correction needed
+    });
+  }
+
+  /**
+   * Sync a canvas object to the physics engine
+   */
+  syncObjectToPhysics(id) {
+    const pixiObj = this.objects.get(id);
+    if (!pixiObj || !pixiObj.userData) return;
+
+    const objData = {
+      id,
+      type: pixiObj.userData.type,
+      x: pixiObj.x,
+      y: pixiObj.y,
+      color: this.colorToHexString(pixiObj.tint || 0x3498db),
+      isDynamic: pixiObj.userData.isDynamic !== undefined ? pixiObj.userData.isDynamic : (pixiObj.userData.type === 'circle')
+    };
+
+    if (pixiObj.userData.type === 'circle') {
+      objData.radius = pixiObj.userData.radius;
+    } else if (pixiObj.userData.type === 'rectangle') {
+      objData.width = pixiObj.userData.width;
+      objData.height = pixiObj.userData.height;
+    }
+
+    this.physicsEngine.syncCanvasObject(objData);
+  }
+
+  /**
+   * Enable physics simulation
+   */
+  enablePhysics() {
+    if (this.physicsEnabled) return;
+
+    console.log('Enabling physics simulation...');
+    this.physicsEnabled = true;
+
+    // Sync all existing objects to physics engine
+    this.objects.forEach((pixiObj, id) => {
+      this.syncObjectToPhysics(id);
+    });
+
+    // Resume physics simulation
+    this.physicsEngine.resume();
+    console.log(`Physics enabled with ${this.physicsEngine.objects.size} objects`);
+  }
+
+  /**
+   * Disable physics simulation
+   */
+  disablePhysics() {
+    if (!this.physicsEnabled) return;
+
+    console.log('Disabling physics simulation...');
+    this.physicsEnabled = false;
+    this.physicsEngine.pause();
+  }
+
+  /**
+   * Set global gravity for physics engine
+   */
+  setGravity(gravity) {
+    this.physicsEngine.setGlobalGravity(gravity);
+    console.log(`Gravity set to: ${gravity}`);
+  }
+
   createToolObject(start, end) {
     const id = this.generateId();
 
@@ -542,7 +739,11 @@ export class CanvasManager {
         id,
         type: 'rectangle',
         x, y, width, height,
-        color: this.colorToHexString(this.currentColor)
+        color: this.colorToHexString(this.currentColor),
+        // Physics properties: rectangles are always static (non-dynamic)
+        isDynamic: false,
+        friction: 0.02,
+        restitution: 0.7
       };
     } else if (this.currentTool === 'circle') {
       const dx = end.x - start.x;
@@ -557,6 +758,31 @@ export class CanvasManager {
         x: start.x,
         y: start.y,
         radius,
+        color: this.colorToHexString(this.currentColor),
+        // Physics properties: circles are dynamic by default
+        isDynamic: true,
+        friction: 0.02,
+        restitution: 0.7
+        // Note: mass is calculated from radius (π*r²) and not stored
+      };
+    } else if (this.currentTool === 'emitter') {
+      // Default emitter properties
+      const rate = 5; // particles per second
+      const lifespan = 3000; // milliseconds
+      const particleSize = 10; // radius
+      const initialVelocity = { x: 0, y: -50 }; // upward velocity
+
+      this.createEmitter(id, start.x, start.y, rate, lifespan, particleSize, initialVelocity, this.currentColor);
+
+      return {
+        id,
+        type: 'emitter',
+        x: start.x,
+        y: start.y,
+        rate,
+        lifespan,
+        particleSize,
+        initialVelocity,
         color: this.colorToHexString(this.currentColor)
       };
     }
@@ -573,18 +799,28 @@ export class CanvasManager {
     rect.interactive = true;
     rect.cursor = 'pointer'; // v8 replaces buttonMode
     rect.visible = true; // Start visible, culling will handle visibility
-    
+
     // Enable smooth rendering
     rect.roundPixels = false;
 
-    // Store dimensions for selection box
-    rect.userData = { width, height, type: 'rectangle' };
+    // Store dimensions for selection box and physics properties
+    rect.userData = {
+      width,
+      height,
+      type: 'rectangle',
+      isDynamic: false // Rectangles are static by default
+    };
 
     this.makeDraggable(rect, id);
     this.makeSelectable(rect, id);
 
     this.objects.set(id, rect);
     this.viewport.addChild(rect);
+
+    // Sync to physics engine if enabled
+    if (this.physicsEnabled) {
+      this.syncObjectToPhysics(id);
+    }
 
     return rect;
   }
@@ -598,12 +834,16 @@ export class CanvasManager {
     circle.interactive = true;
     circle.cursor = 'pointer'; // v8 replaces buttonMode
     circle.visible = true; // Start visible, culling will handle visibility
-    
+
     // Enable smooth rendering
     circle.roundPixels = false;
 
-    // Store dimensions for selection box
-    circle.userData = { radius, type: 'circle' };
+    // Store dimensions for selection box and physics properties
+    circle.userData = {
+      radius,
+      type: 'circle',
+      isDynamic: true // Circles are dynamic by default
+    };
 
     this.makeDraggable(circle, id);
     this.makeSelectable(circle, id);
@@ -611,7 +851,75 @@ export class CanvasManager {
     this.objects.set(id, circle);
     this.viewport.addChild(circle);
 
+    // Sync to physics engine if enabled
+    if (this.physicsEnabled) {
+      this.syncObjectToPhysics(id);
+    }
+
     return circle;
+  }
+
+  createEmitter(id, x, y, rate, lifespan, particleSize, initialVelocity, color) {
+    // Create visual representation of the emitter (a glowing star shape)
+    const emitter = new PIXI.Container();
+    emitter.x = x;
+    emitter.y = y;
+    emitter.interactive = true;
+    emitter.cursor = 'pointer';
+    emitter.visible = true;
+
+    // Create star shape for emitter visualization
+    const starGraphics = new PIXI.Graphics();
+    const numPoints = 8;
+    const outerRadius = 20;
+    const innerRadius = 10;
+
+    // Draw star using polygon
+    const points = [];
+    for (let i = 0; i < numPoints * 2; i++) {
+      const angle = (i * Math.PI) / numPoints;
+      const radius = i % 2 === 0 ? outerRadius : innerRadius;
+      points.push({
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius
+      });
+    }
+
+    starGraphics.poly(points).fill(color);
+    starGraphics.circle(0, 0, 5).fill(0xFFFFFF); // White center dot
+    starGraphics.roundPixels = false;
+
+    // Add pulsing animation
+    let pulseTime = 0;
+    const pulseAnimation = (delta) => {
+      pulseTime += delta * 0.05;
+      const scale = 1 + Math.sin(pulseTime) * 0.1;
+      starGraphics.scale.set(scale);
+    };
+
+    emitter.addChild(starGraphics);
+
+    // Store emitter properties
+    emitter.userData = {
+      type: 'emitter',
+      rate,
+      lifespan,
+      particleSize,
+      initialVelocity,
+      pulseAnimation,
+      isDynamic: false // Emitters are static
+    };
+
+    // Add pulse animation to ticker
+    this.app.ticker.add(pulseAnimation);
+
+    this.makeDraggable(emitter, id);
+    this.makeSelectable(emitter, id);
+
+    this.objects.set(id, emitter);
+    this.viewport.addChild(emitter);
+
+    return emitter;
   }
   
   createText(id, text, x, y, fontSize, color) {
@@ -682,6 +990,11 @@ export class CanvasManager {
 
     this.selectedObjects.add(id);
 
+    // Trigger selection change callback
+    if (this.onSelectionChange) {
+      this.onSelectionChange(this.selectedObjects);
+    }
+
     // Remove existing selection indicator if any
     const existingIndicator = this.selectionIndicators.get(id);
     if (existingIndicator) {
@@ -726,6 +1039,11 @@ export class CanvasManager {
 
     this.selectedObjects.delete(id);
 
+    // Trigger selection change callback
+    if (this.onSelectionChange) {
+      this.onSelectionChange(this.selectedObjects);
+    }
+
     // Remove selection indicator
     const indicator = this.selectionIndicators.get(id);
     if (indicator) {
@@ -738,6 +1056,11 @@ export class CanvasManager {
   clearSelection() {
     this.selectedObjects.forEach(id => this.deselectObject(id));
     this.selectedObjects.clear();
+
+    // Trigger selection change callback (empty selection)
+    if (this.onSelectionChange) {
+      this.onSelectionChange(this.selectedObjects);
+    }
   }
   
   deleteSelected() {
@@ -815,9 +1138,22 @@ export class CanvasManager {
     const obj = this.objects.get(id);
     if (!obj) return;
 
-    // Apply all properties from delta
+    // Apply position and visual properties
     for (const [key, value] of Object.entries(delta)) {
-      obj[key] = value;
+      if (key === 'x' || key === 'y') {
+        obj[key] = value;
+      }
+    }
+
+    // Apply physics properties to userData
+    if (delta.isDynamic !== undefined && obj.userData) {
+      obj.userData.isDynamic = delta.isDynamic;
+    }
+    if (delta.friction !== undefined && obj.userData) {
+      obj.userData.friction = delta.friction;
+    }
+    if (delta.restitution !== undefined && obj.userData) {
+      obj.userData.restitution = delta.restitution;
     }
 
     // Handle special cases for Graphics objects
@@ -827,6 +1163,11 @@ export class CanvasManager {
         // Trigger redraw for visual properties
         this.redrawGraphicsObject(obj);
       }
+    }
+
+    // Sync to physics engine if physics is enabled
+    if (this.physicsEnabled && (delta.isDynamic !== undefined || delta.friction !== undefined || delta.restitution !== undefined)) {
+      this.syncObjectToPhysics(id);
     }
   }
 
@@ -1145,7 +1486,12 @@ export class CanvasManager {
   getObject(id) {
     return this.objects.get(id);
   }
-  
+
+  // Alias for compatibility with main.js
+  getObjectById(id) {
+    return this.objects.get(id);
+  }
+
   getAllObjects() {
     return Array.from(this.objects.entries()).map(([id, obj]) => ({
       id,
@@ -1375,4 +1721,5 @@ export class CanvasManager {
   onObjectMoved = null;
   onObjectDeleted = null;
   onCursorMoved = null;
+  onSelectionChange = null; // Callback for physics properties UI
 }

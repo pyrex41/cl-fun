@@ -18,6 +18,27 @@
 (defparameter *canvas-width* 4000 "Physics simulation width")
 (defparameter *canvas-height* 3000 "Physics simulation height")
 
+;;; Particle lifecycle constants
+(defparameter *max-particles* 500 "Maximum number of particles allowed simultaneously")
+(defparameter *default-particle-lifespan* 5.0 "Default particle lifespan in seconds")
+
+;;; Emitter tracking
+(defparameter *emitters* (make-hash-table :test 'equal)
+  "Hash table of active emitters by ID")
+
+;;; Emitter structure
+(defstruct emitter
+  id                    ; Emitter ID (string)
+  x                     ; X position
+  y                     ; Y position
+  rate                  ; Particles per second
+  lifespan              ; Particle lifespan in milliseconds
+  particle-size         ; Particle radius
+  initial-velocity      ; Alist with :x and :y velocity components
+  color                 ; Particle color
+  accumulator           ; Time accumulator for emission (seconds)
+  particle-count)       ; Total particles emitted (for unique IDs)
+
 ;;; Physics object structure
 (defstruct physics-object
   id              ; Object ID (string)
@@ -37,7 +58,10 @@
   is-dynamic      ; T if affected by physics, NIL if static
   restitution     ; Bounciness
   friction        ; Friction coefficient
-  color)          ; Color (hex string)
+  color           ; Color (hex string)
+  particle-p      ; T if this is a particle (for lifecycle management)
+  birth-time      ; Universal time when particle was created
+  lifespan)       ; Lifespan in seconds (NIL = infinite)
 
 ;;; Global physics state
 (defparameter *physics-objects* (make-hash-table :test 'equal)
@@ -73,7 +97,41 @@
                :is-dynamic is-dynamic
                :restitution *default-restitution*
                :friction *default-friction*
-               :color color)))
+               :color color
+               :particle-p nil
+               :birth-time nil
+               :lifespan nil)))
+    (setf (gethash id *physics-objects*) obj)
+    obj))
+
+(defun create-particle (id x y radius &key
+                        (color "#ffaa00")
+                        (lifespan *default-particle-lifespan*)
+                        (initial-vx 0.0)
+                        (initial-vy 0.0))
+  "Create a particle with lifecycle management"
+  (let* ((mass (calculate-mass-from-radius radius))
+         (current-time (get-universal-time))
+         (obj (make-physics-object
+               :id id
+               :type 'circle
+               :x x
+               :y y
+               :old-x (- x initial-vx)
+               :old-y (- y initial-vy)
+               :vx initial-vx
+               :vy initial-vy
+               :ax 0.0
+               :ay 0.0
+               :radius radius
+               :mass mass
+               :is-dynamic t
+               :restitution *default-restitution*
+               :friction *default-friction*
+               :color color
+               :particle-p t
+               :birth-time current-time
+               :lifespan lifespan)))
     (setf (gethash id *physics-objects*) obj)
     obj))
 
@@ -96,7 +154,10 @@
               :is-dynamic nil ; Never moves
               :restitution 0.8
               :friction 0.1
-              :color color)))
+              :color color
+              :particle-p nil
+              :birth-time nil
+              :lifespan nil)))
     (setf (gethash id *physics-objects*) obj)
     obj))
 
@@ -111,6 +172,88 @@
 (defun clear-all-physics-objects ()
   "Remove all physics objects"
   (clrhash *physics-objects*))
+
+;;; Emitter management
+
+(defun create-emitter (id x y rate lifespan particle-size initial-velocity color)
+  "Create a particle emitter at the specified position"
+  (let ((em (make-emitter
+             :id id
+             :x x
+             :y y
+             :rate rate
+             :lifespan (/ lifespan 1000.0) ; Convert milliseconds to seconds
+             :particle-size particle-size
+             :initial-velocity initial-velocity
+             :color color
+             :accumulator 0.0
+             :particle-count 0)))
+    (setf (gethash id *emitters*) em)
+    (format t "~&[Physics] Created emitter ~A at (~A, ~A) with rate ~A p/s~%" id x y rate)
+    em))
+
+(defun remove-emitter (id)
+  "Remove an emitter from the simulation"
+  (remhash id *emitters*)
+  (format t "~&[Physics] Removed emitter ~A~%" id))
+
+(defun get-emitter (id)
+  "Get an emitter by ID"
+  (gethash id *emitters*))
+
+(defun update-emitter-position (id x y)
+  "Update an emitter's position (when dragged by user)"
+  (let ((em (get-emitter id)))
+    (when em
+      (setf (emitter-x em) x)
+      (setf (emitter-y em) y))))
+
+(defun clear-all-emitters ()
+  "Remove all emitters"
+  (clrhash *emitters*))
+
+(defun process-emitters (dt)
+  "Process all emitters and emit particles based on their rate"
+  (let ((total-emitted 0))
+    (maphash (lambda (id em)
+               (declare (ignore id))
+               ;; Accumulate time
+               (incf (emitter-accumulator em) dt)
+
+               ;; Calculate emission interval (time between particles)
+               (let ((emission-interval (if (> (emitter-rate em) 0)
+                                           (/ 1.0 (emitter-rate em))
+                                           most-positive-double-float)))
+
+                 ;; Emit particles based on accumulated time
+                 (loop while (>= (emitter-accumulator em) emission-interval) do
+                   ;; Check particle limit before emitting
+                   (when (< (count-particles) *max-particles*)
+                     ;; Generate unique particle ID
+                     (incf (emitter-particle-count em))
+                     (let* ((particle-id (format nil "~A-p~D"
+                                               (emitter-id em)
+                                               (emitter-particle-count em)))
+                            (vx (cdr (assoc :x (emitter-initial-velocity em))))
+                            (vy (cdr (assoc :y (emitter-initial-velocity em)))))
+
+                       ;; Create particle with initial velocity
+                       (create-particle particle-id
+                                      (emitter-x em)
+                                      (emitter-y em)
+                                      (emitter-particle-size em)
+                                      :color (emitter-color em)
+                                      :lifespan (emitter-lifespan em)
+                                      :initial-vx (or vx 0.0)
+                                      :initial-vy (or vy 0.0))
+
+                       (incf total-emitted)))
+
+                   ;; Decrement accumulator
+                   (decf (emitter-accumulator em) emission-interval))))
+             *emitters*)
+
+    total-emitted))
 
 ;;; Mass calculation
 
@@ -331,6 +474,9 @@
   "Execute one physics simulation step"
   (unless *physics-paused*
     (let ((dt *physics-timestep*))
+      ;; 0. Process emitters (emit new particles)
+      (process-emitters dt)
+
       ;; 1. Apply forces
       (maphash (lambda (id obj)
                  (declare (ignore id))
@@ -351,13 +497,123 @@
 
       ;; 4. Resolve collisions (multiple iterations for stability)
       (dotimes (i 3)
-        (resolve-all-collisions)))))
+        (resolve-all-collisions))
+
+      ;; 5. Particle lifecycle management
+      (cleanup-expired-particles)
+      (enforce-particle-limit))))
 
 ;;; Utility functions
 
 (defun hash-table-values (ht)
   "Get all values from a hash table as a list"
   (loop for v being the hash-values of ht collect v))
+
+;;; Particle lifecycle management
+
+(defun get-particle-age (particle)
+  "Calculate the age of a particle in seconds"
+  (if (and (physics-object-particle-p particle)
+           (physics-object-birth-time particle))
+      (- (get-universal-time) (physics-object-birth-time particle))
+      0))
+
+(defun is-particle-expired (particle)
+  "Check if a particle has exceeded its lifespan"
+  (and (physics-object-particle-p particle)
+       (physics-object-lifespan particle)
+       (physics-object-birth-time particle)
+       (> (get-particle-age particle) (physics-object-lifespan particle))))
+
+(defun cleanup-expired-particles ()
+  "Remove all particles that have exceeded their lifespan"
+  (let ((expired-ids '())
+        (removed-count 0))
+    ;; Collect expired particle IDs
+    (maphash (lambda (id obj)
+               (when (is-particle-expired obj)
+                 (push id expired-ids)))
+             *physics-objects*)
+
+    ;; Remove expired particles
+    (dolist (id expired-ids)
+      (remove-physics-object id)
+      (incf removed-count))
+
+    (when (> removed-count 0)
+      (format t "~&[Physics] Cleaned up ~D expired particle~:P~%" removed-count))
+
+    removed-count))
+
+(defun count-particles ()
+  "Count the total number of particles in the simulation"
+  (let ((count 0))
+    (maphash (lambda (id obj)
+               (declare (ignore id))
+               (when (physics-object-particle-p obj)
+                 (incf count)))
+             *physics-objects*)
+    count))
+
+(defun get-oldest-particles (n)
+  "Get the N oldest particles sorted by birth-time"
+  (let ((particles '()))
+    ;; Collect all particles
+    (maphash (lambda (id obj)
+               (when (physics-object-particle-p obj)
+                 (push (cons id obj) particles)))
+             *physics-objects*)
+
+    ;; Sort by birth-time (oldest first)
+    (setf particles (sort particles #'<
+                         :key (lambda (pair)
+                                (or (physics-object-birth-time (cdr pair))
+                                    most-positive-fixnum))))
+
+    ;; Return first N
+    (subseq particles 0 (min n (length particles)))))
+
+(defun enforce-particle-limit ()
+  "Enforce the maximum particle limit by removing oldest particles"
+  (let ((particle-count (count-particles))
+        (removed-count 0))
+    (when (> particle-count *max-particles*)
+      (let* ((excess (- particle-count *max-particles*))
+             (oldest-particles (get-oldest-particles excess)))
+
+        (format t "~&[Physics] WARNING: Particle limit reached (~D/~D). Removing ~D oldest particle~:P~%"
+                particle-count *max-particles* excess)
+
+        ;; Remove oldest particles
+        (dolist (pair oldest-particles)
+          (remove-physics-object (car pair))
+          (incf removed-count))))
+
+    removed-count))
+
+(defun get-particle-statistics ()
+  "Get statistics about particles in the simulation"
+  (let ((total-particles 0)
+        (total-objects 0)
+        (oldest-age 0))
+    (maphash (lambda (id obj)
+               (declare (ignore id))
+               (incf total-objects)
+               (when (physics-object-particle-p obj)
+                 (incf total-particles)
+                 (let ((age (get-particle-age obj)))
+                   (when (> age oldest-age)
+                     (setf oldest-age age)))))
+             *physics-objects*)
+
+    (list :total-objects total-objects
+          :total-particles total-particles
+          :regular-objects (- total-objects total-particles)
+          :oldest-particle-age oldest-age
+          :particle-capacity *max-particles*
+          :particle-usage-percent (if (> *max-particles* 0)
+                                      (* 100.0 (/ total-particles *max-particles*))
+                                      0))))
 
 (defun get-physics-state-snapshot ()
   "Get a snapshot of all dynamic object positions for broadcasting"
@@ -375,6 +631,15 @@
 (defun set-global-gravity (gravity)
   "Set the global gravity value"
   (setf *global-gravity* gravity))
+
+(defun set-max-particles (max)
+  "Set the maximum number of particles allowed"
+  (setf *max-particles* max)
+  (format t "~&[Physics] Max particles set to ~D~%" max))
+
+(defun get-max-particles ()
+  "Get the current maximum particle limit"
+  *max-particles*)
 
 (defun pause-physics ()
   "Pause the physics simulation"
@@ -417,7 +682,16 @@
              (height (cdr (assoc :height obj-data))))
          (unless (get-physics-object id)
            (create-physics-rectangle id x y width height
-                                    :color (or color "#95a5a6"))))))))
+                                    :color (or color "#95a5a6")))))
+
+      ((string= type-str "emitter")
+       (let ((rate (cdr (assoc :rate obj-data)))
+             (lifespan (cdr (assoc :lifespan obj-data)))
+             (particle-size (cdr (assoc :particle-size obj-data)))
+             (initial-velocity (cdr (assoc :initial-velocity obj-data))))
+         (unless (get-emitter id)
+           (create-emitter id x y rate lifespan particle-size initial-velocity
+                          (or color "#ffaa00"))))))))
 
 (defun update-physics-object-position (id x y)
   "Manually update a physics object's position (e.g., user drag)"
@@ -428,4 +702,22 @@
       (setf (physics-object-old-x obj) x)
       (setf (physics-object-old-y obj) y)
       (setf (physics-object-vx obj) 0.0)
-      (setf (physics-object-vy obj) 0.0))))
+      (setf (physics-object-vy obj) 0.0)))
+  ;; Also check if it's an emitter
+  (let ((em (get-emitter id)))
+    (when em
+      (update-emitter-position id x y))))
+
+(defun reset-all-velocities ()
+  "Reset velocities of all dynamic physics objects to zero"
+  (maphash (lambda (id obj)
+             (declare (ignore id))
+             (when (physics-object-is-dynamic obj)
+               (setf (physics-object-vx obj) 0.0)
+               (setf (physics-object-vy obj) 0.0)
+               (setf (physics-object-ax obj) 0.0)
+               (setf (physics-object-ay obj) 0.0)
+               ;; Reset old position to current position to zero velocity in Verlet
+               (setf (physics-object-old-x obj) (physics-object-x obj))
+               (setf (physics-object-old-y obj) (physics-object-y obj))))
+           *physics-objects*))

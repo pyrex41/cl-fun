@@ -213,3 +213,15 @@
     (let ((sanitized (sanitize-string str)))
       ;; Replace quotes with escaped versions
       (cl-ppcre:regex-replace-all "\"" sanitized "\\\\\""))))
+
+;;; Number parsing utilities
+(defun parse-float (value &optional (default 0.0))
+  "Parse a value as a floating point number, returning default on error"
+  (handler-case
+      (cond
+        ((numberp value) (float value))
+        ((stringp value)
+         (let ((trimmed (string-trim '(#\Space #\Tab #\Newline #\Return) value)))
+           (float (read-from-string trimmed))))
+        (t default))
+    (error () default)))

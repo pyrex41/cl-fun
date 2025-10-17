@@ -101,6 +101,38 @@
           (incf (canvas-state-version state))
           (setf (canvas-state-last-updated state) (current-timestamp)))))))
 
+;;; Physics property defaults
+(defun ensure-physics-properties (object-data)
+  "Ensure object has physics properties with appropriate defaults based on type.
+   Rectangles default to static (isDynamic=false), circles to dynamic (isDynamic=true).
+   Mass is calculated from radius for circles and not stored."
+  (let* ((object-type (cdr (assoc :TYPE object-data)))
+         (has-is-dynamic (assoc :ISDYNAMIC object-data))
+         (has-friction (assoc :FRICTION object-data))
+         (has-restitution (assoc :RESTITUTION object-data)))
+
+    ;; Add missing physics properties with type-appropriate defaults
+    (let ((enhanced-data object-data))
+
+      ;; Set isDynamic based on type if not already present
+      (unless has-is-dynamic
+        (let ((default-dynamic
+                (cond
+                  ((string-equal object-type "circle") t)      ; circles are dynamic
+                  ((string-equal object-type "rectangle") nil) ; rectangles are static
+                  (t nil))))                                    ; default to static
+          (setf enhanced-data (cons (cons :ISDYNAMIC default-dynamic) enhanced-data))))
+
+      ;; Set friction if not present (default 0.02)
+      (unless has-friction
+        (setf enhanced-data (cons (cons :FRICTION 0.02) enhanced-data)))
+
+      ;; Set restitution if not present (default 0.7)
+      (unless has-restitution
+        (setf enhanced-data (cons (cons :RESTITUTION 0.7) enhanced-data)))
+
+      enhanced-data)))
+
 ;;; Canvas operations
 (defun update-canvas-object (canvas-id object-id object-data &optional user-id)
   "Update or create an object in the canvas"
@@ -110,16 +142,18 @@
       (let ((objects (canvas-state-objects state)))
         ;; Determine if this is create or update
         (let ((action-type (if (gethash object-id objects) "update" "create")))
-          ;; Update object
-          (setf (gethash object-id objects) object-data)
-          ;; Add to history if user-id provided
-          (when user-id
-            (add-canvas-history canvas-id user-id action-type
-                               (to-json-string object-data)))
-          ;; Mark as dirty
-          (mark-canvas-dirty canvas-id)
-          ;; Return the action type
-          action-type)))))
+          ;; Ensure physics properties are present with correct defaults
+          (let ((enhanced-object-data (ensure-physics-properties object-data)))
+            ;; Update object
+            (setf (gethash object-id objects) enhanced-object-data)
+            ;; Add to history if user-id provided
+            (when user-id
+              (add-canvas-history canvas-id user-id action-type
+                                 (to-json-string enhanced-object-data)))
+            ;; Mark as dirty
+            (mark-canvas-dirty canvas-id)
+            ;; Return the action type
+            action-type))))))
 
 (defun delete-canvas-object (canvas-id object-id &optional user-id)
   "Delete an object from the canvas"

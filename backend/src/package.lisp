@@ -92,4 +92,33 @@
    #:get-auth-migration-stats
    #:handle-auth-metrics
    #:log-oauth-error
-   #:log-failed-login))
+   #:log-failed-login
+
+  ;; Physics Engine
+  #:physics-step
+  #:create-physics-circle
+  #:create-physics-rectangle
+  #:create-particle
+  #:remove-physics-object
+  #:get-physics-object
+  #:clear-all-physics-objects
+  #:set-global-gravity
+  #:set-max-particles
+  #:get-max-particles
+  #:pause-physics
+  #:resume-physics
+  #:reset-physics
+  #:is-physics-paused
+  #:get-physics-state-snapshot
+  #:update-physics-object-position
+  #:reset-all-velocities
+  #:sync-canvas-object-to-physics
+  #:apply-force
+
+  ;; Particle Lifecycle Management
+  #:cleanup-expired-particles
+  #:enforce-particle-limit
+  #:count-particles
+  #:get-particle-age
+  #:is-particle-expired
+  #:get-particle-statistics))

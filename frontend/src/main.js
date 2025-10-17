@@ -235,6 +235,11 @@ class CollabCanvas {
             document.getElementById('object-count').textContent = count
         }
 
+        // Object selection callback for physics properties UI
+        this.canvasManager.onSelectionChange = (selectedObjects) => {
+            this.updatePhysicsPropertiesUI(selectedObjects)
+        }
+
         // Start periodic memory cleanup (every 60 seconds)
         // This removes orphaned selection indicators and inactive cursors
         this.canvasManager.startPeriodicCleanup(60000)
@@ -342,6 +347,33 @@ class CollabCanvas {
             }
         }
 
+        // Physics snapshot handler (Subtask 5.2: Handle snapshot reception)
+        this.wsClient.onPhysicsSnapshot = (snapshot) => {
+            this.canvasManager.handlePhysicsSnapshot(snapshot)
+        }
+
+        // Physics state change handler (play/pause/reset notifications)
+        this.wsClient.onPhysicsStateChange = (data) => {
+            const action = data.action || data.state
+            console.log(`Physics state changed: ${action}`)
+
+            if (action === 'play' || action === 'playing') {
+                this.canvasManager.enablePhysics()
+                this.showNotification('Physics simulation started', 'info')
+            } else if (action === 'pause' || action === 'paused') {
+                this.canvasManager.disablePhysics()
+                this.showNotification('Physics simulation paused', 'info')
+            } else if (action === 'reset') {
+                this.canvasManager.disablePhysics()
+                this.canvasManager.physicsEngine.reset()
+                this.showNotification('Physics simulation reset', 'info')
+            } else if (action === 'set-gravity') {
+                const gravity = data.value || data.gravity
+                this.canvasManager.setGravity(gravity)
+                this.showNotification(`Gravity set to ${gravity}`, 'info')
+            }
+        }
+
         this.wsClient.onError = (error) => {
             console.error('WebSocket error:', error)
             this.showNotification('Connection error', 'error')
@@ -378,6 +410,12 @@ class CollabCanvas {
         colorPicker.addEventListener('change', (e) => {
             this.canvasManager.setColor(e.target.value)
         })
+
+        // Physics Controls
+        this.setupPhysicsControls()
+
+        // Physics Properties UI
+        this.setupPhysicsPropertiesUI()
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
@@ -442,6 +480,71 @@ class CollabCanvas {
         })
     }
 
+    setupPhysicsControls() {
+        // Play button
+        const playBtn = document.getElementById('play-btn')
+        if (playBtn) {
+            playBtn.addEventListener('click', () => {
+                if (this.wsClient && this.wsClient.isConnected) {
+                    this.wsClient.sendPhysicsControl('play')
+                    console.log('Sent physics control: play')
+                }
+            })
+        }
+
+        // Pause button
+        const pauseBtn = document.getElementById('pause-btn')
+        if (pauseBtn) {
+            pauseBtn.addEventListener('click', () => {
+                if (this.wsClient && this.wsClient.isConnected) {
+                    this.wsClient.sendPhysicsControl('pause')
+                    console.log('Sent physics control: pause')
+                }
+            })
+        }
+
+        // Reset button
+        const resetBtn = document.getElementById('reset-btn')
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                if (this.wsClient && this.wsClient.isConnected) {
+                    this.wsClient.sendPhysicsControl('reset')
+                    console.log('Sent physics control: reset')
+                }
+            })
+        }
+
+        // Gravity slider
+        const gravitySlider = document.getElementById('gravity-slider')
+        const gravityValue = document.getElementById('gravity-value')
+        if (gravitySlider && gravityValue) {
+            gravitySlider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value)
+                gravityValue.textContent = value.toFixed(1)
+            })
+
+            gravitySlider.addEventListener('change', (e) => {
+                const value = parseFloat(e.target.value)
+                if (this.wsClient && this.wsClient.isConnected) {
+                    this.wsClient.sendPhysicsControl('set-gravity', value)
+                    console.log('Sent physics control: set-gravity', value)
+                }
+            })
+        }
+
+        // Boundary selector
+        const boundarySelector = document.getElementById('boundary-selector')
+        if (boundarySelector) {
+            boundarySelector.addEventListener('change', (e) => {
+                const value = e.target.value
+                if (this.wsClient && this.wsClient.isConnected) {
+                    this.wsClient.sendPhysicsControl('set-boundary', value)
+                    console.log('Sent physics control: set-boundary', value)
+                }
+            })
+        }
+    }
+
     updatePresenceList(users = []) {
         const container = document.getElementById('users-container')
         container.innerHTML = ''
@@ -458,6 +561,140 @@ class CollabCanvas {
             `
             container.appendChild(userItem)
         })
+    }
+
+    setupPhysicsPropertiesUI() {
+        // isDynamic checkbox
+        const isDynamicCheckbox = document.getElementById('prop-isDynamic')
+        if (isDynamicCheckbox) {
+            isDynamicCheckbox.addEventListener('change', (e) => {
+                this.updateSelectedObjectPhysicsProperty('isDynamic', e.target.checked)
+            })
+        }
+
+        // Friction slider
+        const frictionSlider = document.getElementById('prop-friction')
+        const frictionValue = document.getElementById('prop-friction-value')
+        if (frictionSlider && frictionValue) {
+            frictionSlider.addEventListener('input', (e) => {
+                frictionValue.textContent = parseFloat(e.target.value).toFixed(2)
+            })
+            frictionSlider.addEventListener('change', (e) => {
+                const value = parseFloat(e.target.value)
+                this.updateSelectedObjectPhysicsProperty('friction', value)
+            })
+        }
+
+        // Restitution slider
+        const restitutionSlider = document.getElementById('prop-restitution')
+        const restitutionValue = document.getElementById('prop-restitution-value')
+        if (restitutionSlider && restitutionValue) {
+            restitutionSlider.addEventListener('input', (e) => {
+                restitutionValue.textContent = parseFloat(e.target.value).toFixed(2)
+            })
+            restitutionSlider.addEventListener('change', (e) => {
+                const value = parseFloat(e.target.value)
+                this.updateSelectedObjectPhysicsProperty('restitution', value)
+            })
+        }
+    }
+
+    updatePhysicsPropertiesUI(selectedObjects) {
+        const propertiesSection = document.getElementById('properties-section')
+        const isDynamicCheckbox = document.getElementById('prop-isDynamic')
+        const isDynamicHint = document.getElementById('prop-isDynamic-hint')
+        const frictionSlider = document.getElementById('prop-friction')
+        const frictionValue = document.getElementById('prop-friction-value')
+        const restitutionSlider = document.getElementById('prop-restitution')
+        const restitutionValue = document.getElementById('prop-restitution-value')
+
+        // Show/hide properties panel based on selection
+        if (selectedObjects.size === 0) {
+            propertiesSection.style.display = 'none'
+            return
+        }
+
+        // Show properties panel
+        propertiesSection.style.display = 'block'
+
+        // Get first selected object (for simplicity, only show properties for single selection)
+        const firstObjectId = Array.from(selectedObjects)[0]
+        const object = this.canvasManager.getObjectById(firstObjectId)
+
+        if (!object) {
+            propertiesSection.style.display = 'none'
+            return
+        }
+
+        // Multi-selection: show but disable controls
+        if (selectedObjects.size > 1) {
+            isDynamicCheckbox.disabled = true
+            frictionSlider.disabled = true
+            restitutionSlider.disabled = true
+            isDynamicHint.textContent = 'Select a single object to edit properties'
+            return
+        }
+
+        // Single selection: enable controls and populate values
+        frictionSlider.disabled = false
+        restitutionSlider.disabled = false
+
+        // Check if object is a rectangle (rectangles can't be dynamic per Task 3)
+        const isRectangle = object.type === 'rectangle'
+
+        if (isRectangle) {
+            isDynamicCheckbox.disabled = true
+            isDynamicCheckbox.checked = false
+            isDynamicHint.textContent = 'Rectangles are always static (boundaries)'
+        } else {
+            isDynamicCheckbox.disabled = false
+            isDynamicCheckbox.checked = object.isDynamic || false
+            isDynamicHint.textContent = ''
+        }
+
+        // Update slider values
+        const friction = object.friction !== undefined ? object.friction : 0.02
+        const restitution = object.restitution !== undefined ? object.restitution : 0.7
+
+        frictionSlider.value = friction
+        frictionValue.textContent = friction.toFixed(2)
+
+        restitutionSlider.value = restitution
+        restitutionValue.textContent = restitution.toFixed(2)
+    }
+
+    updateSelectedObjectPhysicsProperty(propertyName, value) {
+        // Only update if single object is selected
+        if (this.canvasManager.selectedObjects.size !== 1) {
+            console.warn('Cannot update physics properties for multiple objects')
+            return
+        }
+
+        const objectId = Array.from(this.canvasManager.selectedObjects)[0]
+        const object = this.canvasManager.getObjectById(objectId)
+
+        if (!object) {
+            console.warn('Selected object not found:', objectId)
+            return
+        }
+
+        // Prevent setting isDynamic=true for rectangles
+        if (propertyName === 'isDynamic' && value === true && object.type === 'rectangle') {
+            console.warn('Rectangles cannot be dynamic (they are static boundaries)')
+            return
+        }
+
+        // Update object locally
+        object[propertyName] = value
+        console.log(`Updated object ${objectId} ${propertyName} to ${value}`)
+
+        // Send update via WebSocket
+        if (this.wsClient && this.wsClient.isConnected) {
+            const updates = {}
+            updates[propertyName] = value
+            this.wsClient.sendObjectUpdate(objectId, updates)
+            console.log('Sent physics property update via WebSocket:', updates)
+        }
     }
 
     showNotification(message, type = 'info') {
