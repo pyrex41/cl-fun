@@ -24,6 +24,49 @@ export const DEFAULT_RESTITUTION = 0.7;        // Bounciness (0=dead, 1=perfectl
 export const CANVAS_WIDTH = 4000;              // Physics simulation width
 export const CANVAS_HEIGHT = 3000;             // Physics simulation height
 
+// Shape size limits (MUST match backend/src/physics.lisp)
+export const MIN_CIRCLE_RADIUS = 5;            // Minimum circle radius
+export const MAX_CIRCLE_RADIUS = 100;          // Maximum circle radius
+export const MIN_RECTANGLE_WIDTH = 20;         // Minimum rectangle width
+export const MAX_RECTANGLE_WIDTH = 500;        // Maximum rectangle width
+export const MIN_RECTANGLE_HEIGHT = 20;        // Minimum rectangle height
+export const MAX_RECTANGLE_HEIGHT = 500;       // Maximum rectangle height
+
+// Standard emitter presets
+export const EMITTER_PRESETS = {
+  small: { particleSize: 5, rate: 10, lifespan: 2000, color: '#ffaa00' },
+  medium: { particleSize: 10, rate: 5, lifespan: 3000, color: '#ff6600' },
+  large: { particleSize: 20, rate: 3, lifespan: 5000, color: '#ff0000' }
+};
+
+// ============================================================================
+// Size Limit Helpers
+// ============================================================================
+
+/**
+ * Clamp radius to valid range
+ */
+export function clampRadius(radius) {
+  return Math.max(MIN_CIRCLE_RADIUS, Math.min(radius, MAX_CIRCLE_RADIUS));
+}
+
+/**
+ * Clamp rectangle dimensions to valid ranges
+ */
+export function clampRectangleDimensions(width, height) {
+  return {
+    width: Math.max(MIN_RECTANGLE_WIDTH, Math.min(width, MAX_RECTANGLE_WIDTH)),
+    height: Math.max(MIN_RECTANGLE_HEIGHT, Math.min(height, MAX_RECTANGLE_HEIGHT))
+  };
+}
+
+/**
+ * Get emitter preset configuration
+ */
+export function getEmitterPreset(presetName) {
+  return EMITTER_PRESETS[presetName] || EMITTER_PRESETS.medium;
+}
+
 // ============================================================================
 // Physics Object Class
 // ============================================================================
@@ -71,9 +114,10 @@ export class PhysicsEngine {
    * Create a dynamic circle physics object
    */
   createCircle(id, x, y, radius, options = {}) {
+    const clampedRadius = clampRadius(radius);
     const isDynamic = options.isDynamic !== undefined ? options.isDynamic : true;
     const color = options.color || '#3498db';
-    const mass = this.calculateMassFromRadius(radius);
+    const mass = this.calculateMassFromRadius(clampedRadius);
 
     const obj = new PhysicsObject({
       id,
@@ -86,7 +130,7 @@ export class PhysicsEngine {
       vy: 0.0,
       ax: 0.0,
       ay: 0.0,
-      radius,
+      radius: clampedRadius,
       mass,
       isDynamic,
       restitution: DEFAULT_RESTITUTION,
@@ -102,6 +146,7 @@ export class PhysicsEngine {
    * Create a static rectangle (wall/platform)
    */
   createRectangle(id, x, y, width, height, options = {}) {
+    const clamped = clampRectangleDimensions(width, height);
     const color = options.color || '#95a5a6';
 
     const obj = new PhysicsObject({
@@ -115,8 +160,8 @@ export class PhysicsEngine {
       vy: 0.0,
       ax: 0.0,
       ay: 0.0,
-      width,
-      height,
+      width: clamped.width,
+      height: clamped.height,
       mass: 0.0,            // Static objects have infinite mass
       isDynamic: false,     // Never moves
       restitution: 0.8,

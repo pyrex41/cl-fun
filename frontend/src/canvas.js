@@ -1,7 +1,13 @@
 // src/canvas.js
 // Complete PixiJS Canvas Manager for CollabCanvas
 import * as PIXI from 'pixi.js';
-import { PhysicsEngine, PHYSICS_TIMESTEP } from './physics.js';
+import {
+  PhysicsEngine,
+  PHYSICS_TIMESTEP,
+  clampRadius,
+  clampRectangleDimensions,
+  EMITTER_PRESETS
+} from './physics.js';
 
 // Note: CullerPlugin may not be available in all PixiJS v8 builds
 // We have custom viewport culling as a fallback
@@ -394,10 +400,12 @@ export class CanvasManager {
 
             // PixiJS v8 builder pattern
             if (this.currentTool === 'rectangle') {
-              previewShape.rect(drawStart.x, drawStart.y, width, height).fill(this.currentColor);
+              const clamped = clampRectangleDimensions(Math.abs(width), Math.abs(height));
+              previewShape.rect(drawStart.x, drawStart.y, clamped.width, clamped.height).fill(this.currentColor);
             } else if (this.currentTool === 'circle') {
               const radius = Math.sqrt(width * width + height * height);
-              previewShape.circle(drawStart.x, drawStart.y, radius).fill(this.currentColor);
+              const clampedRadius = clampRadius(radius);
+              previewShape.circle(drawStart.x, drawStart.y, clampedRadius).fill(this.currentColor);
             }
             lastPreviewUpdate = now;
           }
@@ -730,15 +738,18 @@ export class CanvasManager {
     if (this.currentTool === 'rectangle') {
       const width = Math.abs(end.x - start.x);
       const height = Math.abs(end.y - start.y);
+      const clamped = clampRectangleDimensions(width, height); // Apply size limits
       const x = Math.min(start.x, end.x);
       const y = Math.min(start.y, end.y);
 
-      this.createRectangle(id, x, y, width, height, this.currentColor);
+      this.createRectangle(id, x, y, clamped.width, clamped.height, this.currentColor);
 
       return {
         id,
         type: 'rectangle',
-        x, y, width, height,
+        x, y,
+        width: clamped.width,
+        height: clamped.height,
         color: this.colorToHexString(this.currentColor),
         // Physics properties: rectangles are always static (non-dynamic)
         isDynamic: false,
@@ -749,15 +760,16 @@ export class CanvasManager {
       const dx = end.x - start.x;
       const dy = end.y - start.y;
       const radius = Math.sqrt(dx * dx + dy * dy);
+      const clampedRadius = clampRadius(radius); // Apply size limits
 
-      this.createCircle(id, start.x, start.y, radius, this.currentColor);
+      this.createCircle(id, start.x, start.y, clampedRadius, this.currentColor);
 
       return {
         id,
         type: 'circle',
         x: start.x,
         y: start.y,
-        radius,
+        radius: clampedRadius,
         color: this.colorToHexString(this.currentColor),
         // Physics properties: circles are dynamic by default
         isDynamic: true,
@@ -766,13 +778,15 @@ export class CanvasManager {
         // Note: mass is calculated from radius (π*r²) and not stored
       };
     } else if (this.currentTool === 'emitter') {
-      // Default emitter properties
-      const rate = 5; // particles per second
-      const lifespan = 3000; // milliseconds
-      const particleSize = 10; // radius
+      // Use medium emitter preset as default
+      const preset = EMITTER_PRESETS.medium;
+      const rate = preset.rate;
+      const lifespan = preset.lifespan;
+      const particleSize = preset.particleSize;
       const initialVelocity = { x: 0, y: -50 }; // upward velocity
+      const color = parseInt(preset.color.substring(1), 16); // Convert #ff6600 to 0xff6600
 
-      this.createEmitter(id, start.x, start.y, rate, lifespan, particleSize, initialVelocity, this.currentColor);
+      this.createEmitter(id, start.x, start.y, rate, lifespan, particleSize, initialVelocity, color);
 
       return {
         id,
@@ -783,7 +797,7 @@ export class CanvasManager {
         lifespan,
         particleSize,
         initialVelocity,
-        color: this.colorToHexString(this.currentColor)
+        color: preset.color // Use preset color
       };
     }
   }

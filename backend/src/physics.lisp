@@ -19,8 +19,23 @@
 (defparameter *canvas-height* 3000 "Physics simulation height")
 
 ;;; Particle lifecycle constants
-(defparameter *max-particles* 500 "Maximum number of particles allowed simultaneously")
+(defparameter *max-particles* 10000 "Maximum number of particles allowed simultaneously")
 (defparameter *default-particle-lifespan* 5.0 "Default particle lifespan in seconds")
+
+;;; Shape size limits
+(defparameter *min-circle-radius* 5 "Minimum circle radius")
+(defparameter *max-circle-radius* 100 "Maximum circle radius")
+(defparameter *min-rectangle-width* 20 "Minimum rectangle width")
+(defparameter *max-rectangle-width* 500 "Maximum rectangle width")
+(defparameter *min-rectangle-height* 20 "Minimum rectangle height")
+(defparameter *max-rectangle-height* 500 "Maximum rectangle height")
+
+;;; Standard emitter presets
+(defparameter *emitter-presets*
+  '((:small . (:particle-size 5 :rate 10 :lifespan 2000 :color "#ffaa00"))
+    (:medium . (:particle-size 10 :rate 5 :lifespan 3000 :color "#ff6600"))
+    (:large . (:particle-size 20 :rate 3 :lifespan 5000 :color "#ff0000")))
+  "Standard emitter size presets")
 
 ;;; Emitter tracking
 (defparameter *emitters* (make-hash-table :test 'equal)
@@ -76,11 +91,27 @@
 (defparameter *boundary-mode* :contain
   "Boundary behavior: :contain (bounce) or :wrap (wrap-around)")
 
+;;; Size limit helpers
+
+(defun clamp-radius (radius)
+  "Clamp radius to valid range"
+  (max *min-circle-radius* (min radius *max-circle-radius*)))
+
+(defun clamp-rectangle-dimensions (width height)
+  "Clamp rectangle dimensions to valid ranges"
+  (values (max *min-rectangle-width* (min width *max-rectangle-width*))
+          (max *min-rectangle-height* (min height *max-rectangle-height*))))
+
+(defun get-emitter-preset (preset-name)
+  "Get emitter configuration from preset name (:small, :medium, :large)"
+  (cdr (assoc preset-name *emitter-presets*)))
+
 ;;; Object creation and management
 
 (defun create-physics-circle (id x y radius &key (is-dynamic t) (color "#3498db"))
   "Create a dynamic circle physics object"
-  (let* ((mass (calculate-mass-from-radius radius))
+  (let* ((clamped-radius (clamp-radius radius))
+         (mass (calculate-mass-from-radius clamped-radius))
          (obj (make-physics-object
                :id id
                :type 'circle
@@ -92,7 +123,7 @@
                :vy 0.0
                :ax 0.0
                :ay 0.0
-               :radius radius
+               :radius clamped-radius
                :mass mass
                :is-dynamic is-dynamic
                :restitution *default-restitution*
@@ -110,7 +141,8 @@
                         (initial-vx 0.0)
                         (initial-vy 0.0))
   "Create a particle with lifecycle management"
-  (let* ((mass (calculate-mass-from-radius radius))
+  (let* ((clamped-radius (clamp-radius radius))
+         (mass (calculate-mass-from-radius clamped-radius))
          (current-time (get-universal-time))
          (obj (make-physics-object
                :id id
@@ -123,7 +155,7 @@
                :vy initial-vy
                :ax 0.0
                :ay 0.0
-               :radius radius
+               :radius clamped-radius
                :mass mass
                :is-dynamic t
                :restitution *default-restitution*
@@ -137,19 +169,21 @@
 
 (defun create-physics-rectangle (id x y width height &key (color "#95a5a6"))
   "Create a static rectangle (wall/platform)"
-  (let ((obj (make-physics-object
-              :id id
-              :type 'rectangle
-              :x x
-              :y y
-              :old-x x
-              :old-y y
-              :vx 0.0
-              :vy 0.0
-              :ax 0.0
-              :ay 0.0
-              :width width
-              :height height
+  (multiple-value-bind (clamped-width clamped-height)
+      (clamp-rectangle-dimensions width height)
+    (let ((obj (make-physics-object
+                :id id
+                :type 'rectangle
+                :x x
+                :y y
+                :old-x x
+                :old-y y
+                :vx 0.0
+                :vy 0.0
+                :ax 0.0
+                :ay 0.0
+                :width clamped-width
+                :height clamped-height
               :mass 0.0 ; Static objects have infinite mass
               :is-dynamic nil ; Never moves
               :restitution 0.8
@@ -158,8 +192,8 @@
               :particle-p nil
               :birth-time nil
               :lifespan nil)))
-    (setf (gethash id *physics-objects*) obj)
-    obj))
+      (setf (gethash id *physics-objects*) obj)
+      obj)))
 
 (defun remove-physics-object (id)
   "Remove an object from the physics simulation"
