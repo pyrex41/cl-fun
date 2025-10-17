@@ -1,0 +1,27 @@
+sequenceDiagram
+    participant User as User Browser
+    participant WS as WebSocket
+    participant Canvas as Canvas State
+    participant Physics as Physics Engine
+
+    Note over User,Physics: Object Creation
+    User->>WS: {type: 'object-create',<br/>object: {type: 'circle',<br/>x, y, radius, isDynamic: true}}
+    WS->>Canvas: update-canvas-object()
+    WS->>Physics: sync-canvas-object-to-physics()
+    Physics->>Physics: create-physics-circle()
+
+    Note over User,Physics: Physics Control
+    User->>WS: {type: 'physics-control',<br/>action: 'play'}
+    WS->>Physics: resume-physics()
+
+    User->>WS: {type: 'physics-control',<br/>action: 'set-gravity',<br/>value: 9.8}
+    WS->>Physics: set-global-gravity(9.8)
+
+    Note over User,Physics: State Broadcast (20Hz)
+    Physics->>WS: get-physics-state-snapshot()
+    WS->>User: {type: 'physics-snapshot',<br/>objects: [{id, x, y}, ...]}
+
+    Note over User,Physics: User Drag (Manual Override)
+    User->>WS: {type: 'object-update',<br/>objectId, x, y}
+    WS->>Physics: update-physics-object-position()
+    WS->>Canvas: update-canvas-object()

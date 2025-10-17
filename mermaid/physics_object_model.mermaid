@@ -1,0 +1,44 @@
+classDiagram
+    class CanvasObject {
+        +String id
+        +String type
+        +Number x
+        +Number y
+        +String color
+        +Boolean isDynamic
+    }
+
+    class Circle {
+        +Number radius
+        +Number mass (π*r²)
+        +Number restitution
+        +Number friction
+    }
+
+    class Rectangle {
+        +Number width
+        +Number height
+        +Boolean isStatic (always true)
+    }
+
+    class Emitter {
+        +Number rate (particles/sec)
+        +Number lifespan (ms)
+        +Number particleSize
+        +Object initialVelocity {x, y}
+    }
+
+    class PhysicsObject {
+        +Number x, y (current position)
+        +Number old_x, old_y (Verlet)
+        +Number vx, vy (velocity)
+        +Number ax, ay (acceleration)
+        +Number mass
+        +Boolean isDynamic
+    }
+
+    CanvasObject <|-- Circle
+    CanvasObject <|-- Rectangle
+    CanvasObject <|-- Emitter
+    Circle --> PhysicsObject : synced to
+    Rectangle --> PhysicsObject : synced to

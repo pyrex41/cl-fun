@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant User
+    participant Canvas
+    participant Emitter
+    participant Physics
+
+    User->>Canvas: Create Emitter<br/>{x, y, rate, lifespan}
+    Canvas->>Emitter: Activate
+
+    loop Every 1/rate seconds
+        Emitter->>Physics: create-physics-circle()<br/>{x, y, radius, velocity}
+        Physics->>Physics: Add to simulation
+
+        Note over Emitter: Track particle age
+
+        alt Particle age > lifespan
+            Emitter->>Physics: remove-physics-object(id)
+        end
+    end
+
+    User->>Canvas: Delete Emitter
+    Canvas->>Emitter: Deactivate
+    Emitter->>Physics: Remove all particles

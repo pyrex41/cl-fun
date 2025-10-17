@@ -1,0 +1,21 @@
+flowchart TD
+    Start[Physics Objects] --> Count{Object<br/>Count}
+
+    Count -->|< 100| Simple[Simple Broad-Phase<br/>Check all pairs]
+    Count -->|100-300| Grid[Spatial Grid<br/>Cell size = 2*max_radius]
+    Count -->|> 300| Cleanup[Remove old particles<br/>Cap at 300 max]
+
+    Simple --> Collisions[Collision Detection]
+    Grid --> Collisions
+    Cleanup --> Grid
+
+    Collisions --> Optimize{FPS < 55?}
+    Optimize -->|Yes| Reduce[Reduce collision<br/>iterations to 2]
+    Optimize -->|No| Continue[Continue normal]
+
+    Reduce --> Monitor[Log performance warning]
+    Continue --> Monitor
+
+    style Cleanup fill:#ffcdd2
+    style Reduce fill:#fff59d
+    style Monitor fill:#c5e1a5

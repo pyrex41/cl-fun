@@ -3137,13 +3137,14 @@
         "pixi-upgrade"
       ],
       "created": "2025-10-16T21:25:04.764Z",
-      "description": "Tasks for pixi-upgrade context"
+      "description": "Tasks for pixi-upgrade context",
+      "updated": "2025-10-16T21:25:04.764Z"
     }
   },
   "auth0": {
     "tasks": [
       {
-        "id": "1",
+        "id": 1,
         "title": "Set up Auth0 configuration and environment variables",
         "description": "Configure Auth0 domain, client ID, client secret, callback URL, and audience in the application configuration to enable OAuth2 integration.",
         "details": "Create a configuration file or module (e.g., src/auth0-config.lisp) with parameters like *auth0-domain*, *auth0-client-id*, etc., using environment variables. Implement helper functions such as auth0-authorize-url, auth0-token-url, auth0-userinfo-url, and auth0-logout-url as specified in the PRD. Ensure secure handling of secrets and validate that all required environment variables are set.",
@@ -3157,7 +3158,7 @@
         "expansionPrompt": "Break down the setup of Auth0 configuration into subtasks focusing on creating the configuration module, implementing helper functions, and adding validation for environment variables."
       },
       {
-        "id": "2",
+        "id": 2,
         "title": "Update database schema to support Auth0 fields",
         "description": "Modify the users table to include Auth0-specific fields like auth0_sub, display_name, avatar_url, email_verified, and last_login_at, making password_hash nullable.",
         "details": "Execute the SQL schema changes as provided in the PRD, recreating the users table with new columns and copying existing data. Add indexes for auth0_sub, email, and username. Ensure backward compatibility by keeping password_hash nullable for legacy users.",
@@ -3171,7 +3172,7 @@
         "expansionPrompt": "Divide the database schema update into subtasks for executing SQL changes and ensuring data migration with backward compatibility."
       },
       {
-        "id": "3",
+        "id": 3,
         "title": "Implement OAuth2 authorization flow initiation",
         "description": "Create the handler to redirect users to Auth0's authorization endpoint with proper state parameter for CSRF protection.",
         "details": "Implement handle-auth0-login function in src/auth0-oauth.lisp, generating a secure state token, storing it temporarily, and redirecting to the Auth0 authorize URL. Include state expiry mechanism using threads for cleanup after 5 minutes.",
@@ -3187,7 +3188,7 @@
         "expansionPrompt": "Expand the OAuth2 flow initiation into subtasks covering state token generation, temporary storage, and redirect handling with expiry mechanisms."
       },
       {
-        "id": "4",
+        "id": 4,
         "title": "Implement OAuth2 callback and token exchange",
         "description": "Handle the Auth0 callback, validate state, exchange authorization code for tokens, and process the response.",
         "details": "Implement handle-auth0-callback function, checking for errors and state validity, then calling exchange-code-for-tokens to POST to Auth0's token endpoint. Parse the response for access_token and id_token. Handle errors gracefully with logging.",
@@ -3204,7 +3205,7 @@
         "expansionPrompt": "Break down the callback handling into subtasks for state validation, token exchange via HTTP, response parsing, and error handling."
       },
       {
-        "id": "5",
+        "id": 5,
         "title": "Implement JWT ID token decoding and validation",
         "description": "Decode the ID token, validate its signature, issuer, audience, and expiration, and extract user claims.",
         "details": "Implement decode-id-token and validate-jwt-signature functions, fetching JWKS from Auth0 for signature verification using RS256. Cache JWKS for 24 hours. Validate claims as per OAuth2 standards and return user info like sub, email, name, etc.",
@@ -3221,7 +3222,7 @@
         "expansionPrompt": "Subdivide JWT handling into tasks for decoding, signature validation with JWKS, claim validation, and caching mechanisms."
       },
       {
-        "id": "6",
+        "id": 6,
         "title": "Implement user finding and creation from OAuth data",
         "description": "Check for existing users by auth0_sub or email, update or create new users, and handle linking for legacy accounts.",
         "details": "Implement find-or-create-user-from-oauth, get-user-by-auth0-sub, update-user-from-oauth, link-auth0-to-user, and create-user-from-oauth functions. Use database transactions for safety. Generate usernames from emails if needed.",
@@ -3238,7 +3239,7 @@
         "expansionPrompt": "Expand user management into subtasks for finding existing users, creating new ones, updating records, and handling legacy account linking with transactions."
       },
       {
-        "id": "7",
+        "id": 7,
         "title": "Implement session creation and cookie management",
         "description": "Create user sessions upon successful OAuth authentication and set secure session cookies.",
         "details": "After validating tokens and finding/creating users, call create-session-for-user and set-session-cookie with HttpOnly, Secure, SameSite=strict flags, and 24-hour expiry. Ensure sessions are stored securely.",
@@ -3255,7 +3256,7 @@
         "expansionPrompt": "Divide session handling into subtasks for creating sessions and setting secure cookies with proper attributes."
       },
       {
-        "id": "8",
+        "id": 8,
         "title": "Update frontend for Auth0 login integration",
         "description": "Modify the frontend to include Auth0 login buttons, handle redirects, and support dual-mode authentication during transition.",
         "details": "Update frontend/src/auth.js with AuthManager class, adding loginWithAuth0, loginWithGoogle, loginWithGithub methods. Modify UI in login page to show Auth0 and social login options, keeping legacy login for transition.",
@@ -3272,7 +3273,7 @@
         "expansionPrompt": "Break down frontend updates into subtasks for modifying the AuthManager class, updating UI elements, and supporting dual-mode authentication."
       },
       {
-        "id": "9",
+        "id": 9,
         "title": "Implement user migration and linking flow",
         "description": "Allow existing users to link their Auth0 accounts to legacy profiles during Phase 2.",
         "details": "Implement handle-link-auth0-account function, requiring legacy login first, then initiating OAuth with metadata to link. Update user records with auth0_sub upon successful linking. Add UI banners and email campaigns as per PRD.",
@@ -3289,7 +3290,7 @@
         "expansionPrompt": "Expand the migration flow into subtasks for implementing the linking handler, updating UI banners, managing email campaigns, and ensuring database updates."
       },
       {
-        "id": "10",
+        "id": 10,
         "title": "Implement monitoring, testing, and deprecation of legacy auth",
         "description": "Add metrics collection, comprehensive testing, and gradual removal of legacy authentication in Phase 3.",
         "details": "Implement get-auth-metrics for monitoring key stats. Conduct unit, integration, and manual tests as outlined. Add feature flags for Auth0 enablement and deprecate legacy endpoints after migration thresholds.",
@@ -3313,7 +3314,7 @@
         "expansionPrompt": "Subdivide the final phase into tasks for metrics collection, comprehensive testing, feature flag implementation, legacy deprecation, and monitoring setup."
       },
       {
-        "id": "11",
+        "id": 11,
         "title": "Implement JWT Signature Validation with RS256 and JWKS",
         "description": "Enhance JWT validation to include cryptographic signature verification using RS256 algorithm and Auth0's JWKS endpoint, ensuring secure token authenticity beyond claims validation.",
         "details": "Update the existing JWT validation logic (likely in Task 5's functions) to incorporate signature verification. Use a robust JWT library such as 'jose' or 'cl-jwt' for Common Lisp to handle decoding, signature verification, and JWKS management. Implement a function to fetch Auth0's JWKS (JSON Web Key Set) from the configured endpoint (e.g., https://your-domain.auth0.com/.well-known/jwks.json), parse the keys, and select the appropriate RSA public key based on the 'kid' (Key ID) in the JWT header. Verify the JWT signature using RS256 (RSA with SHA-256) against the public key. Implement caching for the JWKS with a TTL (Time-To-Live) of 24 hours to minimize network calls and improve performance; use a thread-safe cache mechanism like a hash table with expiry timestamps or a library such as 'cl-cache'. Ensure the cache handles key rotation by re-fetching if a 'kid' is not found. Validate standard claims (iss, aud, exp, iat) as before, but now as part of a comprehensive validation function that returns true only if both signature and claims are valid. Handle errors gracefully, such as invalid signatures, network failures during JWKS fetch, or malformed JWKS, by logging and returning appropriate error responses. Consider security best practices: avoid storing private keys, use HTTPS for JWKS fetches, and implement rate limiting if needed. Integrate this into the OAuth callback flow after token exchange (from Task 4).",
@@ -3386,7 +3387,7 @@
         "updatedAt": "2025-10-16T22:33:53.155Z"
       },
       {
-        "id": "12",
+        "id": 12,
         "title": "Implement Rate Limiting for OAuth Endpoints",
         "description": "Add rate limiting middleware to the OAuth endpoints (/auth0/login, /auth0/callback, /auth0/link) to prevent abuse by enforcing a limit of 10 requests per hour per IP address using IP-based tracking with a sliding window mechanism.",
         "details": "Implement rate limiting as middleware in the Common Lisp application to protect the specified OAuth endpoints from abuse. Create a global hash table *rate-limit-store* to track request timestamps per IP address, where each key is an IP string and the value is a list of timestamps (in Unix epoch seconds) for recent requests. Develop a check-rate-limit function that, for a given IP, removes timestamps older than 1 hour (3600 seconds) from the list (sliding window), counts the remaining timestamps, and returns true if the count is less than 10, otherwise false. If allowed, append the current timestamp to the list. Apply this middleware to the handlers for /auth0/login (from Task 3), /auth0/callback (from Task 4), and /auth0/link (from Task 9), checking the rate limit before processing the request and returning a 429 Too Many Requests HTTP status with an appropriate error message if exceeded. Use the client's IP address from the request headers (e.g., X-Forwarded-For or remote-addr), with considerations for proxies. For best practices, ensure thread-safety by using locks or atomic operations on the hash table in a multi-threaded environment like Hunchentoot. Periodically clean up the hash table to remove entries for IPs with no recent requests to prevent memory leaks. Research indicates using a sliding window over fixed windows reduces burstiness; consider libraries like cl-store for persistence if needed, but in-memory suffices for this scale. Handle IPv4 and IPv6 addresses uniformly.",
@@ -3461,7 +3462,7 @@
         "updatedAt": "2025-10-16T22:35:49.751Z"
       },
       {
-        "id": "13",
+        "id": 13,
         "title": "Implement Environment-Dependent Secure Cookie Flag",
         "description": "Modify the auth0-oauth.lisp file to make the :secure cookie flag dynamic based on the ENVIRONMENT environment variable, setting it to true for production to ensure cookies are only sent over HTTPS, while allowing insecure cookies in development.",
         "details": "In the auth0-oauth.lisp file, replace the hardcoded :secure nil with a dynamic parameter. Define a global parameter *use-secure-cookies* that checks the ENVIRONMENT environment variable using (uiop:getenv \"ENVIRONMENT\") or similar. Set *use-secure-cookies* to t if ENVIRONMENT is \"production\" (or matches production values like \"prod\"), otherwise nil. This follows security best practices where secure cookies prevent transmission over insecure connections in production, reducing risks like session hijacking. Consider using a configuration module (e.g., from Task 1) to centralize environment checks. Ensure the parameter is evaluated at runtime or load time, and document the behavior. For Common Lisp, leverage libraries like uiop for environment access. Update any cookie-setting functions to use this parameter, such as in Hunchentoot or similar web frameworks. Best practices include defaulting to secure in production and providing clear logging or warnings if the environment is misconfigured.",
@@ -3475,7 +3476,7 @@
         "updatedAt": "2025-10-16T22:22:42.589Z"
       },
       {
-        "id": "14",
+        "id": 14,
         "title": "Fix Thread Safety in State Token Cleanup",
         "description": "Modify the cleanup-expired-states function in auth0-oauth.lisp to ensure thread-safe removal of expired state tokens by collecting keys first and removing them in a separate pass, preventing issues from modifying the hash table during iteration.",
         "details": "In the cleanup-expired-states function around line 60 of auth0-oauth.lisp, address the thread safety issue where the hash table is modified during iteration, which can lead to undefined behavior or errors in Common Lisp implementations. Current best practices for thread-safe hash table operations in Common Lisp recommend avoiding modifications during iteration to prevent race conditions in multi-threaded environments. Implement the fix by first iterating over the hash table to collect expired keys into a list (e.g., using maphash or loop to check expiration based on timestamps), then perform a second pass to remove those keys from the hash table using remhash. Ensure the function uses appropriate locking if the hash table is accessed concurrently, such as with a mutex or bordeaux-threads locks, to synchronize access. Consider using a read-write lock for better performance if reads are more frequent than writes. Update any related documentation or comments to reflect the thread-safe approach. This aligns with Common Lisp concurrency patterns, drawing from libraries like bordeaux-threads for synchronization primitives, and ensures robustness in production environments where multiple threads might access the state store simultaneously.",
@@ -3489,7 +3490,7 @@
         "updatedAt": "2025-10-16T22:19:20.381Z"
       },
       {
-        "id": "15",
+        "id": 15,
         "title": "Enhance Error Handling in OAuth Token Exchange",
         "description": "Improve error handling in the exchange-code-for-token function within auth0-oauth.lisp by replacing the generic error handler with specific conditions for network errors and JSON parsing issues, providing appropriate HTTP status codes and user-friendly error messages.",
         "details": "In the auth0-oauth.lisp file, locate the exchange-code-for-token function and modify its error handling from the generic (error (e)) clause to handle specific error types. Use drakma:drakma-error for network-related issues, such as connection failures or HTTP errors like 502 Bad Gateway, and define a custom json-parse-error condition for malformed JSON responses, typically associated with 500 Internal Server Error. For each error type, set the appropriate HTTP status code in the response and include user-friendly messages, e.g., 'Network error occurred during token exchange' for drakma:drakma-error and 'Invalid response format from authorization server' for json-parse-error. Ensure the error handling integrates with the application's web framework (e.g., Hunchentoot or similar) to return proper HTTP responses. Consider using Common Lisp's condition system to define and signal these errors, allowing for clean separation of concerns. Research indicates that specific error handling improves debugging and user experience, aligning with best practices in robust web application development. Avoid catching all errors generically to prevent masking underlying issues. If using libraries like Drakma for HTTP requests and a JSON parser like Yason or Jonathon, ensure compatibility. Update any related logging to capture error details for monitoring.",
@@ -3503,7 +3504,7 @@
         "updatedAt": "2025-10-16T22:23:48.199Z"
       },
       {
-        "id": "16",
+        "id": 16,
         "title": "Enhance Frontend Error Handling for OAuth Methods in auth.js",
         "description": "Improve error handling in the OAuth login methods (loginWithAuth0, loginWithGoogle, loginWithGithub) within auth.js by replacing simple console logging with comprehensive checks for HTTP response status, safe JSON parsing, and displaying user-friendly error messages via the showError method, while gracefully managing network failures.",
         "details": "In the auth.js file, locate the AuthManager class and its OAuth methods (loginWithAuth0, loginWithGoogle, loginWithGithub). Currently, these methods likely use fetch or similar for API calls and only log errors to console. Enhance each method with robust error handling following modern JavaScript best practices: wrap the fetch calls in try-catch blocks to handle network failures (e.g., connection timeouts or DNS errors), check response.ok to identify HTTP errors (4xx/5xx), and safely parse JSON responses using response.json() within a try-catch to handle malformed JSON. For errors, extract relevant details from the response (e.g., error message from JSON body if available) and call the existing showError method to display user-friendly messages, such as 'Login failed: Invalid credentials' or 'Network error: Please check your connection'. Implement exponential backoff for retryable network errors (e.g., 5xx status codes) using a utility function with setTimeout, limiting retries to 3 attempts. Ensure error messages are localized if an i18n system is in place, and log detailed errors to console.error for debugging while keeping user-facing messages generic. Use async/await for readability and avoid callback hell. Consider integrating with a global error boundary or logging service like Sentry for production monitoring. This approach aligns with current best practices for frontend error handling, emphasizing user experience and security by not exposing sensitive details.",
@@ -3517,7 +3518,7 @@
         "updatedAt": "2025-10-16T22:24:51.125Z"
       },
       {
-        "id": "17",
+        "id": 17,
         "title": "Add Docstrings to Core OAuth Functions in auth0-oauth.lisp",
         "description": "Add comprehensive docstrings to key functions in auth0-oauth.lisp, including parse-jwt, exchange-code-for-token, validate-id-token, and other core OAuth functions, following Common Lisp conventions with detailed descriptions of parameters, return values, and behavior.",
         "details": "In the auth0-oauth.lisp file, identify the core OAuth functions such as parse-jwt, exchange-code-for-token, validate-id-token, and any other essential functions (e.g., those handling token validation, state management, or error responses). For each function, add a docstring immediately following the function definition using Common Lisp's standard docstring placement. Follow established Common Lisp docstring conventions: start with a brief description of the function's purpose, then list parameters with their types and descriptions, followed by return value details including types and possible values. Include any side effects, error conditions, or examples where relevant. Use clear, concise language and ensure consistency across functions. For instance, for exchange-code-for-token, describe parameters like authorization-code and redirect-uri, and specify return values such as a token object or error signals. Research and incorporate best practices from Common Lisp documentation standards, such as those outlined in the CLHS (Common Lisp HyperSpec) and tools like SLIME for docstring formatting. Ensure docstrings are machine-readable for tools like documentation generators (e.g., using DECLARE or custom macros if needed, but stick to standard strings). Consider internationalization if applicable, but prioritize English for clarity. Update any related comments or inline documentation to avoid redundancy.",
@@ -3529,7 +3530,7 @@
         "updatedAt": "2025-10-16T22:21:53.015Z"
       },
       {
-        "id": "18",
+        "id": 18,
         "title": "Extract Magic Numbers to Named Constants in auth0-oauth.lisp",
         "description": "Refactor the auth0-oauth.lisp file to replace hardcoded magic numbers, such as the 300-second state token TTL, with named constants following Common Lisp conventions, including rate limits, timeouts, and other similar values to improve code readability and maintainability.",
         "details": "In the auth0-oauth.lisp file, identify all hardcoded magic numbers related to OAuth functionality, including but not limited to the state token TTL (e.g., 300 seconds), rate limiting thresholds, timeout values, HTTP status codes used in responses, and any other numeric literals that represent configurable or meaningful constants. Define these as named constants using Common Lisp's DEFCONSTANT macro, adhering to naming conventions by enclosing the names in plus signs, such as +STATE-TOKEN-TTL+, +RATE-LIMIT-THRESHOLD+, +REQUEST-TIMEOUT+, etc. Place these constant definitions at the top of the file or in a dedicated constants section for easy reference and modification. Ensure that the constants are evaluated at compile-time where possible for efficiency. Replace all occurrences of the magic numbers with references to these constants throughout the file, using tools like grep or manual inspection to avoid missing any instances. Consider grouping related constants (e.g., all time-related constants together) and adding comments explaining their purpose and units. This refactoring aligns with Common Lisp best practices for code maintainability, as outlined in resources like 'Practical Common Lisp' by Peter Seibel, which emphasizes avoiding magic numbers to make code self-documenting and easier to configure. Be cautious with DEFCONSTANT, as it creates true constants that cannot be redefined without warnings; if runtime configurability is needed, consider DEFPARAMETER instead, but for fixed values like TTLs, DEFCONSTANT is appropriate. After changes, ensure the file compiles without errors and that the constants are accessible in the package namespace.",
@@ -3550,7 +3551,593 @@
       "completedCount": 18,
       "tags": [
         "auth0"
-      ]
+      ],
+      "created": "2025-10-17T15:17:51.937Z",
+      "description": "Tasks for auth0 context",
+      "updated": "2025-10-17T15:17:51.937Z"
+    }
+  },
+  "physics": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Update Object Data Model for Physics Properties",
+        "description": "Extend the existing object data model in the backend to include new physics properties such as isDynamic, mass, friction, and restitution for shapes like Rectangles and Circles.",
+        "details": "In backend/src/canvas-state.lisp, modify the object structure to add the new fields: isDynamic (boolean, default false), mass (number, default 1), friction (number, 0-1, default 0.1), restitution (number, 0-1, default 0.8). Ensure these are initialized for new objects and can be updated via existing update mechanisms. Use Lisp structs or hash tables for storage, adhering to the current codebase patterns.",
+        "testStrategy": "Unit tests in Lisp to verify object creation includes default physics properties and updates apply correctly. Integration tests to ensure objects with physics properties are serialized/deserialized properly in the canvas state.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Modify Object Data Structure to Include Physics Properties",
+            "description": "Update the object structure in backend/src/canvas-state.lisp to add new fields: isDynamic (boolean, default false), mass (number, default 1), friction (number, 0-1, default 0.1), and restitution (number, 0-1, default 0.8). Use Lisp structs or hash tables following current patterns.",
+            "dependencies": [],
+            "details": "Locate the existing object definition in canvas-state.lisp and extend it with the specified physics fields. Ensure the structure supports both Rectangles and Circles. Implement default values during object creation to maintain consistency.",
+            "status": "pending",
+            "testStrategy": "Unit tests to verify new fields are present in created objects with correct defaults."
+          },
+          {
+            "id": 2,
+            "title": "Implement Default Initializations and Update Serialization Mechanisms",
+            "description": "Ensure new objects are initialized with default physics properties and that existing update mechanisms can modify these fields. Update serialization to include the new properties for proper saving and loading.",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify object creation functions to set defaults for isDynamic, mass, friction, and restitution. Integrate with existing update APIs to allow changes. Adjust serialization/deserialization logic in canvas-state.lisp to handle the new fields, ensuring backward compatibility.",
+            "status": "pending",
+            "testStrategy": "Integration tests to confirm serialization includes physics properties and deserialization restores them correctly, plus tests for update mechanisms applying changes."
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Implement Server-Side Physics Engine",
+        "description": "Create a new backend module for a deterministic, fixed-timestep 2D Verlet integration physics engine.",
+        "details": "Create backend/src/physics.lisp with functions for Verlet integration: applyGravity (global gravity), applyConstraints (canvas boundaries with contain/wrap options), updatePositions, and handleCollisions (simple circle/rectangle collisions). Implement fixed timestep (e.g., 20ms) for deterministic simulation. Use Lisp for efficiency, ensuring the engine is computationally light for 200+ objects.",
+        "testStrategy": "Unit tests for physics functions with known inputs/outputs to verify determinism. Performance benchmarks to ensure simulation runs at 50Hz with 200 objects without exceeding CPU limits.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement applyGravity Function",
+            "description": "Create the applyGravity function to apply global gravity to all dynamic objects in the physics simulation.",
+            "dependencies": [],
+            "details": "In backend/src/physics.lisp, define applyGravity as a function that takes a list of objects and applies a downward force (e.g., gravity vector) to each dynamic object's velocity. Ensure it integrates with the Verlet integration loop for accurate physics.",
+            "status": "pending",
+            "testStrategy": "Unit tests with predefined object states to verify gravity application produces expected velocity changes."
+          },
+          {
+            "id": 2,
+            "title": "Implement applyConstraints Function",
+            "description": "Develop the applyConstraints function to handle canvas boundaries with contain or wrap options.",
+            "dependencies": [],
+            "details": "In backend/src/physics.lisp, implement applyConstraints to check object positions against canvas boundaries. For 'contain', bounce or stop objects at edges; for 'wrap', teleport to opposite side. Apply to all dynamic objects during each simulation step.",
+            "status": "pending",
+            "testStrategy": "Unit tests simulating boundary collisions with known positions to confirm correct containment or wrapping behavior."
+          },
+          {
+            "id": 3,
+            "title": "Implement updatePositions Function",
+            "description": "Build the updatePositions function for Verlet integration to update object positions based on velocities.",
+            "dependencies": [],
+            "details": "In backend/src/physics.lisp, create updatePositions using Verlet integration formula: new_position = current_position + velocity * dt + acceleration * dt^2. Iterate over all dynamic objects, updating their positions deterministically in the fixed timestep loop.",
+            "status": "pending",
+            "testStrategy": "Unit tests with initial positions and velocities to verify position updates match expected Verlet integration outputs."
+          },
+          {
+            "id": 4,
+            "title": "Implement handleCollisions Function",
+            "description": "Create the handleCollisions function for simple circle and rectangle collision detection and resolution.",
+            "dependencies": [],
+            "details": "In backend/src/physics.lisp, define handleCollisions to detect and resolve collisions between circles (distance-based) and rectangles (AABB or SAT). Adjust velocities or positions upon collision to prevent overlap, ensuring efficiency for 200+ objects.",
+            "status": "pending",
+            "testStrategy": "Unit tests with pairs of colliding objects to check collision detection accuracy and resolution without penetration."
+          },
+          {
+            "id": 5,
+            "title": "Add Determinism and Performance Optimizations",
+            "description": "Implement fixed timestep simulation and optimizations to ensure deterministic behavior and computational efficiency for 200+ objects.",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "In backend/src/physics.lisp, set up a fixed timestep loop (e.g., 20ms) using a timer or thread. Optimize data structures (e.g., arrays for objects) and algorithms for O(n) or better complexity. Ensure reproducibility across runs for determinism.",
+            "status": "pending",
+            "testStrategy": "Performance benchmarks measuring CPU usage at 50Hz with 200 objects; determinism tests by running simulations multiple times and comparing outputs."
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Implement Simulation Loop and State Broadcasting",
+        "description": "Set up a central simulation loop in the backend to run the physics engine and broadcast state snapshots.",
+        "details": "In backend/src/websocket-adapter.lisp, use bt:make-thread to create a loop running at 50Hz. Each tick: call physics engine to step simulation, then every 2-3 ticks (e.g., 20Hz), create a snapshot of all isDynamic objects (id, x, y, rotation) and broadcast via WebSocket as 'state-snapshot'. Modify handle-object-update to handle static changes only.",
+        "testStrategy": "Integration tests to verify loop runs at correct frequency, snapshots are generated accurately, and broadcasted to clients. Simulate multiple users and check synchronization via logs.",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set Up Threaded Simulation Loop",
+            "description": "Create a threaded loop in the backend to run the simulation at 50Hz using bt:make-thread.",
+            "dependencies": [],
+            "details": "In backend/src/websocket-adapter.lisp, implement a thread that runs a loop at 50Hz, ensuring precise timing for each tick to maintain simulation consistency.",
+            "status": "pending",
+            "testStrategy": "Unit tests to verify the loop frequency is accurately maintained at 50Hz using timing measurements."
+          },
+          {
+            "id": 2,
+            "title": "Integrate Physics Engine Steps",
+            "description": "Incorporate physics engine stepping into each tick of the simulation loop.",
+            "dependencies": [
+              1
+            ],
+            "details": "Within the loop, call the physics engine's step function to update the simulation state, ensuring deterministic behavior with fixed timesteps.",
+            "status": "pending",
+            "testStrategy": "Integration tests to confirm physics steps are executed correctly and deterministically on each loop iteration."
+          },
+          {
+            "id": 3,
+            "title": "Generate State Snapshots",
+            "description": "Create snapshots of dynamic objects every 2-3 ticks at approximately 20Hz.",
+            "dependencies": [
+              2
+            ],
+            "details": "After physics steps, periodically collect id, x, y, and rotation for all isDynamic objects to form a state snapshot, optimizing for performance with 200+ objects.",
+            "status": "pending",
+            "testStrategy": "Tests to validate snapshot accuracy, including correct object data and timing every 2-3 ticks."
+          },
+          {
+            "id": 4,
+            "title": "Broadcast State Snapshots via WebSocket",
+            "description": "Broadcast generated snapshots to clients and modify object update handling for static changes.",
+            "dependencies": [
+              3
+            ],
+            "details": "Send the state snapshots via WebSocket as 'state-snapshot' messages, and update handle-object-update to process only static object changes, ensuring real-time synchronization.",
+            "status": "pending",
+            "testStrategy": "Integration tests simulating multiple clients to verify broadcasting, synchronization, and correct handling of static updates."
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Port Physics Engine to Frontend",
+        "description": "Implement the exact same deterministic physics engine in JavaScript for client-side prediction.",
+        "details": "Create frontend/src/physics.js with a JS port of the Verlet integration from backend/src/physics.lisp, including applyGravity, applyConstraints, updatePositions, handleCollisions. Ensure identical logic for determinism. Use modern JS (ES6+) for performance.",
+        "testStrategy": "Unit tests comparing JS physics outputs to Lisp outputs for same inputs. Performance tests to ensure 60 FPS prediction with 200 objects.",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Port applyGravity Function to JavaScript",
+            "description": "Port the applyGravity function from the Lisp backend to JavaScript, ensuring identical deterministic logic for applying global gravity to objects.",
+            "dependencies": [
+              2
+            ],
+            "details": "In frontend/src/physics.js, implement applyGravity using ES6+ syntax, mirroring the Verlet integration logic from backend/src/physics.lisp. Apply gravity as a constant acceleration to dynamic objects' velocities, ensuring no floating-point discrepancies for determinism across clients.",
+            "status": "pending",
+            "testStrategy": "Unit tests comparing JS applyGravity outputs to Lisp outputs for identical inputs, verifying determinism and performance at 60 FPS with 200 objects."
+          },
+          {
+            "id": 2,
+            "title": "Port applyConstraints Function to JavaScript",
+            "description": "Port the applyConstraints function from Lisp to JS, handling canvas boundaries with contain/wrap options for deterministic behavior.",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement applyConstraints in frontend/src/physics.js using modern JS, replicating the boundary checks from backend/src/physics.lisp. Support contain (bounce) and wrap (teleport) modes for objects exceeding canvas limits, maintaining exact logic for client-side prediction.",
+            "status": "pending",
+            "testStrategy": "Unit tests against Lisp outputs for various boundary scenarios, including performance checks to sustain 60 FPS with object interactions."
+          },
+          {
+            "id": 3,
+            "title": "Port updatePositions Function to JavaScript",
+            "description": "Port the updatePositions function, which updates object positions based on Verlet integration, ensuring identical calculations.",
+            "dependencies": [
+              2
+            ],
+            "details": "Add updatePositions to frontend/src/physics.js, using ES6+ for efficient position updates from previous and current positions plus accelerations. Match the Lisp implementation precisely to preserve determinism in the physics simulation.",
+            "status": "pending",
+            "testStrategy": "Unit tests comparing position updates between JS and Lisp for same inputs, with benchmarks ensuring 60 FPS for 200 objects."
+          },
+          {
+            "id": 4,
+            "title": "Port handleCollisions Function to JavaScript",
+            "description": "Port the handleCollisions function for simple circle and rectangle collisions, maintaining deterministic resolution.",
+            "dependencies": [
+              3
+            ],
+            "details": "Implement handleCollisions in frontend/src/physics.js, replicating collision detection and response logic from backend/src/physics.lisp. Use modern JS for performance, handling overlaps and applying restitution/friction for identical outcomes.",
+            "status": "pending",
+            "testStrategy": "Unit tests verifying collision resolutions match Lisp outputs, plus performance tests to confirm 60 FPS client-side prediction with colliding objects."
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Implement Client-Side Prediction and Reconciliation",
+        "description": "Integrate local physics simulation in the frontend for smooth prediction and server reconciliation.",
+        "details": "In frontend/src/canvas.js (CanvasManager), in the animation loop (app.ticker.add), call local physics engine to predict states. In frontend/src/websocket.js, handle 'state-snapshot' by passing to CanvasManager for reconciliation: compare server positions, interpolate gently over frames to avoid jitter.",
+        "testStrategy": "Visual tests in browser to check smoothness at 60 FPS. Network simulation tests to verify reconciliation corrects divergences without visible artifacts.",
+        "priority": "high",
+        "dependencies": [
+          3,
+          4
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Integrate Prediction in Animation Loop",
+            "description": "Modify the frontend animation loop to call the local physics engine for predicting object states ahead of server updates.",
+            "dependencies": [],
+            "details": "In frontend/src/canvas.js, within the CanvasManager class, update the animation loop (app.ticker.add callback) to invoke the local physics simulation engine to predict future positions and states of dynamic objects based on current inputs and velocities. Ensure the prediction runs at 60 FPS to maintain smoothness.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Handle Snapshot Reception",
+            "description": "Update the WebSocket handler to receive and process state snapshots from the server.",
+            "dependencies": [],
+            "details": "In frontend/src/websocket.js, enhance the WebSocket message handler to listen for 'state-snapshot' events. Upon reception, parse the snapshot data (containing object IDs, positions, rotations) and pass it to the CanvasManager for further processing. Ensure efficient parsing to avoid blocking the main thread.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Implement Reconciliation Logic",
+            "description": "Develop logic to compare predicted states with server snapshots and interpolate smoothly to correct divergences.",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "In frontend/src/canvas.js, within CanvasManager, add a reconciliation method that compares local predicted positions with server-provided positions from snapshots. Implement gentle interpolation over multiple frames (e.g., using linear interpolation or easing functions) to adjust object positions without causing visible jitter. Handle cases of high latency by prioritizing server authority.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 4,
+            "title": "Test Interpolation Smoothness",
+            "description": "Conduct tests to ensure reconciliation interpolation is smooth and artifact-free under various network conditions.",
+            "dependencies": [
+              3
+            ],
+            "details": "Perform visual tests in the browser at 60 FPS to observe smoothness during reconciliation. Use network simulation tools (e.g., Chrome DevTools throttling) to test scenarios with latency and packet loss, verifying that divergences are corrected without visible artifacts like teleportation or stuttering. Log frame rates and interpolation times for analysis.",
+            "status": "pending",
+            "testStrategy": "Visual inspection and network simulation to confirm 60 FPS smoothness and absence of jitter during reconciliation."
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Add Simulation Controls UI",
+        "description": "Implement UI controls for Play, Pause, Reset simulation and global settings like gravity and boundary rules.",
+        "details": "In frontend/src/main.js and index.html, add buttons to the right-hand sidebar: Play/Pause/Reset. Add sliders/inputs for global gravity (0-10) and boundary rule (contain/wrap). Bind to WebSocket messages to send updates to backend.",
+        "testStrategy": "UI tests to verify buttons trigger correct actions. Functional tests to ensure simulation starts/pauses/resets across clients.",
+        "priority": "medium",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add UI Elements for Simulation Controls",
+            "description": "Create and integrate buttons for Play, Pause, and Reset, along with sliders for gravity and boundary rules in the right-hand sidebar of index.html.",
+            "dependencies": [],
+            "details": "In frontend/src/main.js and index.html, add HTML elements for Play/Pause/Reset buttons and input sliders for gravity (range 0-10) and boundary rule (select contain/wrap). Ensure proper styling and positioning in the sidebar for user interaction.",
+            "status": "pending",
+            "testStrategy": "UI tests to verify buttons and sliders are rendered correctly and respond to user inputs without errors."
+          },
+          {
+            "id": 2,
+            "title": "Bind UI Controls to WebSocket Events",
+            "description": "Implement event handlers for UI controls to send WebSocket messages to the backend for simulation actions and settings updates.",
+            "dependencies": [
+              1
+            ],
+            "details": "In frontend/src/main.js, add event listeners for the Play/Pause/Reset buttons and gravity/boundary sliders. On interaction, construct and send WebSocket messages (e.g., 'play', 'pause', 'reset', 'update-gravity', 'update-boundary') to the backend server.",
+            "status": "pending",
+            "testStrategy": "Functional tests to ensure button clicks and slider changes trigger correct WebSocket messages, verified via network logs or mock WebSocket."
+          },
+          {
+            "id": 3,
+            "title": "Implement Backend Handling for Global Settings",
+            "description": "Update the backend to receive and process WebSocket messages for simulation controls and apply global settings like gravity and boundary rules.",
+            "dependencies": [
+              2
+            ],
+            "details": "In backend/src/websocket-adapter.lisp, add message handlers for 'play', 'pause', 'reset', 'update-gravity', and 'update-boundary'. Integrate with the simulation loop to start/pause/reset the physics engine and update global variables for gravity and boundary constraints.",
+            "status": "pending",
+            "testStrategy": "Integration tests to verify backend receives messages, updates simulation state correctly, and broadcasts changes to all connected clients."
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Add Physics Properties UI",
+        "description": "Create a UI section in the sidebar for editing selected object's physics properties.",
+        "details": "In the right-hand sidebar (frontend/src/main.js), add a 'Physics' section with checkbox for isDynamic, sliders for mass, friction, restitution. On change, send updates via WebSocket to broadcast in real-time.",
+        "testStrategy": "UI interaction tests to check property changes update object and sync across clients. Edge case tests for invalid values.",
+        "priority": "medium",
+        "dependencies": [
+          1,
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Physics Properties UI Section",
+            "description": "Add a new 'Physics' section to the right-hand sidebar in frontend/src/main.js, including a checkbox for isDynamic and sliders for mass, friction, and restitution.",
+            "dependencies": [],
+            "details": "Locate the sidebar rendering code in frontend/src/main.js. Append a new collapsible or static section titled 'Physics'. Add HTML elements: a checkbox for isDynamic (default false), and range sliders for mass (0-10), friction (0-1), restitution (0-1). Ensure the UI is responsive and integrates with the existing sidebar layout. Bind initial values from the selected object's properties.",
+            "status": "pending",
+            "testStrategy": "Manual UI tests to verify elements render correctly and sliders have proper ranges."
+          },
+          {
+            "id": 2,
+            "title": "Bind UI Changes to WebSocket Updates and Ensure Synchronization",
+            "description": "Implement event handlers for the physics UI controls to send property updates via WebSocket and ensure real-time broadcasting to all clients.",
+            "dependencies": [
+              1
+            ],
+            "details": "In frontend/src/main.js, add event listeners to the checkbox and sliders (e.g., onChange or onInput). On change, construct an update message with the new values and send it via the WebSocket connection in frontend/src/websocket.js. Ensure the message includes the object ID and updated physics properties. Verify that changes are broadcasted in real-time, updating the object state across clients without conflicts.",
+            "status": "pending",
+            "testStrategy": "Integration tests simulating UI interactions and checking WebSocket messages. Cross-client tests to confirm real-time sync and handle edge cases like rapid changes."
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Implement Gravity Source Tool",
+        "description": "Add a new tool for placing Gravity Sources that exert radial forces.",
+        "details": "In frontend/src/canvas.js, add createGravitySource method for visualization (e.g., a circle with radius). Update toolbar in index.html to include 'Gravity' tool. Properties: strength, radius. Backend must handle placement and physics application.",
+        "testStrategy": "Functional tests to place Gravity Source and verify forces on dynamic objects. Multi-user tests to ensure collaborative placement.",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          5
+        ],
+        "status": "deferred",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add Gravity Source Visualization",
+            "description": "Implement the createGravitySource method in frontend/src/canvas.js to render a circle representing the Gravity Source with adjustable radius.",
+            "dependencies": [],
+            "details": "In the CanvasManager class, add a new method createGravitySource that draws a circle on the canvas with a specified radius. Ensure it integrates with the existing rendering loop and supports properties like strength and radius for visual feedback.",
+            "status": "pending",
+            "testStrategy": "Visual tests to confirm the circle appears correctly on the canvas with varying radii."
+          },
+          {
+            "id": 2,
+            "title": "Integrate Gravity Tool in Toolbar",
+            "description": "Update the toolbar in index.html to include a new 'Gravity' tool button for selecting and placing Gravity Sources.",
+            "dependencies": [
+              1
+            ],
+            "details": "Modify the HTML structure in index.html to add a button for the Gravity tool. Attach event listeners to switch the active tool mode in the canvas manager, allowing users to place Gravity Sources by clicking on the canvas.",
+            "status": "pending",
+            "testStrategy": "UI tests to verify the button is clickable and switches the tool mode appropriately."
+          },
+          {
+            "id": 3,
+            "title": "Implement Backend Physics and Multi-User Handling",
+            "description": "Extend the backend physics engine to apply radial forces from Gravity Sources and ensure collaborative placement works in multi-user scenarios.",
+            "dependencies": [
+              2
+            ],
+            "details": "In backend/src/physics.lisp, add logic to calculate and apply radial forces based on Gravity Source properties (strength, radius). Integrate with the simulation loop to update object positions. Handle placement via WebSocket messages and test for synchronization in multi-user environments.",
+            "status": "pending",
+            "testStrategy": "Functional tests for force application on dynamic objects and multi-user tests to ensure Gravity Sources are placed and forces applied consistently across clients."
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Implement Particle Emitter Tool",
+        "description": "Add a tool for placing Particle Emitters that generate dynamic particles.",
+        "details": "In frontend/src/canvas.js, add createEmitter method for visualization. Toolbar update for 'Emitter' tool. Properties: rate, lifespan, initialVelocity, particleSize. Backend to simulate emission in physics loop.",
+        "testStrategy": "Tests to verify particles are emitted at correct rate, with proper lifespan and velocity. Performance tests with high emission rates.",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Add Particle Emitter Tool to Toolbar and Implement Visualization",
+            "description": "Update the toolbar in index.html to include the 'Emitter' tool and add the createEmitter method in frontend/src/canvas.js for visualizing particle emitters as dynamic objects with properties like rate, lifespan, initialVelocity, and particleSize.",
+            "dependencies": [],
+            "details": "Modify the toolbar UI in index.html to add a new button or option for the 'Emitter' tool. In frontend/src/canvas.js, implement the createEmitter method to render emitters on the canvas, possibly as a visual indicator (e.g., a small icon or shape) that can be placed by users. Ensure the visualization integrates with the existing canvas drawing logic and supports the specified properties for display purposes.",
+            "status": "pending",
+            "testStrategy": "Manual UI tests to verify the toolbar includes the new 'Emitter' tool and that placing an emitter renders correctly on the canvas without errors."
+          },
+          {
+            "id": 2,
+            "title": "Implement Emission Logic in Physics Loop",
+            "description": "Extend the backend physics engine to simulate particle emission from emitters, including generating particles with specified rate, lifespan, initialVelocity, and particleSize during the physics loop.",
+            "dependencies": [
+              1
+            ],
+            "details": "In the backend physics module (likely backend/src/physics.lisp), add logic to the simulation loop to handle emitters: on each tick, check active emitters and emit particles based on the rate property. Each particle should have a lifespan timer, initial velocity, and size. Integrate this with the existing Verlet integration for position updates and ensure particles are treated as dynamic objects in the simulation. Update the state broadcasting to include particle states.",
+            "status": "pending",
+            "testStrategy": "Unit tests for emission logic with mock emitters to verify particles are created at the correct rate, have proper initial velocities, and are removed after lifespan expires. Integration tests to ensure particles interact correctly with other physics objects."
+          },
+          {
+            "id": 3,
+            "title": "Conduct Performance Testing for High Emission Rates",
+            "description": "Test the system's performance when particle emitters operate at high rates to ensure smooth simulation and avoid frame drops or server overload.",
+            "dependencies": [
+              2
+            ],
+            "details": "Set up performance benchmarks simulating high emission rates (e.g., 100+ particles per second from multiple emitters). Monitor CPU usage, frame rates, and memory consumption in both frontend and backend. Use tools like browser dev tools for client-side and profiling in Lisp for server-side. Optimize if necessary, such as limiting total particles or implementing culling for off-screen particles.",
+            "status": "pending",
+            "testStrategy": "Automated performance tests using load simulation tools to emit particles at high rates and measure FPS, latency, and resource usage. Compare against thresholds (e.g., maintain 50Hz simulation and 60 FPS rendering) and log any bottlenecks for optimization."
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Update AI Agent with New Tools",
+        "description": "Extend the AI agent to support new function-calling tools for physics manipulation.",
+        "details": "In backend/src/ai-agent.lisp, update *component-tools* with schemas for setObjectPhysics, setGlobalPhysics, createGravitySource, createEmitter. Modify execute-ai-command to dispatch these, updating canvas state accordingly.",
+        "testStrategy": "AI command tests with examples like 'Make all red circles bouncy' to verify tool calls execute correctly and affect simulation.",
+        "priority": "medium",
+        "dependencies": [
+          1,
+          2,
+          8,
+          9
+        ],
+        "status": "deferred",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define Schemas for New Physics Tools",
+            "description": "Create JSON schemas for the new function-calling tools: setObjectPhysics, setGlobalPhysics, createGravitySource, and createEmitter in the AI agent.",
+            "dependencies": [
+              1,
+              2,
+              8,
+              9
+            ],
+            "details": "In backend/src/ai-agent.lisp, update the *component-tools* list with detailed schemas including parameters and descriptions for each tool, ensuring they align with the physics properties and engine implemented in tasks 1 and 2.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 2,
+            "title": "Modify execute-ai-command to Dispatch New Tools",
+            "description": "Update the execute-ai-command function to handle calls to the new physics tools and update the canvas state accordingly.",
+            "dependencies": [
+              1,
+              2,
+              8,
+              9,
+              1
+            ],
+            "details": "In backend/src/ai-agent.lisp, modify execute-ai-command to parse tool calls for setObjectPhysics, setGlobalPhysics, createGravitySource, and createEmitter, executing the appropriate actions such as setting object properties, global physics, creating gravity sources or emitters, and ensuring the canvas state is updated and broadcasted.",
+            "status": "pending",
+            "testStrategy": null
+          },
+          {
+            "id": 3,
+            "title": "Implement and Run Tests for AI Command Execution",
+            "description": "Develop and execute tests to verify that AI commands trigger the correct tool calls and produce expected physics effects in the simulation.",
+            "dependencies": [
+              1,
+              2,
+              8,
+              9,
+              2
+            ],
+            "details": "Create test cases in the backend testing framework, including examples like 'Make all red circles bouncy', to check that the AI agent correctly dispatches to the new tools, updates the canvas state, and the physics simulation reflects the changes accurately.",
+            "status": "pending",
+            "testStrategy": "AI command tests with natural language inputs to verify tool calls, state updates, and simulation impacts."
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Investigate and Implement Binary Protocol for Snapshots",
+        "description": "As a stretch goal, switch to MessagePack for efficient state snapshot serialization.",
+        "details": "Research MessagePack library for Lisp and JS. Update backend/src/websocket-adapter.lisp to serialize snapshots in binary. Frontend/src/websocket.js to decode. Ensure WebSocket handles binary frames.",
+        "testStrategy": "Bandwidth tests comparing JSON vs MessagePack payload sizes. Compatibility tests across browsers and ensure no data loss.",
+        "priority": "low",
+        "dependencies": [
+          3,
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Research MessagePack Libraries for Lisp and JavaScript",
+            "description": "Investigate and select suitable MessagePack libraries for binary serialization in Lisp (backend) and JavaScript (frontend) to replace JSON for state snapshots.",
+            "dependencies": [],
+            "details": "Research libraries such as cl-messagepack for Common Lisp and msgpack-lite or similar for JavaScript. Ensure compatibility with WebSocket binary frames and verify features like efficient encoding/decoding of complex data structures used in snapshots.",
+            "status": "pending",
+            "testStrategy": "Test basic serialization and deserialization with sample snapshot data to confirm library functionality."
+          },
+          {
+            "id": 2,
+            "title": "Implement Binary Serialization in Backend and Decoding in Frontend",
+            "description": "Update the backend to serialize snapshots using MessagePack and modify the frontend to decode them, ensuring WebSocket handles binary data.",
+            "dependencies": [
+              1
+            ],
+            "details": "In backend/src/websocket-adapter.lisp, integrate the chosen MessagePack library to serialize state snapshots into binary format. In frontend/src/websocket.js, add decoding logic to parse incoming binary frames. Verify WebSocket configuration supports binary messages and handle any necessary type conversions.",
+            "status": "pending",
+            "testStrategy": "Conduct bandwidth tests comparing JSON vs MessagePack payload sizes under various snapshot complexities. Perform compatibility tests across different browsers to ensure no data loss and proper decoding."
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Implement Default Object Behaviors",
+        "description": "Set default physics behaviors: circles are dynamic by default (isDynamic=true), rectangles are always static (isDynamic=false, cannot be changed). Ensure UI and backend enforce these defaults.",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          1
+        ],
+        "priority": "high",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Implement Particle Lifecycle Management",
+        "description": "Add particle cleanup: auto-despawn particles after lifespan expires, cap total particles at 300-500, remove oldest particles when limit reached. Track particle age in emitter system.",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          9
+        ],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Implement Physics-Canvas State Synchronization",
+        "description": "Sync canvas state with physics engine: load existing canvas objects into physics on startup, sync user-created objects to physics, handle user drag by manually overriding physics positions. Ensure bidirectional sync.",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          2,
+          3
+        ],
+        "priority": "high",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-10-17T15:15:55.037Z",
+      "updated": "2025-10-17T15:35:27.674Z",
+      "description": "Tasks for physics context"
     }
   }
 }

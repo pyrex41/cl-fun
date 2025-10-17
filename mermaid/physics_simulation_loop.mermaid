@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant Timer as Physics Timer<br/>(50Hz)
+    participant Engine as Physics Engine
+    participant Objects as Physics Objects
+    participant WS as WebSocket Server
+    participant Clients as Connected Clients
+
+    loop Every 20ms (50Hz)
+        Timer->>Engine: physics-step()
+
+        Engine->>Objects: Apply gravity to all dynamic objects
+        Engine->>Objects: Integrate positions (Verlet)
+        Engine->>Objects: Apply boundary constraints
+
+        loop 3 iterations for stability
+            Engine->>Objects: Resolve circle-circle collisions
+            Engine->>Objects: Resolve circle-rectangle collisions
+        end
+
+        Note over Engine: Every 2.5 steps (50ms)
+        Engine->>WS: get-physics-state-snapshot()
+        WS->>Clients: Broadcast snapshot (20Hz)
+    end

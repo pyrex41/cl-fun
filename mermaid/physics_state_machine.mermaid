@@ -1,0 +1,28 @@
+stateDiagram-v2
+    [*] --> Paused: Initial State
+
+    Paused --> Running: User clicks Play
+    Running --> Paused: User clicks Pause
+    Running --> Paused: Error occurs
+    Paused --> [*]: User clicks Reset
+
+    state Running {
+        [*] --> ApplyForces
+        ApplyForces --> Integrate
+        Integrate --> Constraints
+        Constraints --> Collisions
+        Collisions --> Broadcast
+        Broadcast --> ApplyForces
+
+        state "Collision Resolution" as Collisions {
+            [*] --> CircleCircle
+            CircleCircle --> CircleRect
+            CircleRect --> [*]
+        }
+    }
+
+    state Paused {
+        [*] --> WaitingForInput
+        WaitingForInput --> ObjectCreation: User creates object
+        ObjectCreation --> WaitingForInput
+    }

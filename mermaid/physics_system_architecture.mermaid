@@ -1,0 +1,32 @@
+graph TB
+    subgraph "Frontend (Browser)"
+        UI[UI Controls<br/>Play/Pause/Reset<br/>Gravity Slider]
+        Canvas[CanvasManager<br/>PixiJS Rendering<br/>60 FPS]
+        ClientPhysics[Client Physics Engine<br/>physics.js<br/>Prediction + Reconciliation]
+        WS_Client[WebSocket Client]
+
+        UI -->|Control Commands| WS_Client
+        WS_Client -->|State Snapshots 20Hz| ClientPhysics
+        ClientPhysics -->|Predicted States| Canvas
+        Canvas -->|User Actions| WS_Client
+    end
+
+    subgraph "Backend (Common Lisp)"
+        WS_Server[WebSocket Server<br/>websocket-adapter.lisp]
+        Physics[Physics Engine<br/>physics.lisp<br/>50Hz Fixed Timestep]
+        State[Canvas State<br/>canvas-state.lisp]
+        DB[(SQLite DB)]
+
+        WS_Server <-->|Sync Objects| Physics
+        WS_Server <-->|Load/Save| State
+        State <-->|Persist| DB
+    end
+
+    WS_Client <-->|WebSocket| WS_Server
+
+    Physics -->|20Hz Broadcast| WS_Server
+    WS_Server -->|State Snapshots| WS_Client
+
+    style Physics fill:#e1f5ff
+    style Canvas fill:#fff4e1
+    style UI fill:#e8f5e9

@@ -1,0 +1,37 @@
+flowchart TB
+    subgraph "60 FPS Rendering Loop"
+        RAF[RequestAnimationFrame]
+        LocalPhysics[Run Local Physics<br/>Client-Side Prediction]
+        Update[Update PIXI Objects]
+        Render[PIXI Render]
+
+        RAF --> LocalPhysics
+        LocalPhysics --> Update
+        Update --> Render
+        Render --> RAF
+    end
+
+    subgraph "State Updates (20Hz)"
+        Snapshot[Receive Snapshot<br/>from Server]
+        Parse[Parse Object Positions]
+        Reconcile[Reconciliation Logic]
+
+        Snapshot --> Parse
+        Parse --> Reconcile
+    end
+
+    Reconcile -->|Correct predictions| LocalPhysics
+
+    subgraph "Client-Side Prediction"
+        Predict[Same Physics Engine<br/>as Backend - Verlet]
+        Smooth[Gentle Interpolation<br/>to Server State]
+
+        LocalPhysics --> Predict
+        Reconcile --> Smooth
+        Smooth --> Update
+    end
+
+    style RAF fill:#e3f2fd
+    style Snapshot fill:#f3e5f5
+    style LocalPhysics fill:#c8e6c9
+    style Predict fill:#fff9c4

@@ -1,0 +1,28 @@
+flowchart LR
+    subgraph "Circle-Circle Collision"
+        CC1[Calculate distance<br/>between centers]
+        CC2{Distance < r1 + r2?}
+        CC3[Separate circles<br/>proportional to mass]
+        CC4[Apply elastic response<br/>exchange velocities]
+
+        CC1 --> CC2
+        CC2 -->|Yes| CC3
+        CC3 --> CC4
+    end
+
+    subgraph "Circle-Rectangle Collision"
+        CR1[Find closest point<br/>on rectangle edge]
+        CR2{Distance < radius?}
+        CR3[Push circle out]
+        CR4[Reflect velocity<br/>with restitution]
+
+        CR1 --> CR2
+        CR2 -->|Yes| CR3
+        CR3 --> CR4
+    end
+
+    Objects[All Physics Objects] --> CC1
+    Objects --> CR1
+
+    style CC3 fill:#ffccbc
+    style CR3 fill:#ffccbc

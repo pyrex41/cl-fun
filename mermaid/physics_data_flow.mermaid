@@ -1,0 +1,27 @@
+flowchart TD
+    Start[User Clicks Play] --> Resume[Resume Physics]
+    Resume --> ServerLoop{Server Physics Loop<br/>50Hz}
+
+    ServerLoop -->|Every 20ms| ApplyForces[Apply Forces<br/>- Gravity<br/>- Emitter forces]
+    ApplyForces --> Integrate[Integrate Positions<br/>Verlet Integration]
+    Integrate --> Constraints[Apply Constraints<br/>- Boundary bounce<br/>- Canvas edges]
+    Constraints --> Collisions[Resolve Collisions<br/>3 iterations]
+
+    Collisions --> Check{Frame count<br/>% 2.5 == 0?}
+    Check -->|Yes, 20Hz| Snapshot[Create State Snapshot]
+    Snapshot --> Broadcast[Broadcast to Clients]
+
+    Broadcast --> ClientLoop{Client Loop<br/>60 FPS}
+    ClientLoop --> Predict[Run Local Physics<br/>Same Verlet Engine]
+    Predict --> Reconcile[Reconcile with<br/>Server Snapshot]
+    Reconcile --> Render[Render PIXI Objects]
+
+    Check -->|No| ServerLoop
+    Render --> ClientLoop
+
+    style ApplyForces fill:#ffe0b2
+    style Integrate fill:#c5e1a5
+    style Collisions fill:#ef9a9a
+    style Broadcast fill:#b2dfdb
+    style Predict fill:#c8e6c9
+    style Reconcile fill:#fff59d
