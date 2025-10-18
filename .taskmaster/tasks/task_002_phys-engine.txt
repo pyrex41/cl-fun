@@ -1,0 +1,99 @@
+# Task ID: 2
+# Title: Phase 1: Backend Physics Core
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Implement the authoritative physics simulation backend using cl-fast-ecs. Create ECS storage per canvas, define components (position, velocity, acceleration, ball, force-field, block), implement custom physics systems, fixed timestep background thread, and WebSocket message handlers.
+# Details:
+**Objective**: Build server-authoritative ECS-based physics simulation infrastructure.
+
+**Key Deliverables**:
+
+1. **ECS Storage Management** (backend/src/physics-ecs.lisp):
+   - Create `*physics-canvases*` hash table (canvas-id → ecs-storage)
+   - Implement `init-canvas-physics`, `get-canvas-ecs-storage`, `destroy-canvas-physics`
+   - Configure gravity, simulation rate from database settings
+
+2. **Component Definitions** (backend/src/physics-components.lisp):
+   - Define components using `ecs:define-component`:
+     - `position` (x, y)
+     - `velocity` (vx, vy)
+     - `acceleration` (ax, ay)
+     - `ball` (radius, mass, restitution)
+     - `force-field` (field-type, strength, radius, direction)
+     - `block` (width, height)
+     - `sleeping` (tag component)
+
+3. **Physics Systems** (backend/src/physics-systems.lisp):
+   - `apply-forces-system` - Apply force fields to nearby balls
+   - `apply-acceleration-system` - Update velocity from acceleration
+   - `apply-velocity-system` - Update position from velocity
+   - `collision-system` - Circle-circle and circle-rectangle collision detection
+   - `check-sleeping-system` - Mark/unmark bodies as sleeping
+
+4. **Fixed Timestep Loop** (backend/src/physics-loop.lisp):
+   - Background thread per canvas running at 60 Hz
+   - Call `ecs:run-systems` with dt parameter
+   - Delta broadcasting at 20 Hz (every 3rd tick)
+
+5. **WebSocket Integration** (backend/src/websocket-adapter.lisp):
+   - Add handlers: `physics-spawn-ball`, `physics-toggle-fan`, `physics-adjust-gravity`
+   - Use `ecs:make-object` to create entities
+   - Integrate with existing `handle-ws-message` dispatch
+
+6. **Database Setup**:
+   - Execute physics-schema.sql to create tables
+   - Implement save/load for physics settings and components
+
+**Success Criteria**:
+- Backend simulates 500 balls at 60 Hz using ECS systems
+- Custom physics formulas (gravity, forces, collisions) work correctly
+- Delta updates broadcast to clients at 20 Hz
+- Physics state persists across server restarts
+
+# Test Strategy:
+
+
+# Subtasks:
+## 1. Implement ECS Storage Management [pending]
+### Dependencies: 2.6
+### Description: Create the ECS storage management system in backend/src/physics-ecs.lisp, including a hash table for canvases, initialization, retrieval, and destruction functions, with gravity and simulation rate configuration from database.
+### Details:
+Develop `*physics-canvases*` hash table mapping canvas-id to ECS storage. Implement `init-canvas-physics`, `get-canvas-ecs-storage`, and `destroy-canvas-physics` functions. Ensure gravity and simulation rate are loaded from database settings. This forms the foundation for all ECS-based physics operations.
+
+## 2. Define ECS Components [pending]
+### Dependencies: 2.6
+### Description: Define and implement the ECS components in backend/src/physics-components.lisp using ecs:define-component macros for position, velocity, acceleration, ball, force-field, block, and sleeping.
+### Details:
+Use `ecs:define-component` to define: position (x, y), velocity (vx, vy), acceleration (ax, ay), ball (radius, mass, restitution), force-field (field-type, strength, radius, direction), block (width, height), and sleeping (tag). Ensure all components can be attached to ECS entities and data is properly typed.
+
+## 3. Build Fixed Timestep Loop with ECS Systems [pending]
+### Dependencies: 2.1, 2.2, 2.7
+### Description: Implement the fixed timestep background thread in backend/src/physics-loop.lisp, running at 60 Hz calling ECS systems, with delta broadcasting at 20 Hz and body sleeping detection.
+### Details:
+Create a background thread per canvas that runs at 60 Hz. Call `ecs:run-systems` with dt=0.016 to execute apply-forces-system, apply-acceleration-system, apply-velocity-system, collision-system, and check-sleeping-system. Broadcast delta updates every 3rd tick (20 Hz). Integrate with ECS storage management for proper storage access.
+
+## 4. Integrate WebSocket Handlers [pending]
+### Dependencies: 2.1, 2.2
+### Description: Add WebSocket message handlers in backend/src/websocket-adapter.lisp for physics operations like spawning balls, toggling fans, and adjusting gravity, integrating with existing dispatch.
+### Details:
+Implement handlers for `physics-spawn-ball`, `physics-toggle-fan`, and `physics-adjust-gravity`. Use `ecs:make-object` to create entities with appropriate components. Integrate seamlessly with the existing `handle-ws-message` dispatch system for real-time operations.
+
+## 5. Set Up Database Integration [pending]
+### Dependencies: None
+### Description: Execute physics-schema.sql to create necessary tables and implement save/load functionality for physics settings and components.
+### Details:
+Run the SQL script to set up database tables for physics data. Develop functions to save and load physics settings (e.g., gravity) and component states. Ensure persistence across server restarts, linking to universe management for configuration loading.
+
+## 6. Integrate cl-fast-ecs into ASDF System [pending]
+### Dependencies: None
+### Description: Update the collabcanvas.asd ASDF system definition to include cl-fast-ecs as a dependency and add all new physics module files to the :components list.
+### Details:
+Modify backend/collabcanvas.asd to add :cl-fast-ecs to the :depends-on list. Add new physics files to :components: physics-ecs.lisp, physics-components.lisp, physics-systems.lisp, physics-loop.lisp, and websocket-adapter.lisp (if new). Ensure the load order is correct (components before systems, systems before loop). Verify the system loads with (ql:quickload :collabcanvas) and that cl-fast-ecs macros are available in the collabcanvas package. Create a package.lisp entry to export physics-related functions.
+
+## 7. Implement Physics Systems [pending]
+### Dependencies: 2.2
+### Description: Define and implement all ECS physics systems in backend/src/physics-systems.lisp using ecs:define-system macros for forces, acceleration, velocity, collision detection, and sleeping.
+### Details:
+Use `ecs:define-system` to implement: (1) apply-forces-system - iterates through force-field components and applies forces to nearby ball entities based on distance/strength/type, (2) apply-acceleration-system - updates velocity components from acceleration (vx += ax*dt, vy += ay*dt), adds global gravity, (3) apply-velocity-system - updates position from velocity (x += vx*dt, y += vy*dt), (4) collision-system - detects circle-circle collisions between ball entities and circle-rectangle collisions with block entities, applies elastic collision response using restitution, (5) check-sleeping-system - marks entities with velocity magnitude < 0.01 as sleeping, unmarks when forces applied. Ensure proper system ordering and performance optimization for 500+ entities.
+

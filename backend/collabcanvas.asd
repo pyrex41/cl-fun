@@ -24,8 +24,19 @@
                :quri
                :babel
                :cl-base64
+               :flexi-streams
                ;; JWT library for RS256 verification
-               :jose)
+               :jose
+               ;; ECS library for physics simulation
+               :cl-fast-ecs
+               ;; Spatial partitioning for collision detection optimization
+               :quadtree
+               ;; Physics engine for multiplayer physics simulation
+               ;; NOTE: cl-bodge/physics requires bodge distribution (UNAVAILABLE - 404 error)
+               ;; NOTE: bodge-chipmunk has platform compatibility issues (apple-darwin-gnu unsupported)
+               ;; SOLUTION: Implementing custom lightweight 2D physics with cl-fast-ecs
+               ;; See backend/tests/PHYSICS_LIBRARY_EVALUATION.md for full investigation
+               )
   :components ((:module "src"
                 :components
                 ((:file "package")
@@ -39,7 +50,15 @@
                  (:file "canvas-state" :depends-on ("package" "database"))
                  (:file "components" :depends-on ("package" "utils"))
                  (:file "ai-agent" :depends-on ("package" "config" "utils" "components"))
-                 (:file "websocket-adapter" :depends-on ("package" "auth" "canvas-state" "ai-agent"))
+                 ;; Physics database (persistence layer for physics engine)
+                 (:file "physics-database" :depends-on ("package" "config" "database"))
+                 ;; Physics ECS modules (load order: ECS setup -> quadtree -> components -> systems -> loop)
+                 (:file "physics-ecs" :depends-on ("package" "config"))
+                 (:file "physics-quadtree" :depends-on ("package" "physics-ecs"))
+                 (:file "physics-components" :depends-on ("package" "physics-ecs"))
+                 (:file "physics-systems" :depends-on ("package" "physics-ecs" "physics-components" "physics-quadtree"))
+                 (:file "physics-loop" :depends-on ("package" "physics-ecs" "physics-components" "physics-systems"))
+                 (:file "websocket-adapter" :depends-on ("package" "auth" "canvas-state" "ai-agent" "physics-loop"))
                  (:file "app" :depends-on ("package" "websocket-adapter" "auth" "canvas-state" "auth0-oauth" "auth-metrics"))
                  (:file "server" :depends-on ("package" "app" "database"))
                  (:file "main" :depends-on ("package" "server" "auth"))))))

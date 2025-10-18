@@ -1,0 +1,80 @@
+# Task ID: 4
+# Title: Phase 3: Multiplayer Sync & Polish
+# Status: pending
+# Dependencies: 3
+# Priority: medium
+# Description: Optimize real-time synchronization, implement delta compression, add bandwidth and latency monitoring, create determinism tests, and perform load testing with multiple clients and 500+ balls.
+# Details:
+**Objective**: Ensure robust multiplayer experience with performance optimization.
+
+**Key Deliverables**:
+
+1. **Delta Compression Optimization**:
+   - Only send changed properties (position, velocity, rotation)
+   - Skip objects with velocity < 0.01 (sleeping)
+   - Batch deltas into single message per broadcast
+   - Measure bandwidth reduction (target: <280 KB/sec per client)
+
+2. **Monitoring & Metrics**:
+   - Extend existing LatencyMonitor for physics messages
+   - Track bandwidth per message type
+   - Add physics-specific stats: bodies active/sleeping, update rate
+   - Log high latency warnings (>100ms)
+
+3. **Determinism Testing**:
+   - Create test script that spawns identical scenarios on server
+   - Verify same initial conditions → same final state after 10 seconds
+   - Test edge cases: simultaneous spawns, rapid force field toggles
+
+4. **Load Testing**:
+   - Set up 2 clients + 500 balls scenario
+   - Measure frame times, network bandwidth, server CPU usage
+   - Identify bottlenecks and optimize hot paths
+   - Document performance results in .taskmaster/docs/
+
+5. **Error Handling**:
+   - Handle WebSocket disconnection during physics simulation
+   - Graceful degradation: disable ghost prediction if server lags
+   - Add reconnection recovery (full state sync on reconnect)
+
+**Success Criteria**:
+- Bandwidth reduced by >50% compared to full state broadcasting
+- Server maintains 60 Hz simulation with 500 balls across 2 clients
+- Determinism test passes 100% of time
+- Perceived latency <50ms for ghost spawns
+- No visual artifacts during reconnection
+
+# Test Strategy:
+
+
+# Subtasks:
+## 1. Implement Delta Compression Optimization [pending]
+### Dependencies: None
+### Description: Optimize real-time synchronization by implementing delta compression to reduce bandwidth usage. This involves sending only changed properties like position, velocity, and rotation, skipping sleeping objects, and batching deltas.
+### Details:
+Modify the WebSocket message handlers to track and send only deltas for changed properties (position, velocity, rotation). Implement logic to skip objects with velocity < 0.01. Batch multiple deltas into a single message per broadcast. Measure and ensure bandwidth reduction to <280 KB/sec per client.
+
+## 2. Add Monitoring and Metrics for Performance [pending]
+### Dependencies: None
+### Description: Extend the existing LatencyMonitor to track bandwidth, latency, and physics-specific stats for better performance insights.
+### Details:
+Integrate monitoring for physics messages, track bandwidth per message type, add stats for active/sleeping bodies and update rates. Implement logging for high latency warnings (>100ms). Ensure metrics are accessible for debugging and optimization.
+
+## 3. Create Determinism Testing Framework [pending]
+### Dependencies: None
+### Description: Develop a test script to ensure deterministic behavior in physics simulations across server and clients.
+### Details:
+Build a test script that spawns identical scenarios on the server, verifies that same initial conditions lead to the same final state after 10 seconds. Include tests for edge cases like simultaneous spawns and rapid force field toggles.
+
+## 4. Perform Load Testing with Multiple Clients [pending]
+### Dependencies: None
+### Description: Set up and execute load testing scenarios with 2 clients and 500+ balls to identify and optimize bottlenecks.
+### Details:
+Configure a test environment with 2 clients and 500 balls, measure frame times, network bandwidth, and server CPU usage. Identify hot paths and optimize them. Document results in .taskmaster/docs/.
+
+## 5. Implement Error Handling for Disconnections [pending]
+### Dependencies: None
+### Description: Add robust error handling for WebSocket disconnections and reconnection recovery during physics simulations.
+### Details:
+Handle disconnections gracefully by disabling ghost prediction if server lags. Implement full state sync on reconnection. Ensure no visual artifacts and perceived latency <50ms for ghost spawns.
+

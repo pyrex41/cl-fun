@@ -212,6 +212,22 @@ export class WebSocketClient {
             this.send({ type: 'cursor', x, y })
         })
 
+        // Lag detection state (Task 4.5 - Graceful Degradation)
+        this.lagState = {
+            lastDeltaTime: performance.now(),
+            deltaDelay: 0,
+            lagWarningActive: false,
+            lagThreshold: 200, // ms - disable ghost prediction if delay >200ms
+            ghostPredictionEnabled: true
+        }
+
+        // Reconnection state (Task 4.5 - Reconnection Recovery)
+        this.reconnectionState = {
+            isReconnecting: false,
+            needsFullSync: false,
+            staleGhostIds: new Set() // Track ghost IDs to clear on reconnect
+        }
+
         // Callbacks
         this.onAuthSuccess = () => {}
         this.onAuthFailed = () => {}
@@ -226,6 +242,17 @@ export class WebSocketClient {
         this.onError = () => {}
         this.onReconnecting = () => {}
         this.onReconnected = () => {}
+        this.onLagWarning = () => {} // New callback for lag detection
+
+        // Physics callbacks
+        this.onPhysicsBallCreated = () => {}
+        this.onPhysicsDelta = () => {}
+        this.onPhysicsFullSync = () => {} // New callback for full state sync
+        this.onPhysicsFanToggled = () => {}
+        this.onPhysicsGravityChanged = () => {}
+        this.onPhysicsEmitterCreated = () => {}
+        this.onPhysicsEmitterUpdated = () => {}
+        this.onPhysicsEmitterDeleted = () => {}
     }
 
     connect() {
@@ -245,18 +272,23 @@ export class WebSocketClient {
         this.ws.onopen = () => {
             console.log('WebSocket connected')
             this.isConnected = true
-            this.reconnectAttempts = 0
+            const wasReconnecting = this.reconnectionState.isReconnecting
+            this.reconnectionState.isReconnecting = false
 
-            // Send authentication message
+            // Send authentication message (will trigger full state sync)
             this.send({
                 type: 'auth',
                 sessionId: this.sessionId,
                 canvasId: this.canvasId
             })
 
-            if (this.reconnectAttempts > 0) {
+            if (wasReconnecting) {
+                console.log('Reconnected - waiting for full state sync')
+                this.reconnectionState.needsFullSync = true
                 this.onReconnected()
             }
+
+            this.reconnectAttempts = 0
         }
 
         this.ws.onmessage = (event) => {
@@ -264,8 +296,15 @@ export class WebSocketClient {
                 const data = JSON.parse(event.data)
                 this.handleMessage(data)
             } catch (error) {
+                // Graceful error handling for malformed messages (Task 4.5)
                 console.error('Error parsing WebSocket message:', error)
+                console.error('Raw message:', event.data)
+
+                // Log error without crashing renderer
                 this.onError(error)
+
+                // Don't propagate parse errors - continue receiving messages
+                // This prevents a single malformed message from breaking the connection
             }
         }
 
@@ -349,6 +388,73 @@ export class WebSocketClient {
                 this.onObjectsDeleted(data)
                 break
 
+            case 'physics-ball-created':
+                // Server confirmation of ball creation
+                // Remove ghost and add server ball to renderer
+                this.onPhysicsBallCreated(data)
+                break
+
+            case 'physics-delta':
+            case 'physics-update':
+                // Delta updates for server ball positions
+                // Track lag and disable ghost prediction if needed (Task 4.5)
+                this.trackDeltaLatency()
+
+                // Update server ball positions and velocities
+                this.onPhysicsDelta(data)
+                break
+
+            case 'physics-full-sync':
+                // Full state sync on reconnection (Task 4.5)
+                console.log('Received physics full sync:', data)
+
+                // Clear reconnection state
+                this.reconnectionState.needsFullSync = false
+
+                // Clear stale ghost predictions
+                if (this.reconnectionState.staleGhostIds.size > 0) {
+                    console.log(`Clearing ${this.reconnectionState.staleGhostIds.size} stale ghosts`)
+                    this.reconnectionState.staleGhostIds.clear()
+                }
+
+                // Re-enable ghost prediction if it was disabled
+                if (!this.lagState.ghostPredictionEnabled) {
+                    console.log('Re-enabling ghost prediction after reconnection')
+                    this.lagState.ghostPredictionEnabled = true
+                    this.lagState.lagWarningActive = false
+                }
+
+                // Trigger full sync callback
+                this.onPhysicsFullSync(data)
+                break
+
+            case 'physics-fan-toggled':
+                // Force field state changed
+                // Update visualization
+                this.onPhysicsFanToggled(data)
+                break
+
+            case 'physics-gravity-changed':
+                // Global gravity updated
+                // Update UI display and predictor
+                this.onPhysicsGravityChanged(data)
+                break
+
+            case 'physics-emitter-created':
+                // Emitter entity created
+                this.onPhysicsEmitterCreated(data)
+                break
+
+            case 'physics-emitter-updated':
+                // Emitter properties updated
+                this.onPhysicsEmitterUpdated(data)
+                break
+
+            case 'physics-emitter-deleted':
+                // Emitter entity deleted
+                this.onPhysicsEmitterDeleted(data)
+                break
+
             case 'error':
                 console.error('Server error:', data.message)
                 this.onError(new Error(data.message))
@@ -407,6 +513,7 @@ export class WebSocketClient {
         }
 
         this.reconnectAttempts++
+        this.reconnectionState.isReconnecting = true
         const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1)
 
         console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
@@ -415,6 +522,47 @@ export class WebSocketClient {
         setTimeout(() => {
             this.connect()
         }, delay)
+    }
+
+    trackDeltaLatency() {
+        // Track time between delta updates to detect server lag (Task 4.5)
+        const now = performance.now()
+        const timeSinceLastDelta = now - this.lagState.lastDeltaTime
+        this.lagState.lastDeltaTime = now
+
+        // Calculate delay (assuming 50ms interval for 20Hz updates)
+        const expectedInterval = 50 // ms
+        this.lagState.deltaDelay = Math.max(0, timeSinceLastDelta - expectedInterval)
+
+        // Check if we should disable ghost prediction due to lag
+        if (this.lagState.deltaDelay > this.lagState.lagThreshold) {
+            if (this.lagState.ghostPredictionEnabled) {
+                console.warn(`⚠️ High server lag detected: ${Math.round(this.lagState.deltaDelay)}ms delay`)
+                console.warn('Temporarily disabling ghost prediction')
+
+                this.lagState.ghostPredictionEnabled = false
+                this.lagState.lagWarningActive = true
+
+                // Notify application to show warning to user
+                this.onLagWarning(true, this.lagState.deltaDelay)
+            }
+        } else if (this.lagState.deltaDelay < this.lagState.lagThreshold / 2) {
+            // Lag has cleared - re-enable ghost prediction
+            if (this.lagState.lagWarningActive && !this.lagState.ghostPredictionEnabled) {
+                console.log('Server lag cleared - resuming ghost prediction')
+
+                this.lagState.ghostPredictionEnabled = true
+                this.lagState.lagWarningActive = false
+
+                // Notify application to hide warning
+                this.onLagWarning(false, this.lagState.deltaDelay)
+            }
+        }
+    }
+
+    isGhostPredictionEnabled() {
+        // Check if ghost prediction should be used (Task 4.5)
+        return this.lagState.ghostPredictionEnabled && this.isConnected
     }
 
     getBandwidthStats() {
@@ -485,10 +633,46 @@ export class WebSocketClient {
         })
     }
 
-    sendObjectsDelete(objectIds) {
+    // Physics message sending methods
+
+    sendPhysicsSpawnBall(x, y, ghostId, vx = 0, vy = 0) {
+        // Track ghost for cleanup on reconnection (Task 4.5)
+        if (ghostId) {
+            this.reconnectionState.staleGhostIds.add(ghostId)
+        }
+
         this.send({
-            type: 'objects-delete',
-            'object-ids': objectIds
-        })
+            type: 'physics-spawn-ball',
+            x: x,
+            y: y,
+            ghostId: ghostId,
+            vx: vx,
+            vy: vy
+        }, true) // Enable latency tracking
+    }
+
+    clearStaleGhost(ghostId) {
+        // Remove ghost from stale tracking when server confirms
+        this.reconnectionState.staleGhostIds.delete(ghostId)
+    }
+
+    getStaleGhostIds() {
+        // Get list of ghosts that need to be cleared on reconnection
+        return Array.from(this.reconnectionState.staleGhostIds)
+    }
+
+    sendPhysicsToggleFan(fanId, enabled) {
+        this.send({
+            type: 'physics-toggle-fan',
+            fanId: fanId,
+            enabled: enabled
+        }, true) // Enable latency tracking
+    }
+
+    sendPhysicsAdjustGravity(gravityY) {
+        this.send({
+            type: 'physics-adjust-gravity',
+            gravityY: gravityY
+        }, true) // Enable latency tracking
     }
 }

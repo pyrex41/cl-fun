@@ -1,0 +1,73 @@
+# Task ID: 3
+# Title: Phase 2: Frontend Integration
+# Status: pending
+# Dependencies: 2
+# Priority: high
+# Description: Implement simple client-side ghost prediction (no physics engine needed) and integrate with existing PixiJS canvas. Create custom ghost predictor, extend CanvasManager for physics rendering, add WebSocket message handling, and build UI controls for spawning balls and toggling fans.
+# Details:
+**Objective**: Create responsive client-side experience with simple custom prediction.
+
+**Key Deliverables**:
+
+1. **Simple Ghost Predictor** (frontend/src/physics-predictor.js):
+   - NO physics engine needed - just custom position + velocity prediction
+   - `spawnGhost(ghostId, x, y, vx, vy)` - create ghost with initial velocity
+   - `step(dt)` - simple update: `ghost.x += ghost.vx * dt; ghost.y += ghost.vy * dt`
+   - `removeGhost(ghostId)` - remove ghost after server confirmation
+   - Optional: add simple gravity (`ghost.vy += 9.8 * dt`)
+   - Optional: add boundary bounce for realism
+
+2. **Physics Renderer** (frontend/src/physics-renderer.js):
+   - Extend existing CanvasManager class
+   - Render ghost balls (semi-transparent, dashed outline)
+   - Render server balls with interpolation (20 Hz → 60 FPS smoothing)
+   - Interpolation: `ball.currentX += (ball.serverX - ball.currentX) * 0.3`
+   - Render force field visualizations (fans with arrows, gravity wells)
+   - Preserve existing viewport culling and performance monitoring
+
+3. **WebSocket Message Handling** (frontend/src/websocket.js):
+   - Add cases: `physics-ball-created`, `physics-update`, `physics-fan-toggled`
+   - Handle delta updates and apply to server ball state
+   - Trigger ghost confirmation on ball creation confirmation
+
+4. **UI Controls** (frontend/index.html + physics-ui.js):
+   - "Spawn Ball" button (or click-to-spawn mode)
+   - Fan toggle buttons for existing fans
+   - Gravity adjustment slider (-20 to +20 m/s²)
+   - Physics stats overlay (FPS, object count, active/sleeping)
+
+**Success Criteria**:
+- Ghost balls appear instantly on client click (<5ms perceived latency)
+- Simple velocity-based prediction feels responsive
+- Server confirmation smoothly transitions ghost → server object
+- Force fields visually indicate active state
+- Maintains 60 FPS with 500 active balls
+
+# Test Strategy:
+
+
+# Subtasks:
+## 1. Implement Simple Ghost Predictor [pending]
+### Dependencies: None
+### Description: Create the physics-predictor.js module using simple custom prediction (position + velocity) for ghost objects, without any physics engine.
+### Details:
+Develop frontend/src/physics-predictor.js with simple velocity-based prediction. Implement spawnGhost(ghostId, x, y, vx, vy) to create ghosts with initial velocity, step(dt) to update positions using ghost.x += ghost.vx * dt, and removeGhost(ghostId) to remove after server confirmation. Optionally add simple gravity (ghost.vy += 9.8 * dt) and boundary bounce. Ensure lightweight implementation with <5ms prediction latency.
+
+## 2. Extend Canvas Manager for Physics Rendering [pending]
+### Dependencies: 3.1
+### Description: Modify the existing CanvasManager class in physics-renderer.js to render ghost balls, server balls with interpolation, and force field visualizations while maintaining viewport culling and performance monitoring.
+### Details:
+Extend frontend/src/physics-renderer.js to render semi-transparent ghost balls with dashed outlines, server balls with 20 Hz → 60 FPS interpolation (ball.currentX += (ball.serverX - ball.currentX) * 0.3), and force field visualizations (fans with arrows). Integrate with PixiJS canvas, preserve culling and monitoring, and ensure smooth ghost-to-server transitions.
+
+## 3. Add WebSocket Message Handling for Physics [pending]
+### Dependencies: 3.1, 3.2
+### Description: Update websocket.js to handle new message types like physics-ball-created, physics-update, and physics-fan-toggled, applying delta updates and triggering ghost confirmations.
+### Details:
+Enhance frontend/src/websocket.js with cases for physics messages. Handle delta updates to server ball states, confirm ghosts upon ball creation, and manage fan toggles. Ensure synchronization between client prediction and server state for responsive experience.
+
+## 4. Develop UI Controls for Physics Interaction [pending]
+### Dependencies: 3.1, 3.2, 3.3
+### Description: Build UI elements in index.html and physics-ui.js for spawning balls, toggling fans, adjusting gravity, and displaying physics stats overlay.
+### Details:
+Add 'Spawn Ball' button or click-to-spawn, fan toggle buttons, gravity slider (range -20 to +20 m/s²), and stats overlay for FPS and object count in frontend/index.html and physics-ui.js. Integrate with WebSocket for backend communication and ensure UI responsiveness.
+

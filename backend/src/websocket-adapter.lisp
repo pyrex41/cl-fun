@@ -98,72 +98,55 @@
   (bt:with-lock-held (*ws-connections-lock*)
     (gethash conn-id *ws-connections*)))
 
+(defun get-all-connections ()
+  "Get all active WebSocket connections."
+  (bt:with-lock-held (*ws-connections-lock*)
+    (alexandria:hash-table-values *ws-connections*)))
+
+;;; Room Management
+
 (defun add-connection-to-room (conn canvas-id)
   "Add a connection to a canvas room."
   (bt:with-lock-held (*canvas-rooms-lock*)
     (let ((room (gethash canvas-id *canvas-rooms*)))
-      (unless (member (ws-connection-id conn) room :test #'string=)
-        (setf (gethash canvas-id *canvas-rooms*)
-              (cons (ws-connection-id conn) room))))))
+      (unless room
+        (setf room '()))
+      (pushnew (ws-connection-id conn) room :test #'string=)
+      (setf (gethash canvas-id *canvas-rooms*) room)))
+
+  (format t "[WS] Added connection ~A to canvas ~A~%"
+          (ws-connection-id conn) canvas-id))
 
 (defun remove-connection-from-room (conn-id canvas-id)
   "Remove a connection from a canvas room."
   (bt:with-lock-held (*canvas-rooms-lock*)
     (let ((room (gethash canvas-id *canvas-rooms*)))
-      (setf (gethash canvas-id *canvas-rooms*)
-            (remove conn-id room :test #'string=)))))
+      (when room
+        (setf (gethash canvas-id *canvas-rooms*)
+              (remove conn-id room :test #'string=)))))
+
+  (format t "[WS] Removed connection ~A from canvas ~A~%"
+          conn-id canvas-id))
 
 (defun get-room-connections (canvas-id)
   "Get all connection IDs in a canvas room."
   (bt:with-lock-held (*canvas-rooms-lock*)
-    (copy-list (gethash canvas-id *canvas-rooms*))))
+    (gethash canvas-id *canvas-rooms*)))
 
 (defun get-room-users (canvas-id)
-  "Get all authenticated users in a canvas room.
-   Returns list of alists with user-id, username, and color.
-   Deduplicates users by user-id (users may have multiple connections/tabs)."
-  (let ((conn-ids (get-room-connections canvas-id))
-        (seen-user-ids (make-hash-table :test 'equal))
-        (users nil))
-    (dolist (conn-id conn-ids)
-      (let ((conn (get-ws-connection conn-id)))
-        (when (and conn
-                   (ws-connection-user-id conn)
-                   (ws-connection-username conn))
-          (let ((user-id (ws-connection-user-id conn)))
-            ;; Only add user if we haven't seen this user-id yet
-            (unless (gethash user-id seen-user-ids)
-              (setf (gethash user-id seen-user-ids) t)
-              (push `((:user-id . ,user-id)
-                      (:username . ,(ws-connection-username conn))
-                      (:color . ,(generate-user-color user-id)))
-                    users))))))
-    (nreverse users)))
+  "Get list of users in a canvas room with their metadata."
+  (let ((conn-ids (get-room-connections canvas-id)))
+    (loop for conn-id in conn-ids
+          for conn = (get-ws-connection conn-id)
+          when (and conn (ws-connection-user-id conn))
+          collect `((:user-id . ,(ws-connection-user-id conn))
+                    (:username . ,(ws-connection-username conn))
+                    (:color . ,(generate-user-color (ws-connection-user-id conn)))))))
 
-(defun generate-user-color (user-id)
-  "Generate a consistent color for a user based on their ID."
-  (let* ((colors '("#3498db" "#e74c3c" "#2ecc71" "#f39c12" "#9b59b6"
-                   "#1abc9c" "#e67e22" "#34495e" "#16a085" "#c0392b"))
-         (index (mod user-id (length colors))))
-    (nth index colors)))
-
-;;; Message Handling Stubs
-
-(defun handle-ws-connect (websocket)
-  "Handle new WebSocket connection.
-   TODO: Implement in Task 6 (Port WebSocket Logic)"
-  (let ((conn-id (format nil "ws-~A" (get-universal-time))))
-    (format t "[WS] New connection: ~A~%" conn-id)
-
-    (let ((conn (make-ws-connection
-                 :id conn-id
-                 :websocket websocket
-                 :connected-at (get-universal-time))))
-      (register-ws-connection conn)
-      conn-id)))
+;;; Message Handling
 
 (defun handle-ws-message (conn-id message)
-  "Handle incoming WebSocket message - parses JSON and dispatches to handlers."
+  "Route incoming WebSocket messages to appropriate handlers."
   (handler-case
       (let* ((parsed (jonathan:parse message :as :alist))
              ;; Convert string keys to keyword keys (same as HTTP body parsing)
@@ -171,108 +154,91 @@
                             (cons (intern (string-upcase (string (car pair))) :keyword)
                                   (cdr pair)))
                           parsed))
-             (msg-type (cdr (assoc :type data)))
-             (conn (get-ws-connection conn-id)))
+             (type (cdr (assoc :type data))))
 
-        (unless conn
-          (format t "[WS WARN] Message from unknown connection: ~A~%" conn-id)
+        (format t "[WS DEBUG] Raw message: ~A~%" message)
+        (format t "[WS DEBUG] Parsed alist: ~A~%" parsed)
+        (format t "[WS DEBUG] Converted data: ~A~%" data)
+        (format t "[WS] Message received - type: ~A, conn: ~A~%"
+                type conn-id)
+
+        (unless type
+          (format t "[WS WARN] Message missing 'type' field~%")
           (return-from handle-ws-message nil))
-
-        (format t "[WS] Message type: ~A from conn: ~A~%" msg-type conn-id)
 
         ;; Dispatch based on message type
         (cond
-          ;; Authentication
-          ((string= msg-type "auth")
+          ((string= type "auth")
            (handle-auth-message conn-id data))
 
-          ;; Cursor movement
-          ((string= msg-type "cursor")
+          ((string= type "cursor")
            (handle-cursor-message conn-id data))
 
-          ;; Object operations
-          ((string= msg-type "object-create")
+          ((string= type "object-create")
            (handle-object-create-message conn-id data))
 
-          ((string= msg-type "object-update")
+          ((string= type "object-update")
            (handle-object-update-message conn-id data))
 
-          ((string= msg-type "object-delete")
+          ((string= type "object-delete")
            (handle-object-delete-message conn-id data))
 
-          ;; AI command
-          ((string= msg-type "ai-command")
+          ((string= type "ai-command")
            (handle-ai-command-message conn-id data))
 
-          ;; Unknown message type
+          ((string= type "physics-spawn-ball")
+           (handle-physics-spawn-ball-message conn-id data))
+
+          ((string= type "physics-spawn-block")
+           (handle-physics-spawn-block-message conn-id data))
+
           (t
-           (format t "[WS WARN] Unknown message type: ~A~%" msg-type))))
+           (format t "[WS WARN] Unknown message type: ~A~%" type))))
 
     (error (e)
-      (format t "[WS ERROR] Failed to process message: ~A~%" e))))
+      (format t "[WS ERROR] Failed to handle message: ~A~%" e))))
 
-(defun handle-ws-disconnect (conn-id)
-  "Handle WebSocket disconnection."
-  (let* ((conn (get-ws-connection conn-id))
-         (user-id (when conn (ws-connection-user-id conn)))
-         (username (when conn (ws-connection-username conn)))
-         (canvas-id (when conn (ws-connection-canvas-id conn))))
-
-    (format t "[WS] Connection closed: ~A~%" conn-id)
-
-    ;; Unregister connection first
-    (unregister-ws-connection conn-id)
-
-    ;; If user was authenticated, notify others
-    (when (and user-id username canvas-id)
-      ;; Broadcast user disconnected
-      (broadcast-to-canvas-room canvas-id
-        (to-json-string
-         `((:type . "user-disconnected")
-           (:user-id . ,user-id)
-           (:username . ,username)))
-        nil)  ; nil = send to everyone
-
-      ;; Send updated presence list
-      (let ((users (get-room-users canvas-id)))
-        (broadcast-to-canvas-room canvas-id
-          (to-json-string
-           `((:type . "presence")
-             (:users . ,users)))
-          nil))
-
-      (format t "[WS] User ~A disconnected from canvas ~A~%" username canvas-id))))
-
-(defun send-ws-message (conn-id message)
-  "Send a message to a specific WebSocket connection using websocket-driver."
-  (let ((conn (get-ws-connection conn-id)))
-    (if conn
-        (let ((ws (ws-connection-websocket conn)))
-          (when ws
-            (handler-case
-                (progn
-                  (websocket-driver:send ws message)
-                  t)
-              (error (e)
-                (format t "[WS ERROR] Failed to send message to ~A: ~A~%" conn-id e)
-                nil))))
-        (progn
-          (format t "[WS WARN] Connection ~A not found~%" conn-id)
-          nil))))
+;;; Broadcasting
 
 (defun broadcast-to-canvas-room (canvas-id message &optional exclude-conn-id)
-  "Broadcast a message to all connections in a canvas room."
-  (let ((conn-ids (get-room-connections canvas-id))
-        (sent-count 0))
+  "Broadcast a message to all connections in a canvas room.
+
+   Arguments:
+     canvas-id - Canvas room identifier
+     message - JSON string to broadcast
+     exclude-conn-id - Optional connection ID to exclude from broadcast"
+
+  (let ((conn-ids (get-room-connections canvas-id)))
     (dolist (conn-id conn-ids)
       (unless (and exclude-conn-id (string= conn-id exclude-conn-id))
-        (when (send-ws-message conn-id message)
-          (incf sent-count))))
-    (format t "[WS] Broadcast to canvas ~A: ~A/~A connections~%"
-            canvas-id sent-count (length conn-ids))
-    sent-count))
+        (send-ws-message conn-id message)))))
 
-;;; WebSocket Message Handlers
+(defun send-ws-message (conn-id message)
+  "Send a message to a specific WebSocket connection."
+  (let ((conn (get-ws-connection conn-id)))
+    (when conn
+      (handler-case
+          (progn
+            (format t "[WS SEND] Sending to ~A: ~A~%" conn-id message)
+            (websocket-driver:send (ws-connection-websocket conn) message)
+            t)
+        (error (e)
+          (format t "[WS ERROR] Failed to send message to ~A: ~A~%"
+                  conn-id e)
+          nil)))))
+
+;;; Utility Functions
+;;; Note: to-json-string is defined in utils.lisp using hash tables for reliable
+;;; JSON serialization with lowercase keys. It's used by both HTTP and WebSocket responses.
+
+(defun generate-user-color (user-id)
+  "Generate a consistent color for a user based on their ID."
+  (let* ((hue (mod (* user-id 137) 360))
+         (saturation 70)
+         (lightness 50))
+    (format nil "hsl(~A, ~A%, ~A%)" hue saturation lightness)))
+
+;;; Message Handlers
 
 (defun handle-auth-message (conn-id data)
   "Handle WebSocket authentication message."
@@ -292,6 +258,12 @@
         (setf (ws-connection-user-id conn) user-id)
         (setf (ws-connection-username conn) username)
         (setf (ws-connection-session-id conn) session-id)
+
+        ;; Initialize canvas physics if not already running
+        (unless (canvas-physics-active-p canvas-id)
+          (format t "[WS AUTH] Initializing physics for canvas ~A~%" canvas-id)
+          (init-canvas-physics canvas-id)
+          (start-physics-loop canvas-id))
 
         ;; Send auth success with canvas state
         (let ((canvas-objects (get-canvas-objects canvas-id)))
@@ -336,18 +308,19 @@
   (let* ((conn (get-ws-connection conn-id))
          (x (cdr (assoc :x data)))
          (y (cdr (assoc :y data)))
+         (canvas-id (ws-connection-canvas-id conn))
          (user-id (ws-connection-user-id conn))
-         (username (ws-connection-username conn))
-         (canvas-id (ws-connection-canvas-id conn)))
+         (username (ws-connection-username conn)))
 
-    (when (and user-id username)
+    (when (and user-id x y)
+      ;; Broadcast cursor position to room
       (broadcast-to-canvas-room canvas-id
         (to-json-string
          `((:type . "cursor")
-           (:user-id . ,user-id)
-           (:username . ,username)
            (:x . ,x)
-           (:y . ,y)))
+           (:y . ,y)
+           (:user-id . ,user-id)
+           (:username . ,username)))
         conn-id))))
 
 (defun handle-object-create-message (conn-id data)
@@ -401,36 +374,26 @@
       ;; Get current object and merge updates
       (let ((current-object (get-canvas-object canvas-id object-id)))
         (when current-object
-          ;; Convert updates keys to keywords to match database format
-          ;; Jonathan parses nested objects with string keys like "x", "y"
-          ;; but database expects keyword keys like :X, :Y
-          (let* ((updates-alist (mapcar (lambda (pair)
-                                          (cons (intern (string-upcase (car pair)) :keyword)
-                                                (cdr pair)))
-                                        updates))
-                 ;; Extract update keys for comparison
-                 (update-keys (mapcar #'car updates-alist))
-                 ;; Remove old values from current object that are being updated
-                 (filtered-current (remove-if
-                                    (lambda (pair) (member (car pair) update-keys))
-                                    current-object))
-                 ;; Merge: new updates + remaining current values
-                 (updated-object (append updates-alist filtered-current)))
+          ;; Merge updates into current object
+          (dolist (update updates)
+            (let ((key (car update))
+                  (value (cdr update)))
+              (setf (cdr (assoc key current-object)) value)))
 
-            ;; Save updated object to database
-            (update-canvas-object canvas-id object-id updated-object user-id)
+          ;; Save updated object
+          (update-canvas-object canvas-id object-id current-object user-id)
 
-            ;; Broadcast update to other users in the room
-            (broadcast-to-canvas-room canvas-id
-              (to-json-string
-               `((:type . "object-update")
-                 (:object-id . ,object-id)
-                 (:delta . ,updates-alist)
-                 (:user-id . ,user-id)
-                 (:username . ,username)))
-              conn-id)
+          ;; Broadcast update to room
+          (broadcast-to-canvas-room canvas-id
+            (to-json-string
+             `((:type . "object-update")
+               (:object-id . ,object-id)
+               (:updates . ,updates)
+               (:user-id . ,user-id)
+               (:username . ,username)))
+            conn-id)
 
-            (format t "[WS] Object updated: ~A by ~A~%" object-id username)))))))
+          (format t "[WS] Object updated: ~A by ~A~%" object-id username))))))
 
 (defun handle-object-delete-message (conn-id data)
   "Handle object deletion."
@@ -442,17 +405,18 @@
 
     (when (and user-id object-id)
       ;; Delete from canvas state
-      (when (delete-canvas-object canvas-id object-id user-id)
-        ;; Broadcast deletion
-        (broadcast-to-canvas-room canvas-id
-          (to-json-string
-           `((:type . "object-delete")
-             (:object-id . ,object-id)
-             (:user-id . ,user-id)
-             (:username . ,username)))
-          conn-id)
+      (delete-canvas-object canvas-id object-id)
 
-        (format t "[WS] Object deleted: ~A by ~A~%" object-id username)))))
+      ;; Broadcast deletion to room
+      (broadcast-to-canvas-room canvas-id
+        (to-json-string
+         `((:type . "object-delete")
+           (:object-id . ,object-id)
+           (:user-id . ,user-id)
+           (:username . ,username)))
+        conn-id)
+
+      (format t "[WS] Object deleted: ~A by ~A~%" object-id username))))
 
 (defun handle-ai-command-message (conn-id data)
   "Handle AI command message - processes natural language commands to generate UI components."
@@ -514,3 +478,88 @@
                 (:error . ,(format nil "~A" e))
                 (:command . ,command)))))))
      :name (format nil "ai-command-~A" (get-universal-time)))))
+
+;;; Physics Message Handlers
+
+(defun handle-physics-spawn-ball-message (conn-id data)
+  "Handle physics-spawn-ball message from client.
+   Creates a physics ball entity and broadcasts to all clients."
+  (let* ((conn (get-ws-connection conn-id))
+         (canvas-id (ws-connection-canvas-id conn))
+         (user-id (ws-connection-user-id conn))
+         (username (ws-connection-username conn))
+         (x (cdr (assoc :x data)))
+         (y (cdr (assoc :y data)))
+         (vx (cdr (assoc :vx data)))
+         (vy (cdr (assoc :vy data)))
+         (ghost-id (cdr (assoc :ghost-id data))))  ; Client-side prediction ID
+
+    (unless (and user-id x y)
+      (format t "[PHYS WS WARN] Spawn ball missing required fields~%")
+      (return-from handle-physics-spawn-ball-message nil))
+
+    ;; Spawn ball entity in physics ECS
+    (let ((entity-id (spawn-physics-ball canvas-id
+                                         (coerce x 'single-float)
+                                         (coerce y 'single-float)
+                                         (coerce (or vx 0.0) 'single-float)
+                                         (coerce (or vy 0.0) 'single-float))))
+
+      (when entity-id
+        ;; Broadcast ball spawned to all clients
+        (broadcast-to-canvas-room canvas-id
+          (to-json-string
+           `((:type . "physics-ball-spawned")
+             (:entity-id . ,entity-id)
+             (:x . ,x)
+             (:y . ,y)
+             (:vx . ,(or vx 0.0))
+             (:vy . ,(or vy 0.0))
+             (:radius . 10.0)  ; Default radius
+             (:ghost-id . ,ghost-id)  ; For client-side prediction reconciliation
+             (:user-id . ,user-id)
+             (:username . ,username)))
+          nil)  ; Send to everyone
+
+        (format t "[PHYS WS] Ball entity ~A spawned at (~,1F, ~,1F) by ~A~%"
+                entity-id x y username)))))
+
+(defun handle-physics-spawn-block-message (conn-id data)
+  "Handle physics-spawn-block message from client.
+   Creates a static block entity and broadcasts to all clients."
+  (let* ((conn (get-ws-connection conn-id))
+         (canvas-id (ws-connection-canvas-id conn))
+         (user-id (ws-connection-user-id conn))
+         (username (ws-connection-username conn))
+         (x (cdr (assoc :x data)))
+         (y (cdr (assoc :y data)))
+         (width (cdr (assoc :width data)))
+         (height (cdr (assoc :height data))))
+
+    (unless (and user-id x y width height)
+      (format t "[PHYS WS WARN] Spawn block missing required fields~%")
+      (return-from handle-physics-spawn-block-message nil))
+
+    ;; Spawn block entity in physics ECS
+    (let ((entity-id (spawn-physics-block canvas-id
+                                          (coerce x 'single-float)
+                                          (coerce y 'single-float)
+                                          (coerce width 'single-float)
+                                          (coerce height 'single-float))))
+
+      (when entity-id
+        ;; Broadcast block spawned to all clients
+        (broadcast-to-canvas-room canvas-id
+          (to-json-string
+           `((:type . "physics-block-spawned")
+             (:entity-id . ,entity-id)
+             (:x . ,x)
+             (:y . ,y)
+             (:width . ,width)
+             (:height . ,height)
+             (:user-id . ,user-id)
+             (:username . ,username)))
+          nil)  ; Send to everyone
+
+        (format t "[PHYS WS] Block entity ~A spawned at (~,1F, ~,1F) size=(~,1Fx~,1F) by ~A~%"
+                entity-id x y width height username)))))

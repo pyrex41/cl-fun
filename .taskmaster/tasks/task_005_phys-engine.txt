@@ -1,0 +1,82 @@
+# Task ID: 5
+# Title: Phase 4: Component System & Extensibility
+# Status: pending
+# Dependencies: 4
+# Priority: low
+# Description: Demonstrate extensibility by implementing gravity adjustment UI and one post-MVP component (emitter or magnet). Document the component API for future additions, perform performance profiling, and create developer documentation.
+# Details:
+**Objective**: Prove architecture supports easy addition of new physics features.
+
+**Key Deliverables**:
+
+1. **Gravity Adjustment Feature**:
+   - UI slider in physics control panel (range: -20 to +20 m/s²)
+   - Backend handler: `physics-adjust-gravity` message
+   - Update global gravity in ECS acceleration system
+   - Broadcast gravity change to all clients
+   - Persist gravity setting in physics_canvas_settings table
+
+2. **Post-MVP Component** (choose one):
+   - **Emitter**: Shoots balls at interval (rate, direction, velocity)
+   - **Magnet**: Attracts/repels balls within radius (strength, polarity)
+   - Implement full backend component lifecycle
+   - Create frontend visualization and controls
+
+3. **Developer Documentation** (.taskmaster/docs/PHYSICS_COMPONENTS.md):
+   - How to add new component types
+   - Component lifecycle: creation → force application → destruction
+   - Frontend rendering guide for component visualizations
+   - Example: Step-by-step emitter implementation walkthrough
+
+4. **Performance Profiling**:
+   - Profile backend physics loop with SBCL profiler
+   - Identify most expensive operations (collision detection, force application)
+   - Document results and optimization opportunities
+   - Create performance baseline for future comparison
+
+5. **Architecture Validation**:
+   - Review: Can magnets be added in <4 hours using existing API?
+   - Review: Can custom force field shapes be added easily?
+   - Document any API gaps or friction points
+
+**Success Criteria**:
+- Gravity slider works smoothly in real-time
+- Post-MVP component fully functional (emitter shoots balls OR magnet attracts)
+- Developer docs enable new team member to add component in <1 day
+- Performance profiling identifies top 3 optimization opportunities
+- No major refactoring needed for post-MVP component
+
+# Test Strategy:
+
+
+# Subtasks:
+## 1. Implement Gravity Adjustment UI and Backend [pending]
+### Dependencies: None
+### Description: Add a UI slider in the physics control panel for adjusting gravity from -20 to +20 m/s², implement the backend handler for 'physics-adjust-gravity' message, update the global gravity in ECS acceleration system, broadcast changes to all clients, and persist the setting in the physics_canvas_settings table.
+### Details:
+Create a slider component in the frontend physics control panel with range -20 to 20. On the backend, add a WebSocket message handler to receive gravity adjustments, update the global gravity value used by the ECS apply-acceleration-system, broadcast the new gravity value to all connected clients, and update the database table for persistence. Ensure real-time updates without lag.
+
+## 2. Implement Emitter Post-MVP Component [pending]
+### Dependencies: None
+### Description: Develop the emitter component that shoots balls at specified intervals, including rate, direction, and velocity controls. Implement the full backend lifecycle for creation, force application, and destruction, along with frontend visualization and controls.
+### Details:
+Define the emitter as a new physics component class in the backend, with properties for emission rate, direction, and velocity. Add methods for spawning balls periodically in the physics loop. On the frontend, create UI controls for configuring the emitter and render its visualization (e.g., an icon or shape). Integrate with the component system to handle creation via WebSocket messages and destruction.
+
+## 3. Create Developer Documentation for Component API [pending]
+### Dependencies: 5.2
+### Description: Write comprehensive documentation in .taskmaster/docs/PHYSICS_COMPONENTS.md explaining how to add new component types, the component lifecycle, frontend rendering guides, and a step-by-step example for implementing an emitter.
+### Details:
+Document the base physics-component class, lifecycle methods (creation, force application, destruction), API for registering new components, and guidelines for frontend visualizations. Include a detailed walkthrough of adding an emitter, with code snippets for backend and frontend integration. Ensure the docs are clear enough for a new developer to add a component in under a day.
+
+## 4. Perform Performance Profiling of Physics Loop [pending]
+### Dependencies: 5.1, 5.2
+### Description: Use SBCL profiler to analyze the backend physics loop, identify the most expensive operations like collision detection and force application, document results, and suggest optimization opportunities while establishing a performance baseline.
+### Details:
+Instrument the physics simulation code with profiling tools, run simulations with various loads (e.g., multiple balls and components), measure execution times for key functions, and compile a report highlighting top bottlenecks. Compare against target frame times and note areas for improvement, such as optimizing collision algorithms or reducing force calculations.
+
+## 5. Validate Architecture for Extensibility [pending]
+### Dependencies: 5.2, 5.3
+### Description: Review the API to assess if magnets can be added in under 4 hours, evaluate ease of adding custom force field shapes, and document any gaps or friction points in the component system.
+### Details:
+Conduct a code review and mock implementation of a magnet component using the existing API, timing the process. Attempt to add a simple custom force field shape (e.g., a circle) and note any required changes. Compile findings into a report on API strengths, weaknesses, and recommendations for improvements to support future extensibility.
+

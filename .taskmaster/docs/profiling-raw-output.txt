@@ -1,0 +1,23 @@
+; clang -o /Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/syscall/types__grovel-tmpXAVJ8WEV.o -c -g -Wall -Wundef -Wsign-compare -Wpointer-arith -O3 -g -Wall -fdollars-in-identifiers -arch arm64 -fno-omit-frame-pointer -fPIC -I/Users/reuben/quicklisp/dists/quicklisp/software/cffi-20250622-git/ /Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/syscall/types__grovel.c
+/Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/syscall/types__grovel.c:14:7: warning: unused variable 'autotype_tmp' [-Wunused-variable]
+   14 |   int autotype_tmp;
+      |       ^~~~~~~~~~~~
+1 warning generated.
+; clang -o /Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/syscall/types__grovel-tmpOZHFIU2N -g -dynamic -twolevel_namespace -arch arm64 /Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/syscall/types__grovel.o
+; /Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/syscall/types__grovel /Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/syscall/types__grovel.grovel-tmp.lisp
+; clang -o /Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/llsocket/grovel__grovel-tmp5KE6HXAY.o -c -g -Wall -Wundef -Wsign-compare -Wpointer-arith -O3 -g -Wall -fdollars-in-identifiers -arch arm64 -fno-omit-frame-pointer -fPIC -I/Users/reuben/quicklisp/dists/quicklisp/software/cffi-20250622-git/ /Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/llsocket/grovel__grovel.c
+/Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/llsocket/grovel__grovel.c:16:7: warning: unused variable 'autotype_tmp' [-Wunused-variable]
+   16 |   int autotype_tmp;
+      |       ^~~~~~~~~~~~
+1 warning generated.
+; clang -o /Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/llsocket/grovel__grovel-tmp5UBS1APN -g -dynamic -twolevel_namespace -arch arm64 /Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/llsocket/grovel__grovel.o
+; /Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/llsocket/grovel__grovel /Users/reuben/.cache/common-lisp/sbcl-2.5.9-macosx-arm64/Users/reuben/quicklisp/dists/quicklisp/software/woo-20241012-git/src/llsocket/grovel__grovel.grovel-tmp.lisp
+; 
+; caught ERROR:
+;   READ error during COMPILE-FILE:
+;   
+;     The symbol "STORAGE" is not external in the CL-FAST-ECS package.
+;   
+;       Line: 26, Column: 49, File-Position: 1130
+;   
+;       Stream: #<SB-INT:FORM-TRACKING-STREAM for "file /Users/reuben/gauntlet/figma-clone/cl-fun worktrees/phys-engine/backend/src/physics-ecs.lisp" {70078A2ED3}>

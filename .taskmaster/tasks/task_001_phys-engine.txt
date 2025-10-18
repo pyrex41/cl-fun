@@ -1,0 +1,68 @@
+# Task ID: 1
+# Title: Phase 0: Library Validation & Architecture Proof
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Validate cl-fast-ecs framework works as expected. Test ECS component/system patterns, ball spawning with custom physics, and performance benchmarking with 500 balls at 60 Hz. Create database schema for physics tables.
+# Details:
+**Objective**: Prove the technical approach before full implementation.
+
+**Key Deliverables**:
+1. Install cl-fast-ecs from zip to ~/quicklisp/local-projects/ (NOT from Quicklisp)
+2. Create standalone ECS test: spawn 500 balls with custom physics (position, velocity, acceleration components)
+3. Benchmark performance locally (target: <16ms per frame)
+4. Verify ECS component definitions (ecs:define-component) and systems (ecs:define-system) work
+5. Create database schema SQL files for physics tables (physics_canvas_settings, physics_components)
+6. Optional: Create simple custom ghost predictor test (no Matter.js needed)
+
+**Success Criteria**:
+- cl-fast-ecs loads successfully from local-projects directory
+- 500 balls simulate at 60 Hz using ECS systems with <16ms frame time
+- Component and system macros work as expected
+- Database schema files created and validated
+
+**Files to Create**:
+- backend/tests/ecs-physics-benchmark.lisp (ECS-based physics test)
+- backend/db/physics-schema.sql
+- frontend/tests/simple-predictor-test.html (optional)
+
+# Test Strategy:
+
+
+# Subtasks:
+## 1. Install and Verify cl-fast-ecs Framework [done]
+### Dependencies: None
+### Description: Install cl-fast-ecs from the provided zip file to ~/quicklisp/local-projects/ and verify that it loads correctly without errors.
+### Details:
+Extract the cl-fast-ecs zip file to ~/quicklisp/local-projects/cl-fast-ecs/. Run (ql:quickload :cl-fast-ecs) in a Lisp environment to confirm no import errors occur. Verify that the ECS macros (ecs:define-component, ecs:define-system) are available. Document the installation steps and any issues encountered for future reference.
+
+## 2. Create Standalone ECS Performance Test [pending]
+### Dependencies: 1.1
+### Description: Develop a standalone test script to spawn 500 balls using cl-fast-ecs with custom physics and measure frame times to assess simulation performance.
+### Details:
+Write a Lisp script (backend/tests/ecs-physics-benchmark.lisp) that creates an ECS storage, defines position/velocity/acceleration components, defines physics systems (apply-acceleration-system, apply-velocity-system), spawns 500 balls with random positions and velocities, runs the simulation for a set duration calling ecs:run-systems, and logs average frame times. Ensure the test is isolated and uses only ECS patterns.
+
+## 3. Benchmark Performance on Fly.io Instance [deferred]
+### Dependencies: 1.2
+### Description: Deploy and run the performance test on a Fly.io instance to benchmark frame times, targeting less than 16ms per frame at 60 Hz.
+### Details:
+Package the test script for deployment on Fly.io, configure the instance appropriately, execute the benchmark, and collect performance metrics. Compare results against the target and document any optimizations needed for the cloud environment.
+
+## 4. Create Simple Custom Predictor Test [done]
+### Dependencies: None
+### Description: Develop a test HTML page to spawn a ghost ball using simple custom prediction (position + velocity) without a physics engine.
+### Details:
+Create frontend/tests/simple-predictor-test.html with vanilla JavaScript to spawn a ghost ball, update its position using simple velocity-based prediction (ghost.x += ghost.vx * dt), and optionally add simple gravity (ghost.vy += 9.8 * dt). Ensure the test is standalone, lightweight, and renders smoothly in a browser at 60 FPS.
+
+## 5. Verify Simple Prediction Accuracy [in-progress]
+### Dependencies: 1.4
+### Description: Test and verify that the simple custom predictor feels responsive and accurately predicts ball movement during the ~100ms server confirmation window.
+### Details:
+Extend the test to spawn multiple ghost balls, simulate ~100ms delay, then replace ghosts with 'server' objects at final positions. Confirm that the prediction feels smooth and responsive. Test optional features like simple gravity and boundary bounce.
+
+## 6. Create Database Schema for Physics Tables [done]
+### Dependencies: None
+### Description: Design and create SQL files for the physics-related database tables: physics_canvas_settings, physics_components, and physics_bodies.
+### Details:
+Write backend/db/physics-schema.sql with CREATE TABLE statements for the specified tables, including appropriate columns, data types, and constraints. Validate the schema by attempting to execute it against a test database instance.
+

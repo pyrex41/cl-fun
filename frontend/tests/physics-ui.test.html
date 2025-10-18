@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics UI Test</title>
+    <style>
+        :root[data-theme="dark"] {
+            --bg-primary: #0f0f1e;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #1e1e30;
+            --bg-glass: rgba(30, 30, 46, 0.85);
+            --border-primary: rgba(255, 255, 255, 0.08);
+            --border-secondary: rgba(255, 255, 255, 0.06);
+            --text-primary: #e8eaed;
+            --text-secondary: #9ca3af;
+            --text-tertiary: #6b7280;
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #6366f1;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+            --canvas-bg: #16161f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            background: var(--canvas-bg);
+            position: relative;
+        }
+
+        .test-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 400px;
+        }
+
+        .test-info h1 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: var(--accent-primary);
+        }
+
+        .test-info p {
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .test-actions {
+            margin-top: 16px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .test-btn {
+            padding: 8px 16px;
+            background: var(--accent-primary);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .test-btn:hover {
+            background: var(--accent-secondary);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <div class="test-info">
+            <h1>Physics UI Test</h1>
+            <p><strong>Test Features:</strong></p>
+            <ul style="font-size: 12px; color: var(--text-secondary); margin-left: 20px; line-height: 1.8;">
+                <li>Spawn Ball button (click-to-spawn mode)</li>
+                <li>Fan toggle buttons</li>
+                <li>Gravity adjustment slider (-20 to +20)</li>
+                <li>Physics stats overlay</li>
+            </ul>
+            <div class="test-actions">
+                <button class="test-btn" onclick="testAddFan()">Add Test Fan</button>
+                <button class="test-btn" onclick="testUpdateStats()">Update Stats</button>
+                <button class="test-btn" onclick="testSpawnBall()">Spawn Ball</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { PhysicsUI } from '../src/physics-ui.js';
+
+        // Mock WebSocket client
+        const mockWS = {
+            send: (data, track) => {
+                console.log('WS Send:', data, 'Track:', track);
+            },
+            latencyMonitor: {
+                getStats: () => ({
+                    averageLatency: Math.random() * 100
+                })
+            },
+            getLatencyStats: function() {
+                return this.latencyMonitor.getStats();
+            }
+        };
+
+        // Mock physics renderer
+        const mockRenderer = {
+            serverBalls: new Map(),
+            predictor: {
+                ghosts: new Map(),
+                spawnGhost: (id, x, y, vx, vy) => {
+                    console.log('Ghost spawned:', id, x, y, vx, vy);
+                    mockRenderer.predictor.ghosts.set(id, {x, y, vx, vy});
+                    // Auto-remove after 2 seconds
+                    setTimeout(() => {
+                        mockRenderer.predictor.ghosts.delete(id);
+                    }, 2000);
+                }
+            }
+        };
+
+        // Initialize Physics UI
+        const physicsUI = new PhysicsUI(mockWS, mockRenderer);
+
+        // Add some test data
+        physicsUI.addFan('fan-1', 'Left Fan', false);
+        physicsUI.addFan('fan-2', 'Right Fan', true);
+
+        // Test functions
+        window.testAddFan = () => {
+            const fanId = `fan-${Date.now()}`;
+            const fanName = `Fan ${physicsUI.fans.size + 1}`;
+            physicsUI.addFan(fanId, fanName, false);
+            console.log('Added fan:', fanId, fanName);
+        };
+
+        window.testUpdateStats = () => {
+            // Add mock server balls
+            for (let i = 0; i < 5; i++) {
+                mockRenderer.serverBalls.set(`ball-${i}`, {});
+            }
+
+            // Update stats from server
+            physicsUI.updateServerStats({
+                activeCount: Math.floor(Math.random() * 50),
+                sleepingCount: Math.floor(Math.random() * 30),
+                totalCount: mockRenderer.serverBalls.size
+            });
+
+            console.log('Stats updated');
+        };
+
+        window.testSpawnBall = () => {
+            const x = Math.random() * window.innerWidth;
+            const y = Math.random() * window.innerHeight;
+            physicsUI.spawnBall(x, y, Math.random() * 100 - 50, Math.random() * 100 - 50);
+            console.log('Ball spawned at', x, y);
+        };
+
+        // Auto-update stats for demo
+        setInterval(() => {
+            mockRenderer.serverBalls.set(`ball-${Date.now()}`, {});
+            if (mockRenderer.serverBalls.size > 10) {
+                const firstKey = mockRenderer.serverBalls.keys().next().value;
+                mockRenderer.serverBalls.delete(firstKey);
+            }
+        }, 2000);
+
+        console.log('Physics UI Test initialized');
+        console.log('physicsUI:', physicsUI);
+    </script>
+</body>
+</html>

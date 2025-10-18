@@ -2,7 +2,8 @@
 
 import './styles.css'
 import * as PIXI from 'pixi.js'
-import { CanvasManager } from './canvas.js'
+import { PhysicsRenderer } from './physics-renderer.js'
+import { PhysicsUI } from './physics-ui.js'
 import { WebSocketClient } from './websocket.js'
 import { AuthManager } from './auth.js'
 
@@ -11,6 +12,7 @@ class CollabCanvas {
         this.canvasManager = null
         this.wsClient = null
         this.authManager = null
+        this.physicsUI = null
         this.sessionId = null
         this.userId = null
         this.username = null
@@ -149,24 +151,30 @@ class CollabCanvas {
                 const data = await response.json()
                 console.log('[VALIDATE] Response data:', data)
 
-                if (data.success && data.data && data.data.valid) {
+                // Backend returns uppercase keys (SUCCESS, DATA, VALID)
+                const responseData = data.DATA || data.data
+                const success = data.SUCCESS !== undefined ? data.SUCCESS : data.success
+
+                if (success && responseData && (responseData.VALID || responseData.valid)) {
                     // Extract session info from backend
-                    this.userId = data.data['user-id']
-                    this.username = data.data.username
+                    this.userId = responseData['USER-ID'] || responseData['user-id']
+                    this.username = responseData.USERNAME || responseData.username
                     // Extract session ID from response (backend should provide this)
-                    if (data.data['session-id']) {
-                        this.sessionId = data.data['session-id']
+                    const sessionId = responseData['SESSION-ID'] || responseData['session-id']
+                    if (sessionId) {
+                        this.sessionId = sessionId
                         console.log('[VALIDATE] Session ID from backend:', this.sessionId)
                     }
                     // Extract preferred color and save it
-                    if (data.data['preferred-color']) {
-                        this.preferredColor = data.data['preferred-color']
+                    const preferredColor = responseData['PREFERRED-COLOR'] || responseData['preferred-color']
+                    if (preferredColor) {
+                        this.preferredColor = preferredColor
                         console.log('[VALIDATE] Preferred color from backend:', this.preferredColor)
                     }
                     console.log('[VALIDATE] Session restored:', this.username)
                     return true
                 } else {
-                    console.log('[VALIDATE] Session validation failed - data.success:', data.success, 'data.data:', data.data, 'data.data.valid:', data.data?.valid)
+                    console.log('[VALIDATE] Session validation failed - success:', success, 'responseData:', responseData, 'responseData.valid:', responseData?.valid, 'responseData.VALID:', responseData?.VALID)
                 }
             } else {
                 const errorData = await response.json()
@@ -199,7 +207,7 @@ class CollabCanvas {
         })
 
         container.appendChild(app.canvas)
-        
+
         // Listen for theme changes and update canvas background
         const themeToggle = document.getElementById('theme-toggle')
         if (themeToggle) {
@@ -212,7 +220,7 @@ class CollabCanvas {
             })
         }
 
-        this.canvasManager = new CanvasManager(app)
+        this.canvasManager = new PhysicsRenderer(app)
 
         // Apply user's preferred color if available
         if (this.preferredColor) {
@@ -418,8 +426,19 @@ class CollabCanvas {
             this.showNotification('Reconnected', 'success')
         }
 
+        // Physics message handlers
+        this.wsClient.onPhysicsDelta = (data) => {
+            if (this.canvasManager && this.canvasManager.handlePhysicsDelta) {
+                this.canvasManager.handlePhysicsDelta(data)
+            }
+        }
+
         // Connect to WebSocket
         this.wsClient.connect()
+
+        // Initialize Physics UI controls
+        this.physicsUI = new PhysicsUI(this.wsClient, this.canvasManager)
+        console.log('Physics UI initialized')
     }
 
     setupUIHandlers() {

@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravity Adjustment Integration Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            color: #8b5cf6;
+        }
+
+        .test-header {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .test-section {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .test-section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #8b5cf6;
+            border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .controls-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 13px;
+            color: #a0a0a0;
+            font-weight: 600;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: 1px solid rgba(139, 92, 246, 0.5);
+            border-radius: 8px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        button.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border-color: rgba(16, 185, 129, 0.5);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #8b5cf6;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #8b5cf6;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+        }
+
+        .test-results {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .test-result {
+            padding: 12px 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            border: 1px solid transparent;
+        }
+
+        .test-result.pending {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: #a0a0a0;
+        }
+
+        .test-result.running {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+            color: #60a5fa;
+        }
+
+        .test-result.pass {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        .test-result.fail {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .test-icon {
+            font-size: 18px;
+        }
+
+        .test-name {
+            flex: 1;
+            font-weight: 600;
+        }
+
+        .test-details {
+            font-size: 12px;
+            color: #808080;
+            margin-left: 30px;
+        }
+
+        .log-container {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-timestamp {
+            color: #6b7280;
+            margin-right: 8px;
+        }
+
+        .log-type {
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .log-type.info { color: #60a5fa; }
+        .log-type.success { color: #10b981; }
+        .log-type.error { color: #ef4444; }
+        .log-type.warn { color: #f59e0b; }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .status-label {
+            font-size: 11px;
+            color: #808080;
+            margin-bottom: 4px;
+        }
+
+        .status-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #8b5cf6;
+        }
+
+        .gravity-value-display {
+            font-size: 24px;
+            font-weight: 700;
+            color: #8b5cf6;
+            text-align: center;
+            padding: 10px;
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🧪 Gravity Adjustment Integration Test</h1>
+            <p>Test WebSocket integration between frontend UI slider and backend physics engine</p>
+        </div>
+
+        <!-- Manual Testing Controls -->
+        <div class="test-section">
+            <h2>Manual Testing Controls</h2>
+            <div class="controls-group">
+                <div class="control-item">
+                    <label class="control-label">WebSocket Connection</label>
+                    <button id="btn-connect">Connect to Server</button>
+                </div>
+                <div class="control-item">
+                    <label class="control-label">Spawn Balls for Testing</label>
+                    <button id="btn-spawn-balls">Spawn 5 Test Balls</button>
+                </div>
+            </div>
+
+            <div class="control-item">
+                <label class="control-label">Gravity Adjustment</label>
+                <input type="range" id="gravity-slider" min="-20" max="20" step="0.1" value="9.8">
+                <div class="gravity-value-display" id="gravity-display">9.8 m/s²</div>
+            </div>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="test-section">
+            <h2>Connection Status</h2>
+            <div class="status-grid">
+                <div class="status-card">
+                    <div class="status-label">WebSocket State</div>
+                    <div class="status-value" id="ws-state">Disconnected</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-label">Messages Sent</div>
+                    <div class="status-value" id="msg-sent">0</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-label">Messages Received</div>
+                    <div class="status-value" id="msg-received">0</div>
+                </div>
+                <div class="status-card">
+                    <div class="status-label">Current Gravity</div>
+                    <div class="status-value" id="current-gravity">9.8 m/s²</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Automated Tests -->
+        <div class="test-section">
+            <h2>Automated Test Suite</h2>
+            <div class="controls-group">
+                <button id="btn-run-tests">Run All Tests</button>
+                <button id="btn-test-edge-cases" class="danger">Test Edge Cases</button>
+                <button id="btn-clear-logs" class="success">Clear Logs</button>
+            </div>
+            <div class="test-results" id="test-results">
+                <!-- Test results will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="test-section">
+            <h2>Event Log</h2>
+            <div class="log-container" id="log-container">
+                <!-- Logs will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Test harness for gravity adjustment integration
+        class GravityTestHarness {
+            constructor() {
+                this.ws = null;
+                this.messagesSent = 0;
+                this.messagesReceived = 0;
+                this.currentGravity = 9.8;
+                this.gravityBroadcastReceived = false;
+                this.testResults = new Map();
+
+                this.setupUI();
+                this.log('info', 'Test harness initialized');
+            }
+
+            setupUI() {
+                // Connect button
+                document.getElementById('btn-connect').addEventListener('click', () => {
+                    this.connect();
+                });
+
+                // Spawn balls button
+                document.getElementById('btn-spawn-balls').addEventListener('click', () => {
+                    this.spawnTestBalls();
+                });
+
+                // Gravity slider
+                const slider = document.getElementById('gravity-slider');
+                const display = document.getElementById('gravity-display');
+
+                slider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    display.textContent = `${value.toFixed(1)} m/s²`;
+                });
+
+                slider.addEventListener('change', (e) => {
+                    const value = parseFloat(e.target.value);
+                    this.sendGravityUpdate(value);
+                });
+
+                // Test buttons
+                document.getElementById('btn-run-tests').addEventListener('click', () => {
+                    this.runAllTests();
+                });
+
+                document.getElementById('btn-test-edge-cases').addEventListener('click', () => {
+                    this.runEdgeCaseTests();
+                });
+
+                document.getElementById('btn-clear-logs').addEventListener('click', () => {
+                    this.clearLogs();
+                });
+            }
+
+            connect() {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.log('warn', 'Already connected');
+                    return;
+                }
+
+                this.log('info', 'Connecting to WebSocket server...');
+                this.ws = new WebSocket('ws://localhost:8080/ws');
+
+                this.ws.onopen = () => {
+                    this.log('success', 'WebSocket connected');
+                    this.updateConnectionStatus('Connected');
+
+                    // Authenticate
+                    this.send({
+                        type: 'auth',
+                        sessionId: 'test-session-' + Date.now(),
+                        username: 'gravity-tester',
+                        canvasId: 'test-canvas-1'
+                    });
+                };
+
+                this.ws.onmessage = (event) => {
+                    this.messagesReceived++;
+                    this.updateStats();
+
+                    try {
+                        const data = JSON.parse(event.data);
+                        this.handleMessage(data);
+                    } catch (e) {
+                        this.log('error', `Failed to parse message: ${e.message}`);
+                    }
+                };
+
+                this.ws.onerror = (error) => {
+                    this.log('error', `WebSocket error: ${error}`);
+                };
+
+                this.ws.onclose = () => {
+                    this.log('warn', 'WebSocket disconnected');
+                    this.updateConnectionStatus('Disconnected');
+                };
+            }
+
+            handleMessage(data) {
+                const type = data.type;
+
+                switch (type) {
+                    case 'auth-success':
+                        this.log('success', `Authenticated as ${data.username}`);
+                        break;
+
+                    case 'physics-gravity-changed':
+                        this.gravityBroadcastReceived = true;
+                        this.currentGravity = data.gravityY || data.gravity;
+                        this.log('success', `Gravity broadcast received: ${this.currentGravity} m/s²`);
+                        this.updateCurrentGravity();
+                        break;
+
+                    case 'physics-state-full':
+                        this.log('info', `Full physics state received (${data.balls?.length || 0} balls)`);
+                        break;
+
+                    default:
+                        this.log('info', `Message received: ${type}`);
+                }
+            }
+
+            send(data) {
+                if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                    this.log('error', 'Cannot send: WebSocket not connected');
+                    return false;
+                }
+
+                this.ws.send(JSON.stringify(data));
+                this.messagesSent++;
+                this.updateStats();
+                return true;
+            }
+
+            sendGravityUpdate(gravity) {
+                this.log('info', `Sending gravity update: ${gravity} m/s²`);
+
+                const success = this.send({
+                    type: 'physics-adjust-gravity',
+                    gravityY: gravity,  // Backend expects gravityY
+                    canvasId: 'test-canvas-1'
+                });
+
+                if (success) {
+                    this.log('success', `Gravity update sent: ${gravity} m/s²`);
+                }
+            }
+
+            spawnTestBalls() {
+                if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                    this.log('error', 'Cannot spawn balls: Not connected');
+                    return;
+                }
+
+                for (let i = 0; i < 5; i++) {
+                    const x = 100 + (i * 150);
+                    const y = 100;
+                    const vx = (Math.random() - 0.5) * 200;
+                    const vy = 0;
+
+                    this.send({
+                        type: 'physics-spawn-ball',
+                        x, y, vx, vy,
+                        ghostId: `test-ball-${Date.now()}-${i}`
+                    });
+                }
+
+                this.log('success', 'Spawned 5 test balls');
+            }
+
+            async runAllTests() {
+                this.log('info', '🧪 Starting automated test suite...');
+                this.testResults.clear();
+
+                const tests = [
+                    { name: 'WebSocket Connection', fn: () => this.testConnection() },
+                    { name: 'Slider Interaction', fn: () => this.testSliderInteraction() },
+                    { name: 'Message Format', fn: () => this.testMessageFormat() },
+                    { name: 'Broadcast Reception', fn: () => this.testBroadcastReception() },
+                    { name: 'Value Persistence', fn: () => this.testPersistence() }
+                ];
+
+                for (const test of tests) {
+                    await this.runTest(test.name, test.fn);
+                    await this.delay(500);
+                }
+
+                this.displayTestSummary();
+            }
+
+            async runTest(name, testFn) {
+                this.updateTestStatus(name, 'running');
+
+                try {
+                    const result = await testFn();
+                    this.testResults.set(name, { status: 'pass', details: result });
+                    this.updateTestStatus(name, 'pass', result);
+                    this.log('success', `✓ ${name} passed`);
+                } catch (error) {
+                    this.testResults.set(name, { status: 'fail', details: error.message });
+                    this.updateTestStatus(name, 'fail', error.message);
+                    this.log('error', `✗ ${name} failed: ${error.message}`);
+                }
+            }
+
+            async testConnection() {
+                if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                    throw new Error('WebSocket not connected');
+                }
+                return 'WebSocket connected successfully';
+            }
+
+            async testSliderInteraction() {
+                const slider = document.getElementById('gravity-slider');
+                const originalValue = parseFloat(slider.value);
+
+                // Simulate slider change
+                slider.value = 5.0;
+                slider.dispatchEvent(new Event('change'));
+
+                await this.delay(100);
+
+                // Restore original value
+                slider.value = originalValue;
+
+                return 'Slider interaction successful';
+            }
+
+            async testMessageFormat() {
+                const testGravity = 12.5;
+
+                this.gravityBroadcastReceived = false;
+                this.sendGravityUpdate(testGravity);
+
+                // Wait for broadcast
+                await this.delay(1000);
+
+                if (!this.gravityBroadcastReceived) {
+                    throw new Error('No broadcast received from server');
+                }
+
+                if (Math.abs(this.currentGravity - testGravity) > 0.1) {
+                    throw new Error(`Gravity mismatch: expected ${testGravity}, got ${this.currentGravity}`);
+                }
+
+                return `Message format verified (${testGravity} m/s²)`;
+            }
+
+            async testBroadcastReception() {
+                this.gravityBroadcastReceived = false;
+                this.sendGravityUpdate(7.5);
+
+                await this.delay(1000);
+
+                if (!this.gravityBroadcastReceived) {
+                    throw new Error('Broadcast not received within timeout');
+                }
+
+                return 'Broadcast received successfully';
+            }
+
+            async testPersistence() {
+                // Note: This requires server restart to fully test
+                // For now, just verify the message was sent
+                this.sendGravityUpdate(9.8);
+                await this.delay(500);
+                return 'Persistence message sent (requires server restart to verify)';
+            }
+
+            async runEdgeCaseTests() {
+                this.log('warn', '⚠️ Running edge case tests...');
+
+                const edgeCases = [
+                    { name: 'Zero Gravity', value: 0 },
+                    { name: 'Negative Gravity', value: -9.8 },
+                    { name: 'Maximum Positive', value: 20 },
+                    { name: 'Maximum Negative', value: -20 },
+                    { name: 'Rapid Changes', value: null, fn: () => this.testRapidChanges() }
+                ];
+
+                for (const testCase of edgeCases) {
+                    if (testCase.fn) {
+                        await testCase.fn();
+                    } else {
+                        this.log('info', `Testing ${testCase.name}: ${testCase.value} m/s²`);
+                        this.sendGravityUpdate(testCase.value);
+                        await this.delay(1000);
+                    }
+                }
+
+                this.log('success', 'Edge case tests completed');
+            }
+
+            async testRapidChanges() {
+                this.log('info', 'Testing rapid slider changes...');
+
+                const values = [10, 5, -5, -10, 0, 9.8];
+                for (const value of values) {
+                    this.sendGravityUpdate(value);
+                    await this.delay(100);
+                }
+
+                this.log('success', 'Rapid changes test completed');
+            }
+
+            updateTestStatus(name, status, details = '') {
+                const container = document.getElementById('test-results');
+                let testEl = document.querySelector(`[data-test="${name}"]`);
+
+                if (!testEl) {
+                    testEl = document.createElement('div');
+                    testEl.className = 'test-result';
+                    testEl.dataset.test = name;
+                    container.appendChild(testEl);
+                }
+
+                testEl.className = `test-result ${status}`;
+
+                const icons = {
+                    pending: '⏳',
+                    running: '⏱️',
+                    pass: '✅',
+                    fail: '❌'
+                };
+
+                testEl.innerHTML = `
+                    <span class="test-icon">${icons[status]}</span>
+                    <span class="test-name">${name}</span>
+                `;
+
+                if (details) {
+                    const detailsEl = document.createElement('div');
+                    detailsEl.className = 'test-details';
+                    detailsEl.textContent = details;
+                    testEl.appendChild(detailsEl);
+                }
+            }
+
+            displayTestSummary() {
+                const total = this.testResults.size;
+                const passed = Array.from(this.testResults.values()).filter(r => r.status === 'pass').length;
+                const failed = total - passed;
+
+                this.log('info', `📊 Test Summary: ${passed}/${total} passed, ${failed} failed`);
+            }
+
+            updateConnectionStatus(status) {
+                document.getElementById('ws-state').textContent = status;
+            }
+
+            updateStats() {
+                document.getElementById('msg-sent').textContent = this.messagesSent;
+                document.getElementById('msg-received').textContent = this.messagesReceived;
+            }
+
+            updateCurrentGravity() {
+                document.getElementById('current-gravity').textContent = `${this.currentGravity.toFixed(1)} m/s²`;
+            }
+
+            log(type, message) {
+                const container = document.getElementById('log-container');
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+
+                const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+                entry.innerHTML = `
+                    <span class="log-timestamp">[${timestamp}]</span>
+                    <span class="log-type ${type}">${type.toUpperCase()}</span>
+                    <span class="log-message">${message}</span>
+                `;
+
+                container.appendChild(entry);
+                container.scrollTop = container.scrollHeight;
+            }
+
+            clearLogs() {
+                document.getElementById('log-container').innerHTML = '';
+                this.log('info', 'Logs cleared');
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize test harness
+        const testHarness = new GravityTestHarness();
+        window.testHarness = testHarness; // Expose for debugging
+    </script>
+</body>
+</html>
