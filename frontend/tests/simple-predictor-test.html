@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Predictor Test - Ghost Ball Prediction Verification</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+        }
+
+        #controls {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            margin: 0 0 15px 0;
+            color: #0f3460;
+            font-size: 24px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: inline-block;
+            width: 200px;
+            font-weight: 500;
+            color: #e94560;
+        }
+
+        button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 10px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #d63447;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            border: 2px solid #0f3460;
+            border-radius: 4px;
+            background: #0f3460;
+            color: #eee;
+        }
+
+        #canvas {
+            background: #0f0f1e;
+            border: 3px solid #0f3460;
+            border-radius: 8px;
+            display: block;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        #stats {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .stat-row {
+            margin: 5px 0;
+            color: #aaa;
+        }
+
+        .stat-label {
+            color: #e94560;
+            font-weight: bold;
+        }
+
+        .ghost {
+            opacity: 0.6;
+        }
+
+        .server {
+            opacity: 1.0;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>🎱 Simple Predictor Test - Ghost Ball Prediction</h1>
+
+        <div class="control-group">
+            <label>
+                <input type="checkbox" id="enableGravity" checked> Enable Gravity (9.8 m/s²)
+            </label>
+            <label>
+                <input type="checkbox" id="enableBounce" checked> Enable Boundary Bounce
+            </label>
+        </div>
+
+        <div class="control-group">
+            <label>Server Delay (ms):</label>
+            <input type="number" id="serverDelay" value="100" min="50" max="500" step="10">
+        </div>
+
+        <div class="control-group">
+            <button id="spawnSingle">Spawn Single Ball</button>
+            <button id="spawnMultiple">Spawn Multiple Balls (5)</button>
+            <button id="clearAll">Clear All</button>
+            <button id="runTest">Run Full Test Suite</button>
+        </div>
+    </div>
+
+    <canvas id="canvas" width="1000" height="600"></canvas>
+
+    <div id="stats">
+        <div class="stat-row"><span class="stat-label">FPS:</span> <span id="fps">60</span></div>
+        <div class="stat-row"><span class="stat-label">Active Ghosts:</span> <span id="ghostCount">0</span></div>
+        <div class="stat-row"><span class="stat-label">Active Server Objects:</span> <span id="serverCount">0</span></div>
+        <div class="stat-row"><span class="stat-label">Total Transitions:</span> <span id="transitionCount">0</span></div>
+        <div class="stat-row"><span class="stat-label">Avg Prediction Error:</span> <span id="avgError">0.00</span> px</div>
+        <div class="stat-row"><span class="stat-label">Test Status:</span> <span id="testStatus">Ready</span></div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Configuration
+        const config = {
+            gravity: 9.8, // pixels per second squared (scaled for visual effect)
+            ballRadius: 15,
+            serverDelay: 100, // ms
+            enableGravity: true,
+            enableBounce: true
+        };
+
+        // State
+        const balls = [];
+        let nextBallId = 1;
+        let transitionCount = 0;
+        let totalPredictionError = 0;
+        let errorSamples = 0;
+
+        // FPS tracking
+        let lastFrameTime = performance.now();
+        let frameCount = 0;
+        let fps = 60;
+
+        // Ball class
+        class Ball {
+            constructor(x, y, vx, vy, isGhost = true, id = null) {
+                this.id = id || nextBallId++;
+                this.x = x;
+                this.y = y;
+                this.vx = vx; // pixels per second
+                this.vy = vy;
+                this.isGhost = isGhost;
+                this.radius = config.ballRadius;
+                this.color = this.generateColor();
+                this.spawnTime = performance.now();
+                this.scheduledReplacement = null;
+
+                // Track prediction accuracy
+                this.predictedX = null;
+                this.predictedY = null;
+
+                if (isGhost) {
+                    this.scheduleReplacement();
+                }
+            }
+
+            generateColor() {
+                const hue = (this.id * 137.5) % 360; // Golden angle distribution
+                return `hsl(${hue}, 70%, 60%)`;
+            }
+
+            scheduleReplacement() {
+                this.scheduledReplacement = setTimeout(() => {
+                    this.replaceWithServer();
+                }, config.serverDelay);
+            }
+
+            replaceWithServer() {
+                // Store predicted final position
+                this.predictedX = this.x;
+                this.predictedY = this.y;
+
+                // Create server object at final position
+                const serverBall = new Ball(
+                    this.x,
+                    this.y,
+                    this.vx,
+                    this.vy,
+                    false, // not a ghost
+                    this.id
+                );
+
+                // Calculate prediction error
+                const error = Math.sqrt(
+                    Math.pow(serverBall.x - this.predictedX, 2) +
+                    Math.pow(serverBall.y - this.predictedY, 2)
+                );
+
+                totalPredictionError += error;
+                errorSamples++;
+
+                // Remove ghost and add server object
+                const index = balls.indexOf(this);
+                if (index > -1) {
+                    balls.splice(index, 1);
+                    balls.push(serverBall);
+                    transitionCount++;
+                    updateStats();
+                }
+            }
+
+            update(dt) {
+                // Simple velocity-based prediction
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+
+                // Apply gravity if enabled
+                if (config.enableGravity) {
+                    this.vy += config.gravity * dt;
+                }
+
+                // Boundary bounce if enabled
+                if (config.enableBounce) {
+                    // Left/Right walls
+                    if (this.x - this.radius < 0) {
+                        this.x = this.radius;
+                        this.vx = Math.abs(this.vx) * 0.9; // Energy loss
+                    } else if (this.x + this.radius > canvas.width) {
+                        this.x = canvas.width - this.radius;
+                        this.vx = -Math.abs(this.vx) * 0.9;
+                    }
+
+                    // Top/Bottom walls
+                    if (this.y - this.radius < 0) {
+                        this.y = this.radius;
+                        this.vy = Math.abs(this.vy) * 0.9;
+                    } else if (this.y + this.radius > canvas.height) {
+                        this.y = canvas.height - this.radius;
+                        this.vy = -Math.abs(this.vy) * 0.9;
+                    }
+                }
+            }
+
+            render() {
+                ctx.save();
+
+                // Set opacity based on ghost/server status
+                ctx.globalAlpha = this.isGhost ? 0.6 : 1.0;
+
+                // Draw ball
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw border
+                ctx.strokeStyle = this.isGhost ? '#ffffff' : '#000000';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw label
+                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                const label = this.isGhost ? 'G' : 'S';
+                ctx.fillText(label, this.x, this.y);
+
+                ctx.restore();
+            }
+
+            destroy() {
+                if (this.scheduledReplacement) {
+                    clearTimeout(this.scheduledReplacement);
+                }
+            }
+        }
+
+        // Spawn functions
+        function spawnBall(x, y, vx, vy) {
+            const ball = new Ball(x, y, vx, vy, true);
+            balls.push(ball);
+            updateStats();
+        }
+
+        function spawnRandomBall() {
+            const x = Math.random() * (canvas.width - 100) + 50;
+            const y = Math.random() * (canvas.height - 100) + 50;
+            const speed = 100 + Math.random() * 200; // 100-300 px/s
+            const angle = Math.random() * Math.PI * 2;
+            const vx = Math.cos(angle) * speed;
+            const vy = Math.sin(angle) * speed;
+
+            spawnBall(x, y, vx, vy);
+        }
+
+        function spawnMultipleBalls(count = 5) {
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => spawnRandomBall(), i * 100);
+            }
+        }
+
+        function clearAllBalls() {
+            balls.forEach(ball => ball.destroy());
+            balls.length = 0;
+            transitionCount = 0;
+            totalPredictionError = 0;
+            errorSamples = 0;
+            updateStats();
+        }
+
+        // Test suite
+        async function runFullTest() {
+            clearAllBalls();
+            updateTestStatus('Running test suite...');
+
+            // Test 1: Single ball with horizontal velocity
+            updateTestStatus('Test 1/5: Horizontal velocity');
+            spawnBall(100, 300, 200, 0);
+            await sleep(1500);
+
+            // Test 2: Vertical velocity (gravity effect)
+            updateTestStatus('Test 2/5: Vertical velocity + gravity');
+            spawnBall(200, 100, 0, 150);
+            await sleep(1500);
+
+            // Test 3: Diagonal velocity
+            updateTestStatus('Test 3/5: Diagonal velocity');
+            spawnBall(150, 150, 180, 180);
+            await sleep(1500);
+
+            // Test 4: Multiple balls with various velocities
+            updateTestStatus('Test 4/5: Multiple balls');
+            spawnMultipleBalls(5);
+            await sleep(2000);
+
+            // Test 5: Boundary bounce test
+            updateTestStatus('Test 5/5: Boundary bounce');
+            spawnBall(50, 300, -150, -100);
+            spawnBall(950, 300, 150, 100);
+            await sleep(2000);
+
+            updateTestStatus('✓ All tests completed!');
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Update loop
+        function update(currentTime) {
+            const dt = Math.min((currentTime - lastFrameTime) / 1000, 0.1); // Cap dt to prevent large jumps
+            lastFrameTime = currentTime;
+
+            // Update FPS
+            frameCount++;
+            if (frameCount % 60 === 0) {
+                fps = Math.round(1 / dt);
+            }
+
+            // Update all balls
+            balls.forEach(ball => ball.update(dt));
+
+            requestAnimationFrame(update);
+        }
+
+        // Render loop
+        function render() {
+            // Clear canvas
+            ctx.fillStyle = '#0f0f1e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Render all balls
+            balls.forEach(ball => ball.render());
+
+            requestAnimationFrame(render);
+        }
+
+        // Stats update
+        function updateStats() {
+            const ghostCount = balls.filter(b => b.isGhost).length;
+            const serverCount = balls.filter(b => !b.isGhost).length;
+            const avgError = errorSamples > 0 ? (totalPredictionError / errorSamples).toFixed(2) : '0.00';
+
+            document.getElementById('fps').textContent = fps;
+            document.getElementById('ghostCount').textContent = ghostCount;
+            document.getElementById('serverCount').textContent = serverCount;
+            document.getElementById('transitionCount').textContent = transitionCount;
+            document.getElementById('avgError').textContent = avgError;
+        }
+
+        function updateTestStatus(status) {
+            document.getElementById('testStatus').textContent = status;
+        }
+
+        // Event handlers
+        document.getElementById('enableGravity').addEventListener('change', (e) => {
+            config.enableGravity = e.target.checked;
+        });
+
+        document.getElementById('enableBounce').addEventListener('change', (e) => {
+            config.enableBounce = e.target.checked;
+        });
+
+        document.getElementById('serverDelay').addEventListener('change', (e) => {
+            config.serverDelay = parseInt(e.target.value);
+        });
+
+        document.getElementById('spawnSingle').addEventListener('click', () => {
+            spawnRandomBall();
+        });
+
+        document.getElementById('spawnMultiple').addEventListener('click', () => {
+            spawnMultipleBalls(5);
+        });
+
+        document.getElementById('clearAll').addEventListener('click', () => {
+            clearAllBalls();
+        });
+
+        document.getElementById('runTest').addEventListener('click', () => {
+            runFullTest();
+        });
+
+        // Initialize
+        function init() {
+            console.log('Simple Predictor Test initialized');
+            console.log('Canvas size:', canvas.width, 'x', canvas.height);
+            console.log('Server delay:', config.serverDelay, 'ms');
+
+            // Start loops
+            lastFrameTime = performance.now();
+            requestAnimationFrame(update);
+            requestAnimationFrame(render);
+
+            // Update stats every 100ms
+            setInterval(updateStats, 100);
+        }
+
+        init();
+    </script>
+</body>
+</html>
