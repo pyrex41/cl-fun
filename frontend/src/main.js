@@ -1,8 +1,9 @@
 // main.js - Application entry point for CollabCanvas
+// MODIFIED FOR PHYSICS DEBUGGING - Simplified version with auth bypass
 
 import './styles.css'
 import * as PIXI from 'pixi.js'
-import { PhysicsRenderer } from './physics-renderer.js'
+import { SimplePhysicsCanvas } from './simple-physics-canvas.js' // Using simplified canvas
 import { PhysicsUI } from './physics-ui.js'
 import { WebSocketClient } from './websocket.js'
 import { AuthManager } from './auth.js'
@@ -47,79 +48,48 @@ class CollabCanvas {
     }
 
     async init() {
-        console.log('[INIT] Initializing CollabCanvas...')
+        console.log('[INIT] ==================== PHYSICS DEBUG MODE ====================')
+        console.log('[INIT] Authentication BYPASSED for debugging')
+        console.log('[INIT] Using simplified physics canvas')
 
         // Update canvas ID in status bar
         document.getElementById('canvas-id').textContent = this.canvasId
 
-        // Initialize authentication
-        console.log('[INIT] Creating AuthManager...')
-        this.authManager = new AuthManager()
+        // ========== BYPASS AUTHENTICATION ==========
+        // Use hardcoded test credentials
+        this.sessionId = 'test-session-' + Date.now()
+        this.userId = 'test-user-' + Math.random().toString(36).substring(7)
+        this.username = 'TestUser-' + this.userId.slice(-4)
+        
+        console.log('[INIT] Test credentials:', {
+            sessionId: this.sessionId,
+            userId: this.userId,
+            username: this.username,
+            canvasId: this.canvasId
+        })
 
-        // Debug: Log all cookies
-        console.log('[INIT] All cookies:', document.cookie)
+        // Hide loading screen immediately
+        this.hideLoadingScreen()
+        console.log('[INIT] Loading screen hidden')
 
-        // Check for session ID in cookie first (backend sets it as 'session')
-        const sessionCookie = this.getCookie('session')
-        console.log('[INIT] Session ID from cookie (session):', sessionCookie || 'NULL')
-
-        // Then check localStorage
-        const sessionStorage = localStorage.getItem('sessionId')
-        console.log('[INIT] Session ID from localStorage:', sessionStorage || 'NULL')
-
-        // Use cookie value if available, otherwise fall back to localStorage
-        this.sessionId = sessionCookie || sessionStorage
-        console.log('[INIT] Using session ID:', this.sessionId || 'NULL')
-
-        // Always try to validate with backend (uses session cookie even if localStorage is empty)
-        console.log('[INIT] Validating session with backend...')
-        const isValid = await this.validateSession()
-        console.log('[INIT] Session validation result:', isValid)
-
-        if (isValid) {
-            console.log('[INIT] Valid session found - saving to localStorage')
-            // Session is valid - save sessionId to localStorage if we have one
-            if (this.sessionId) {
-                localStorage.setItem('sessionId', this.sessionId)
-                console.log('[INIT] Session ID saved to localStorage:', this.sessionId)
-            }
-
-            // Hide auth modal and loading screen
-            console.log('[INIT] Hiding modal and loading screen...')
-            this.authManager.hideModal()
-            this.hideLoadingScreen()
-        } else {
-            console.log('[INIT] No valid session - showing auth modal...')
-            // Clear invalid session from localStorage
-            if (this.sessionId) {
-                localStorage.removeItem('sessionId')
-                this.sessionId = null
-            }
-
-            // Hide loading screen and show auth modal
-            this.hideLoadingScreen()
-            const authData = await this.authManager.showModal()
-            this.sessionId = authData.sessionId
-            this.userId = authData.userId
-            this.username = authData.username
-            localStorage.setItem('sessionId', this.sessionId)
-            console.log('[INIT] Authentication complete, session stored')
-
-            // Hide loading screen after authentication
-            this.hideLoadingScreen()
-        }
-
-        console.log('[INIT] Proceeding to initialize canvas...')
-        // Initialize canvas (async in v8)
-        await this.initCanvas()
+        // Initialize simplified canvas
+        console.log('[INIT] Initializing simple physics canvas...')
+        await this.initSimpleCanvas()
 
         // Initialize WebSocket connection
+        console.log('[INIT] Initializing WebSocket...')
         this.initWebSocket()
 
-        // Setup UI event handlers
+        // Setup minimal UI handlers (skip most tool handlers)
+        console.log('[INIT] Setting up UI handlers...')
         this.setupUIHandlers()
 
-        console.log('CollabCanvas initialized successfully')
+        console.log('[INIT] ==================== INITIALIZATION COMPLETE ====================')
+        console.log('[INIT] You can now:')
+        console.log('[INIT]   1. Click "Spawn Ball" button to spawn physics balls')
+        console.log('[INIT]   2. Use middle mouse button to pan')
+        console.log('[INIT]   3. Use mouse wheel to zoom')
+        console.log('[INIT]   4. Open console and use: window.debugPhysics')
     }
 
     hideLoadingScreen() {
@@ -187,7 +157,8 @@ class CollabCanvas {
         return false
     }
 
-    async initCanvas() {
+    async initSimpleCanvas() {
+        console.log('[InitCanvas] Creating simple physics canvas...')
         const container = document.getElementById('canvas-container')
 
         // Get current theme for canvas background
@@ -207,327 +178,149 @@ class CollabCanvas {
         })
 
         container.appendChild(app.canvas)
+        console.log('[InitCanvas] PixiJS app created, canvas size:', app.screen.width, 'x', app.screen.height)
 
-        // Listen for theme changes and update canvas background
-        const themeToggle = document.getElementById('theme-toggle')
-        if (themeToggle) {
-            themeToggle.addEventListener('click', () => {
-                setTimeout(() => {
-                    const newTheme = document.documentElement.getAttribute('data-theme')
-                    const newBgColor = newTheme === 'dark' ? 0x16161f : 0xffffff
-                    app.renderer.background.color = newBgColor
-                }, 50)
+        // Create simplified physics canvas
+        this.canvasManager = new SimplePhysicsCanvas(app)
+        console.log('[InitCanvas] SimplePhysicsCanvas created')
+
+        // Set up ONLY physics callback
+        this.canvasManager.onPhysicsDelta = (data) => {
+            console.log('[Canvas] onPhysicsDelta callback triggered, entities:', data.entities?.length || 0)
+        }
+
+        // Setup global debug commands
+        console.log('[InitCanvas] Setting up global debug commands...')
+        window.debugPhysics = {
+            // List all balls
+            listBalls: () => {
+                console.log('=== Active Balls ===')
+                console.log(`Total: ${this.canvasManager.balls.size}`)
+                this.canvasManager.balls.forEach((ball, id) => {
+                    console.log(`${id}:`, {
+                        current: [ball.currentX.toFixed(1), ball.currentY.toFixed(1)],
+                        server: [ball.serverX.toFixed(1), ball.serverY.toFixed(1)],
+                        radius: ball.radius
+                    })
+                })
+                return this.canvasManager.balls
+            },
+            
+            // Get canvas manager
+            canvas: () => this.canvasManager,
+            
+            // Clear all balls
+            clearAll: () => {
+                console.log('[Debug] Clearing all balls...')
+                this.canvasManager.clearAllBalls()
+            },
+            
+            // Spawn test ball at center
+            spawnTest: () => {
+                console.log('[Debug] Spawning test ball at canvas center')
+                const centerX = this.canvasManager.app.screen.width / 2
+                const centerY = this.canvasManager.app.screen.height / 2
+                this.canvasManager.createBall('test-ball-' + Date.now(), centerX, centerY, 30, 0xFF0000)
+            },
+            
+            // Get WebSocket client
+            ws: () => this.wsClient,
+            
+            // Get viewport info
+            viewport: () => ({
+                x: this.canvasManager.viewportX,
+                y: this.canvasManager.viewportY,
+                zoom: this.canvasManager.zoom,
+                childrenCount: this.canvasManager.viewport.children.length
             })
         }
 
-        this.canvasManager = new PhysicsRenderer(app)
-
-        // Apply user's preferred color if available
-        if (this.preferredColor) {
-            console.log('[INIT] Setting canvas color to:', this.preferredColor)
-            this.canvasManager.setColor(this.preferredColor)
-            // Update color picker to match
-            const colorPicker = document.getElementById('color-picker')
-            if (colorPicker) {
-                colorPicker.value = this.preferredColor
-            }
-        }
-
-        // Make performance stats available globally for console access
-        window.getPerformanceStats = () => {
-            return this.canvasManager.getPerformanceStats();
-        };
-
-        // Make latency stats available globally
-        window.getLatencyStats = () => {
-            if (!this.wsClient) return null;
-            return this.wsClient.getLatencyStats();
-        };
-
-        window.logLatencyStats = () => {
-            if (!this.wsClient) {
-                console.warn('WebSocket client not initialized');
-                return;
-            }
-            this.wsClient.logLatencyStats();
-        };
-
-        window.getLatencyStatsByType = (messageType) => {
-            if (!this.wsClient) return null;
-            return this.wsClient.getLatencyStatsByType(messageType);
-        };
-
-        // Set up canvas callbacks for WebSocket synchronization
-        this.canvasManager.onCursorMoved = (x, y) => {
-            if (this.wsClient && this.wsClient.isConnected) {
-                this.wsClient.sendCursorUpdate(x, y)
-            }
-        }
-
-        this.canvasManager.onObjectCreated = (object) => {
-            if (this.wsClient && this.wsClient.isConnected) {
-                this.wsClient.sendObjectCreate(object)
-            }
-        }
-
-        this.canvasManager.onObjectUpdated = (objectId, updates) => {
-            if (this.wsClient && this.wsClient.isConnected) {
-                this.wsClient.sendObjectUpdate(objectId, updates)
-            }
-        }
-
-        this.canvasManager.onObjectDeleted = (objectId) => {
-            if (this.wsClient && this.wsClient.isConnected) {
-                this.wsClient.sendObjectDelete(objectId)
-            }
-        }
-
-        this.canvasManager.onObjectsDeleted = (objectIds) => {
-            if (this.wsClient && this.wsClient.isConnected) {
-                this.wsClient.sendObjectsDelete(objectIds)
-            }
-        }
-
-        // Update status bar callbacks
-        this.canvasManager.onToolChange = (tool) => {
-            document.getElementById('current-tool').textContent =
-                tool.charAt(0).toUpperCase() + tool.slice(1)
-        }
-
-        this.canvasManager.onMouseMove = (x, y) => {
-            document.getElementById('mouse-position').textContent = `${Math.round(x)}, ${Math.round(y)}`
-        }
-
-        this.canvasManager.onZoomChange = (zoom) => {
-            document.getElementById('zoom-level').textContent = `${Math.round(zoom * 100)}%`
-        }
-
-        this.canvasManager.onObjectCountChange = (count) => {
-            document.getElementById('object-count').textContent = count
-        }
-
-        // Start periodic memory cleanup (every 60 seconds)
-        // This removes orphaned selection indicators and inactive cursors
-        this.canvasManager.startPeriodicCleanup(60000)
-        console.log('Started periodic memory cleanup (60s interval)')
+        console.log('[InitCanvas] ✓ Simple canvas initialized')
+        console.log('[InitCanvas] Debug commands available at: window.debugPhysics')
     }
 
     initWebSocket() {
+        console.log('[WebSocket] Initializing WebSocket connection...')
+        
         // Use wss:// for HTTPS pages, ws:// for HTTP
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        // window.location.host includes port if non-standard (e.g., localhost:8080)
         const wsUrl = `${wsProtocol}//${window.location.host}/ws/${this.canvasId}`
+        
+        console.log('[WebSocket] URL:', wsUrl)
+        console.log('[WebSocket] Session ID:', this.sessionId)
+        console.log('[WebSocket] Canvas ID:', this.canvasId)
 
         this.wsClient = new WebSocketClient(wsUrl, this.sessionId, this.canvasId)
 
-        // Set up WebSocket callbacks
+        // ========== SIMPLIFIED CALLBACKS - PHYSICS ONLY ==========
+        
         this.wsClient.onAuthSuccess = (data) => {
-            console.error('=== WebSocket authenticated ===')
-            console.error('Auth data received:', data)
-
-            // Backend sends 'canvas-state' (kebab-case), not 'canvasState'
-            const canvasState = data['canvas-state'] || data.canvasState
-            console.error('canvasState exists?', !!canvasState)
-            console.error('canvasState type:', typeof canvasState)
-            console.error('canvasState length:', canvasState ? canvasState.length : 0)
-
-            // Load initial canvas state
-            if (canvasState) {
-                console.error('=== CALLING loadState ===')
-                this.canvasManager.loadState(canvasState)
-                console.error('=== loadState RETURNED ===')
-            } else {
-                console.error('=== NO CANVAS STATE IN AUTH RESPONSE ===')
-            }
-        }
-
-        this.wsClient.onUserConnected = (data) => {
-            // Add new user to active users list
-            this.activeUsers.push({
-                'user-id': data.userId || data['user-id'],
-                username: data.username,
-                color: data.color
-            })
-            this.updatePresenceList(this.activeUsers)
-            this.showNotification(`${data.username} joined`, 'info')
-        }
-
-        this.wsClient.onUserDisconnected = (data) => {
-            // Remove user from active users list
-            const userId = data.userId || data['user-id']
-            this.activeUsers = this.activeUsers.filter(u =>
-                (u['user-id'] || u.userId) !== userId
-            )
-            this.updatePresenceList(this.activeUsers)
-            this.canvasManager.removeRemoteCursor(userId)
-            this.showNotification(`${data.username} left`, 'info')
-        }
-
-        this.wsClient.onPresenceUpdate = (users) => {
-            // Replace entire active users list with server's authoritative list
-            this.activeUsers = users
-            this.updatePresenceList(this.activeUsers)
-        }
-
-        this.wsClient.onCursorUpdate = (data) => {
-            this.canvasManager.updateRemoteCursor(
-                data.userId,
-                data.username,
-                data.x,
-                data.y,
-                data.color
-            )
-        }
-
-        this.wsClient.onObjectCreated = (data) => {
-            this.canvasManager.createRemoteObject(data.object)
-        }
-
-        this.wsClient.onObjectUpdated = (data) => {
-            // Backend sends 'object-id' (kebab-case)
-            const objectId = data['object-id'] || data.objectId
-            this.canvasManager.updateRemoteObject(objectId, data.delta)
-        }
-
-        this.wsClient.onObjectDeleted = (data) => {
-            // Remove user from active users list
-            const userId = data.userId || data['user-id']
-            this.activeUsers = this.activeUsers.filter(u =>
-                (u['user-id'] || u.userId) !== userId
-            )
-            this.updatePresenceList(this.activeUsers)
-            this.canvasManager.removeRemoteCursor(userId)
-            this.showNotification(`${data.username} left`, 'info')
-        }
-
-        this.wsClient.onObjectsDeleted = (data) => {
-            const objectIds = data['object-ids'] || data.objectIds || []
-            console.log('Received bulk delete for objects:', objectIds)
-
-            // Handle remote bulk deletion
-            if (objectIds.length > 0) {
-                objectIds.forEach(objectId => {
-                    this.canvasManager.deleteObject(objectId)
-                })
-                console.log(`Processed remote bulk deletion of ${objectIds.length} objects`)
-            }
+            console.log('[WebSocket] ✓ Authentication successful')
+            console.log('[WebSocket] Auth data:', data)
+            // Skip loading canvas state - we only care about physics
         }
 
         this.wsClient.onError = (error) => {
-            console.error('WebSocket error:', error)
-            this.showNotification('Connection error', 'error')
+            console.error('[WebSocket] ✗ Error:', error)
         }
 
         this.wsClient.onReconnecting = () => {
-            this.showNotification('Reconnecting...', 'warning')
+            console.warn('[WebSocket] ⟳ Reconnecting...')
         }
 
         this.wsClient.onReconnected = () => {
-            this.showNotification('Reconnected', 'success')
+            console.log('[WebSocket] ✓ Reconnected')
         }
 
-        // Physics message handlers
+        // ========== PHYSICS MESSAGE HANDLER ==========
         this.wsClient.onPhysicsDelta = (data) => {
+            console.log('[WebSocket] ← physics-delta received, entities:', data?.entities?.length || 0)
+            
+            // Log first message in detail
+            if (!this._firstPhysicsDeltaLogged) {
+                console.log('[WebSocket] First physics-delta message (full):', JSON.stringify(data, null, 2))
+                this._firstPhysicsDeltaLogged = true
+            }
+            
             if (this.canvasManager && this.canvasManager.handlePhysicsDelta) {
                 this.canvasManager.handlePhysicsDelta(data)
+            } else {
+                console.error('[WebSocket] ✗ canvasManager.handlePhysicsDelta not available')
             }
         }
 
         // Connect to WebSocket
+        console.log('[WebSocket] Connecting...')
         this.wsClient.connect()
 
         // Initialize Physics UI controls
+        console.log('[WebSocket] Initializing Physics UI...')
         this.physicsUI = new PhysicsUI(this.wsClient, this.canvasManager)
-        console.log('Physics UI initialized')
+        console.log('[WebSocket] ✓ Physics UI initialized')
     }
 
     setupUIHandlers() {
-        // Tool buttons
-        document.querySelectorAll('.tool-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tool = btn.dataset.tool
-                this.canvasManager.setTool(tool)
-
-                // Update active button
-                document.querySelectorAll('.tool-btn').forEach(b =>
-                    b.classList.remove('active'))
-                btn.classList.add('active')
-            })
-        })
-
-        // Color picker
-        const colorPicker = document.getElementById('color-picker')
-        colorPicker.addEventListener('change', async (e) => {
-            const newColor = e.target.value
-            this.canvasManager.setColor(newColor)
-
-            // Save color preference to backend
-            if (this.sessionId) {
-                try {
-                    await fetch('/api/user/color', {
-                        method: 'POST',
-                        credentials: 'include',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ color: newColor })
-                    })
-                    console.log('[COLOR] Saved preferred color:', newColor)
-                    this.preferredColor = newColor
-                } catch (error) {
-                    console.error('[COLOR] Failed to save color preference:', error)
-                }
-            }
-        })
-
-        // Keyboard shortcuts
+        console.log('[UI] Setting up UI handlers (simplified for physics debug)...')
+        
+        // Most UI handlers are disabled in debug mode
+        // Physics UI (spawn button, gravity slider) is handled by PhysicsUI class
+        
+        // Keyboard shortcuts - minimal set
         document.addEventListener('keydown', (e) => {
             // Prevent shortcuts when typing in inputs
             if (e.target.tagName === 'INPUT') return
 
             switch(e.key.toLowerCase()) {
-                case 'v':
-                    this.selectTool('select')
-                    break
-                case 'r':
-                    this.selectTool('rectangle')
-                    break
-                case 'c':
-                    this.selectTool('circle')
-                    break
                 case 'p':
                     if (e.ctrlKey && e.shiftKey) {
                         e.preventDefault()
-                        this.runPerformanceTest()
-                    }
-                    break
-                case 'delete':
-                case 'backspace':
-                    if (!e.target.isContentEditable) {
-                        e.preventDefault()
-                        this.canvasManager.deleteSelected()
-                    }
-                    break
-                case 'z':
-                    if (e.ctrlKey || e.metaKey) {
-                        e.preventDefault()
-                        if (e.shiftKey) {
-                            this.canvasManager.redo()
-                        } else {
-                            this.canvasManager.undo()
-                        }
+                        console.log('[Keyboard] Performance test not available in debug mode')
                     }
                     break
             }
         })
 
-        // Logout button (if added to UI)
-        const logoutBtn = document.getElementById('logout-btn')
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', async () => {
-                await this.logout()
-            })
-        }
+        console.log('[UI] ✓ UI handlers ready (minimal set)')
     }
 
     selectTool(tool) {
