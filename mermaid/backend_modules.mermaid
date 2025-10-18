@@ -1,0 +1,131 @@
+graph TB
+    %% Core modules
+    package["package.lisp<br/>Package definitions"]
+    config["config.lisp<br/>Configuration"]
+    utils["utils.lisp<br/>Utilities"]
+    database["database.lisp<br/>SQLite operations"]
+
+    %% Auth modules
+    auth["auth.lisp<br/>Traditional auth"]
+    auth0_config["auth0-config.lisp<br/>Auth0 settings"]
+    auth0_oauth["auth0-oauth.lisp<br/>OAuth2 flow"]
+    auth_metrics["auth-metrics.lisp<br/>Login tracking"]
+
+    %% Canvas modules
+    canvas_state["canvas-state.lisp<br/>Canvas persistence"]
+    components["components.lisp<br/>Shape components"]
+    ai_agent["ai-agent.lisp<br/>Claude AI integration"]
+
+    %% Physics modules
+    physics_db["physics-database.lisp<br/>Physics persistence"]
+    physics_ecs["physics-ecs.lisp<br/>ECS storage & macros"]
+    physics_quadtree["physics-quadtree.lisp<br/>Spatial partitioning"]
+    physics_components["physics-components.lisp<br/>Ball, Fan, Block, etc"]
+    physics_systems["physics-systems.lisp<br/>Force, Collision, Boundary"]
+    physics_loop["physics-loop.lisp<br/>60Hz simulation loop"]
+
+    %% Server modules
+    websocket_adapter["websocket-adapter.lisp<br/>WebSocket handler"]
+    app["app.lisp<br/>HTTP routes & middleware"]
+    server["server.lisp<br/>Woo server"]
+    main["main.lisp<br/>Entry point"]
+
+    %% External dependencies
+    cl_fast_ecs[("cl-fast-ecs<br/>(external)")]
+    quadtree_lib[("quadtree<br/>(external)")]
+    woo[("woo/clack<br/>(external)")]
+
+    %% Core dependencies
+    package --> config
+    package --> utils
+    config --> utils
+    utils --> database
+    package --> database
+
+    %% Auth dependencies
+    package --> auth
+    database --> auth
+    utils --> auth
+    package --> auth0_config
+    config --> auth0_config
+    package --> auth0_oauth
+    auth0_config --> auth0_oauth
+    auth --> auth0_oauth
+    utils --> auth0_oauth
+    package --> auth_metrics
+    database --> auth_metrics
+    utils --> auth_metrics
+
+    %% Canvas dependencies
+    package --> canvas_state
+    database --> canvas_state
+    package --> components
+    utils --> components
+    package --> ai_agent
+    config --> ai_agent
+    utils --> ai_agent
+    components --> ai_agent
+
+    %% Physics dependencies
+    package --> physics_db
+    config --> physics_db
+    database --> physics_db
+
+    package --> physics_ecs
+    config --> physics_ecs
+    cl_fast_ecs --> physics_ecs
+
+    package --> physics_quadtree
+    physics_ecs --> physics_quadtree
+    quadtree_lib --> physics_quadtree
+
+    package --> physics_components
+    physics_ecs --> physics_components
+
+    package --> physics_systems
+    physics_ecs --> physics_systems
+    physics_components --> physics_systems
+    physics_quadtree --> physics_systems
+
+    package --> physics_loop
+    physics_ecs --> physics_loop
+    physics_components --> physics_loop
+    physics_systems --> physics_loop
+
+    %% Server dependencies
+    package --> websocket_adapter
+    auth --> websocket_adapter
+    canvas_state --> websocket_adapter
+    ai_agent --> websocket_adapter
+    physics_loop --> websocket_adapter
+
+    package --> app
+    websocket_adapter --> app
+    auth --> app
+    canvas_state --> app
+    auth0_oauth --> app
+    auth_metrics --> app
+
+    package --> server
+    app --> server
+    database --> server
+    woo --> server
+
+    package --> main
+    server --> main
+    auth --> main
+
+    %% Styling
+    classDef coreModule fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef authModule fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef canvasModule fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef physicsModule fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef serverModule fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef external fill:#eeeeee,stroke:#424242,stroke-width:2px
+
+    class package,config,utils,database coreModule
+    class auth,auth0_config,auth0_oauth,auth_metrics authModule
+    class canvas_state,components,ai_agent canvasModule
+    class physics_db,physics_ecs,physics_quadtree,physics_components,physics_systems,physics_loop physicsModule
+    class websocket_adapter,app,server,main serverModule
+    class cl_fast_ecs,quadtree_lib,woo external

@@ -1,0 +1,135 @@
+graph TB
+    subgraph "Frontend Architecture (Vanilla JS + PixiJS)"
+        subgraph "Entry Point"
+            main["main.js<br/>Application entry<br/>Initialization"]
+        end
+
+        subgraph "Authentication"
+            auth["auth.js<br/>Auth UI & Logic"]
+            auth0_login["Auth0 Login Flow<br/>OAuth2 redirect"]
+            session["Session Management<br/>localStorage"]
+        end
+
+        subgraph "Canvas Management (PixiJS)"
+            canvas["canvas.js<br/>CanvasManager"]
+            pixi_app["PIXI.Application<br/>WebGL renderer"]
+            viewport["Viewport<br/>Pan & Zoom<br/>World coordinates"]
+            objects_map["Objects Map<br/>id → PIXI.Graphics"]
+            cursors_map["Remote Cursors Map<br/>userId → cursor"]
+            tools["Tool System<br/>rectangle/circle/text/<br/>select/pan"]
+        end
+
+        subgraph "WebSocket Communication"
+            ws["websocket.js<br/>WebSocketClient"]
+            ws_connection["WebSocket Connection<br/>ws://server/ws/{canvas-id}"]
+            message_handlers["Message Handlers<br/>auth/cursor/object/<br/>physics/ai"]
+            reconnect["Auto Reconnect<br/>Exponential backoff"]
+        end
+
+        subgraph "Physics Visualization"
+            physics_predictor["physics-predictor.js<br/>Client-side prediction"]
+            physics_renderer["physics-renderer.js<br/>Visual rendering"]
+            physics_ui["physics-ui.js<br/>Control panel & tools"]
+            
+            ghost_balls["Ghost Ball System<br/>~100ms prediction"]
+            interpolation["State Interpolation<br/>Smooth transitions"]
+            particle_effects["Particle Effects<br/>Emitters & trails"]
+        end
+
+        subgraph "State Management"
+            local_state["Local Canvas State<br/>Objects, physics entities"]
+            remote_state["Remote State Sync<br/>Server authoritative"]
+            conflict_resolution["Conflict Resolution<br/>Last-write-wins"]
+        end
+
+        subgraph "UI Components"
+            toolbar["Toolbar<br/>Shape tools, physics tools"]
+            sidebar["Sidebar<br/>Layers, properties"]
+            physics_panel["Physics Panel<br/>Gravity, simulation rate"]
+            presence["Presence Indicators<br/>Active users"]
+        end
+    end
+
+    %% Main flow
+    main --> auth
+    auth --> auth0_login
+    auth --> session
+    main --> canvas
+    main --> ws
+
+    %% Canvas relationships
+    canvas --> pixi_app
+    pixi_app --> viewport
+    canvas --> objects_map
+    canvas --> cursors_map
+    canvas --> tools
+
+    %% WebSocket relationships
+    ws --> ws_connection
+    ws --> message_handlers
+    ws --> reconnect
+    ws --> canvas
+    message_handlers --> canvas
+
+    %% Physics relationships
+    main --> physics_predictor
+    main --> physics_renderer
+    main --> physics_ui
+
+    physics_predictor --> ghost_balls
+    physics_predictor --> interpolation
+    physics_renderer --> particle_effects
+    physics_renderer --> pixi_app
+
+    ws --> physics_predictor
+    message_handlers --> physics_renderer
+
+    %% State management
+    canvas --> local_state
+    ws --> remote_state
+    local_state --> conflict_resolution
+    remote_state --> conflict_resolution
+
+    %% UI
+    main --> toolbar
+    main --> sidebar
+    physics_ui --> physics_panel
+    canvas --> presence
+
+    toolbar --> tools
+    physics_panel --> ws
+
+    %% External libraries
+    pixi_lib[("PixiJS v7<br/>(external)")]
+    pixi_lib --> pixi_app
+
+    %% Callbacks
+    canvas -.->|onObjectCreated| ws
+    canvas -.->|onObjectMoved| ws
+    canvas -.->|onObjectDeleted| ws
+    canvas -.->|onCursorMove| ws
+
+    ws -.->|createObject| canvas
+    ws -.->|updateObject| canvas
+    ws -.->|deleteObject| canvas
+    ws -.->|updateCursor| canvas
+    ws -.->|physicsSync| physics_renderer
+
+    %% Styling
+    classDef entryStyle fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef authStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef canvasStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef wsStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef physicsStyle fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef stateStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef uiStyle fill:#e0f2f1,stroke:#004d40,stroke-width:2px
+    classDef external fill:#eeeeee,stroke:#424242,stroke-width:2px
+
+    class main entryStyle
+    class auth,auth0_login,session authStyle
+    class canvas,pixi_app,viewport,objects_map,cursors_map,tools canvasStyle
+    class ws,ws_connection,message_handlers,reconnect wsStyle
+    class physics_predictor,physics_renderer,physics_ui,ghost_balls,interpolation,particle_effects physicsStyle
+    class local_state,remote_state,conflict_resolution stateStyle
+    class toolbar,sidebar,physics_panel,presence uiStyle
+    class pixi_lib external

@@ -1,24 +1,65 @@
 sequenceDiagram
-    participant Client1 as Client 1
-    participant Server
-    participant Client2 as Client 2
+    participant Client1 as Client 1 (Frontend)
+    participant Server as WebSocket Server
+    participant PhysicsLoop as Physics Engine (60Hz)
+    participant Database
+    participant Client2 as Client 2 (Frontend)
 
+    %% Connection & Auth
     Client1->>Server: Connect ws://host/ws/{canvas-id}
     Server->>Client1: Accept Connection, Add to Room
-    Client1->>Server: Send {type: 'auth', sessionId, username, canvasId}
+    Client1->>Server: {type: 'auth', sessionId, username, canvasId}
     Server->>Client1: {type: 'auth-success', userId, username}
+    Server->>Database: Load Canvas State
+    Database->>Server: Return Canvas + Physics State
     Server->>Client1: Send Initial Canvas State
+    Server->>Client1: Send Physics Config
     Server->>Client1: Send Presence Update
-    Server->>Client2: Broadcast Presence Update (User Joined)
+    Server->>Client2: Broadcast Presence (User Joined)
+    Server->>PhysicsLoop: Start Physics Loop (if not running)
 
-    Client1->>Server: Send {type: 'cursor', x, y} (throttled)
+    %% Cursor Updates
+    Client1->>Server: {type: 'cursor', x, y} (30 Hz throttled)
     Server->>Client2: Broadcast {type: 'cursor', userId, username, x, y}
 
-    Client1->>Server: Send {type: 'object-create', object}
+    %% Regular Object Operations
+    Client1->>Server: {type: 'object-create', object}
     Server->>Client1: Broadcast {type: 'object-create', object}
     Server->>Client2: Broadcast {type: 'object-create', object}
     Server->>Database: Debounce Save State
 
+    %% Physics Ball Creation
+    Client1->>Server: {type: 'physics-spawn-ball', x, y, vx, vy}
+    Server->>PhysicsLoop: Add Ball Entity (position, velocity, ball components)
+    PhysicsLoop->>Server: Ball Created (entity-id)
+    Server->>Client1: {type: 'physics-ball-created', entityId, x, y}
+    Server->>Client2: Broadcast {type: 'physics-ball-created', entityId, x, y}
+
+    %% Physics Fan Creation
+    Client1->>Server: {type: 'physics-spawn-fan', x, y, force, direction}
+    Server->>PhysicsLoop: Add Fan Entity
+    PhysicsLoop->>Server: Fan Created (entity-id)
+    Server->>Client1: {type: 'physics-fan-created', entityId, x, y, force}
+    Server->>Client2: Broadcast {type: 'physics-fan-created', ...}
+
+    %% Physics Sync Loop (60 Hz)
+    loop Every 16.67ms (60 FPS)
+        PhysicsLoop->>PhysicsLoop: Run Systems (forces, collision, boundary)
+        PhysicsLoop->>Server: Physics State Update
+        Server->>Client1: {type: 'physics-sync', entities: [{id, x, y, vx, vy}, ...]}
+        Server->>Client2: {type: 'physics-sync', entities: [...]}
+        Client1->>Client1: Apply Server State (interpolate)
+        Client2->>Client2: Apply Server State (interpolate)
+    end
+
+    %% AI Agent Command
+    Client1->>Server: {type: 'ai-command', command: 'create 5 red circles'}
+    Server->>Server: Call Claude API
+    Server->>Client1: {type: 'ai-operations', operations: [...]}
+    Server->>Client2: Broadcast AI Operations
+
+    %% Disconnect
     Client1->>Server: Close Connection
     Server->>Server: Remove from Room
-    Server->>Client2: Broadcast Presence Update (User Left)
+    Server->>PhysicsLoop: Stop Loop (if no clients)
+    Server->>Client2: Broadcast Presence (User Left)

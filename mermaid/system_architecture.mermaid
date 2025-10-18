@@ -1,119 +1,219 @@
 classDiagram
+    %% Backend Core
     class Backend {
         +start() : void
         +stop() : void
         +restart() : void
-    }
-    class Frontend {
-        +init() : void
-        +initCanvas() : void
-        +connectWebSocket() : void
     }
     class ConfigModule {
         +PORT : int
         +DB_PATH : string
         +SESSION_TIMEOUT : int
         +CORS_ORIGIN : string
+        +AUTH0_DOMAIN : string
+        +AUTH0_CLIENT_ID : string
     }
     class Database {
         +connect() : connection
         +executeQuery(sql) : result
         +initDb() : void
+        +physics tables
+        +users/sessions tables
     }
-    class WebSocketServer {
-        +acceptConnection(client) : void
-        +broadcast(message) : void
-        +dispatch(request) : room
+
+    %% WebSocket Infrastructure
+    class WebSocketAdapter {
+        +handleConnection(env) : handler
+        +dispatch(message) : void
+        +broadcastPhysicsSync(state) : void
     }
     class CanvasRoom {
         -canvasId : string
-        -clients : list
-        -clientsLock : lock
+        -clients : Map
+        -physicsEngine : PhysicsLoop
         +addClient(client) : void
         +removeClient(client) : void
         +handleMessage(message) : void
         +broadcastToAll(message) : void
-        +broadcastToOthers(sender, message) : void
-        +broadcastPresence() : void
+        +syncPhysicsState() : void
     }
+
+    %% Authentication
     class AuthModule {
-        +hashPassword(password) : string
-        +verifyPassword(password, hash) : bool
         +registerUser(email, password, username) : result
         +loginUser(email, password) : sessionResult
         +verifySession(sessionId) : bool
-        +logoutUser(sessionId) : void
     }
+    class Auth0Module {
+        +verifyJWT(token) : claims
+        +getAuth0User(accessToken) : userInfo
+        +handleCallback(code) : tokens
+    }
+    class AuthMetrics {
+        +trackLogin(method) : void
+        +trackRegistration(method) : void
+    }
+
+    %% Canvas & State
     class CanvasStateModule {
         +saveState(canvasId, state) : void
         +loadState(canvasId) : json
     }
     class AIAgentModule {
         +processCommand(command, state) : operations
-        <<Phase 3>>
+        +callClaudeAPI(prompt) : response
+    }
+
+    %% Physics Engine (ECS)
+    class PhysicsECS {
+        +make-storage() : storage
+        +define-component(name, slots) : component
+        +define-system(name, logic) : system
+    }
+    class PhysicsComponents {
+        +position : (x, y)
+        +velocity : (vx, vy)
+        +ball : (radius, mass)
+        +fan : (force, direction)
+        +block : (width, height)
+    }
+    class PhysicsSystems {
+        +apply-forces-system
+        +collision-system
+        +boundary-system
+        +fan-system
+        +magnet-system
+    }
+    class PhysicsLoop {
+        -storage : ECS.Storage
+        -running : bool
+        -config : physics-canvas-config
+        +init-canvas-physics(canvasId) : void
+        +start-physics-loop() : void
+        +stop-physics-loop() : void
+        +run-tick(dt) : void
+    }
+    class PhysicsQuadtree {
+        +make-physics-quadtree(w, h) : quadtree
+        +insert-entity-bounds(qt, id, x, y, r) : void
+        +query-nearby-entities(qt, x, y, r) : entities
+        +clear-physics-quadtree(qt) : void
+    }
+    class PhysicsDatabase {
+        +save-physics-settings(canvasId, settings) : void
+        +load-physics-settings(canvasId) : settings
+        +save-component(component) : void
+    }
+    class PhysicsMetrics {
+        +track-frame-time(dt) : void
+        +track-collision-count(n) : void
+        +get-stats() : metrics
+    }
+
+    %% Frontend Core
+    class Frontend {
+        +init() : void
+        +initCanvas() : void
+        +connectWebSocket() : void
     }
     class CanvasManager {
         -app : PIXI.Application
         -viewport : PIXI.Container
         -objects : Map
         -remoteCursors : Map
-        -currentTool : string
-        +screenToWorld(x, y) : coords
-        +worldToScreen(x, y) : coords
-        +pan(event) : void
-        +zoom(event) : void
-        +setTool(tool) : void
-        +createRectangle(id, x, y, w, h, color) : object
-        +createCircle(id, x, y, radius, color) : object
-        +createText(id, text, x, y, fontSize, color) : object
+        +pan/zoom
+        +createRectangle/Circle/Text()
         +updateObject(id, updates) : void
         +deleteObject(id) : void
-        +updateRemoteCursor(userId, username, x, y) : void
-        +makeDraggable(obj, id) : void
-        +makeSelectable(obj, id) : void
-        +onObjectCreated : callback
-        +onObjectMoved : callback
-        +onObjectDeleted : callback
     }
     class WebSocketClient {
         -ws : WebSocket
-        -canvas : CanvasManager
         +connect(url) : void
         +send(message) : void
         +handleMessage(data) : void
-        +updateRemoteCursor(userId, username, x, y) : void
-        +createObjectFromData(objData) : void
-        +screenToCanvas(x, y) : coords
-        +attemptReconnect() : void
+        +handlePhysicsSync(data) : void
     }
     class AuthManager {
         +showAuthUI() : void
-        +handleLogin(email, password) : sessionId
-        +handleRegister(email, password, username) : result
+        +handleLogin() : sessionId
+        +handleAuth0Login() : void
         +isAuthenticated() : bool
-        +getSessionId() : string
-        +getUsername() : string
     }
+
+    %% Frontend Physics
+    class PhysicsPredictor {
+        +predictBallPosition(ball, dt) : position
+        +createGhost(ball) : ghostBall
+        +applySimplePhysics(ghost, dt) : void
+    }
+    class PhysicsRenderer {
+        +renderBall(ball, graphics) : void
+        +renderFan(fan, graphics) : void
+        +renderParticles(emitter) : void
+        +updateVisuals(dt) : void
+    }
+    class PhysicsUI {
+        +createControlPanel() : UI
+        +updateMetrics(stats) : void
+        +handleToolSelection(tool) : void
+    }
+
+    %% External Libraries
     class PixiJS {
         <<external library>>
         +Application
-        +Container
         +Graphics
-        +Text
+    }
+    class cl_fast_ecs {
+        <<external library>>
+        ECS framework
+    }
+    class quadtree_lib {
+        <<external library>>
+        Spatial partitioning
     }
 
-    Backend --> ConfigModule : uses
-    Backend --> Database : uses
-    Backend --> WebSocketServer : hosts
-    Backend --> AuthModule : includes
-    Backend --> CanvasStateModule : includes
-    Backend --> AIAgentModule : includes (Phase 3)
-    WebSocketServer --> CanvasRoom : manages
-    Frontend --> CanvasManager : core
-    Frontend --> WebSocketClient : communicates
-    Frontend --> AuthManager : handles auth
-    CanvasManager --> PixiJS : uses
-    CanvasManager <--> WebSocketClient : callbacks for sync
-    WebSocketClient <--> WebSocketServer : WebSocket protocol
-    Database <--> CanvasStateModule : stores/loads
-    Database <--> AuthModule : stores users/sessions
+    %% Backend relationships
+    Backend --> ConfigModule
+    Backend --> Database
+    Backend --> WebSocketAdapter
+    Backend --> AuthModule
+    Backend --> Auth0Module
+    Backend --> CanvasStateModule
+    Backend --> AIAgentModule
+    Backend --> PhysicsLoop
+
+    WebSocketAdapter --> CanvasRoom
+    CanvasRoom --> PhysicsLoop
+
+    AuthModule --> Database
+    Auth0Module --> AuthModule
+    AuthMetrics --> Database
+
+    PhysicsLoop --> PhysicsECS
+    PhysicsLoop --> PhysicsComponents
+    PhysicsLoop --> PhysicsSystems
+    PhysicsLoop --> PhysicsQuadtree
+    PhysicsLoop --> PhysicsMetrics
+    PhysicsDatabase --> Database
+
+    PhysicsECS --> cl_fast_ecs
+    PhysicsQuadtree --> quadtree_lib
+    PhysicsSystems --> PhysicsComponents
+
+    %% Frontend relationships
+    Frontend --> CanvasManager
+    Frontend --> WebSocketClient
+    Frontend --> AuthManager
+    Frontend --> PhysicsPredictor
+    Frontend --> PhysicsRenderer
+    Frontend --> PhysicsUI
+
+    CanvasManager --> PixiJS
+    PhysicsRenderer --> PixiJS
+    CanvasManager <--> WebSocketClient
+    PhysicsPredictor --> WebSocketClient
+
+    %% Client-Server communication
+    WebSocketClient <--> WebSocketAdapter : WebSocket
+    AuthManager <--> Auth0Module : OAuth2

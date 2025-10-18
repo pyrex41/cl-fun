@@ -1,19 +1,70 @@
 flowchart TD
-    A[User Action (e.g., Create Object)] --> B[CanvasManager: Local Update]
-    B --> C[Callback: onObjectCreated]
-    C --> D[WebSocketClient: send('object-create')]
-    D --> E[Server: Receive & Broadcast]
-    E --> F[Database: Debounced Save (CanvasStateModule)]
-    E --> G[Other Clients: WebSocketClient.onMessage]
-    G --> H[CanvasManager: Remote Update]
-    subgraph Frontend1 [User's Frontend]
-        A --> B --> C --> D
+    subgraph "Regular Canvas Object Flow"
+        A[User Action:<br/>Create Object] --> B[CanvasManager:<br/>Local Update]
+        B --> C[Callback:<br/>onObjectCreated]
+        C --> D[WebSocketClient:<br/>send object-create]
+        D --> E[Server:<br/>Receive & Broadcast]
+        E --> F[Database:<br/>Debounced Save]
+        E --> G[Other Clients:<br/>Receive]
+        G --> H[CanvasManager:<br/>Remote Update]
     end
-    subgraph Backend
-        E --> F
+
+    subgraph "Physics Ball Spawn Flow"
+        P1[User Action:<br/>Click to spawn ball] --> P2[PhysicsUI:<br/>Get click coords]
+        P2 --> P3[WebSocketClient:<br/>send physics-spawn-ball]
+        P3 --> P4[Server:<br/>WebSocketAdapter]
+        P4 --> P5[PhysicsLoop:<br/>Create Entity<br/>position, velocity, ball]
+        P5 --> P6[Server:<br/>Broadcast ball-created]
+        P6 --> P7[PhysicsPredictor:<br/>Create ghost ball]
+        P7 --> P8[PhysicsRenderer:<br/>Render prediction]
     end
-    subgraph Frontend2 [Other Users' Frontend]
-        G --> H
+
+    subgraph "Physics Sync Loop (60 Hz)"
+        L1[PhysicsLoop:<br/>Run tick every 16.67ms]
+        L1 --> L2[Apply Forces System]
+        L2 --> L3[Collision System<br/>with Quadtree]
+        L3 --> L4[Boundary System]
+        L4 --> L5[Server:<br/>Collect entity states]
+        L5 --> L6[WebSocketAdapter:<br/>Broadcast physics-sync]
+        L6 --> L7[All Clients:<br/>Receive state]
+        L7 --> L8[PhysicsRenderer:<br/>Interpolate & render]
+        L8 --> L9[Replace ghosts<br/>with server state]
+        L9 --> L1
     end
-    D --> E
-    E --> G
+
+    subgraph "AI Command Flow"
+        AI1[User Input:<br/>AI command] --> AI2[WebSocketClient:<br/>send ai-command]
+        AI2 --> AI3[Server:<br/>AIAgentModule]
+        AI3 --> AI4[Claude API:<br/>Process command]
+        AI4 --> AI5[Server:<br/>Generate operations]
+        AI5 --> AI6[Broadcast:<br/>ai-operations]
+        AI6 --> AI7[All Clients:<br/>Execute operations]
+        AI7 --> AI8[CanvasManager:<br/>Create objects]
+    end
+
+    subgraph "Persistence Flow"
+        DB1[Canvas State] --> DB2[Database:<br/>canvas_states table]
+        DB3[Physics Settings] --> DB4[Database:<br/>physics_canvas_settings]
+        DB5[Physics Components] --> DB6[Database:<br/>physics_components]
+        DB7[Runtime State] --> DB8[Database:<br/>physics_bodies]
+    end
+
+    %% Cross-flow connections
+    E --> DB1
+    P5 --> DB5
+    L5 --> DB7
+
+    %% Styling
+    classDef userAction fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef frontend fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef backend fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef physics fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef ai fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef db fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
+    class A,P1,AI1 userAction
+    class B,C,D,G,H,P2,P7,P8,L7,L8,L9,AI7,AI8 frontend
+    class E,F,P4,P6,L5,L6,AI3,AI5,AI6 backend
+    class P5,L1,L2,L3,L4 physics
+    class AI2,AI3,AI4 ai
+    class DB1,DB2,DB3,DB4,DB5,DB6,DB7,DB8 db

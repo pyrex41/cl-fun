@@ -1,0 +1,122 @@
+graph TB
+    subgraph "Physics Engine Architecture (cl-fast-ecs)"
+        subgraph "ECS Storage Layer"
+            storage["ECS Storage<br/>(make-storage)"]
+            entities["Entity IDs<br/>(unique integers)"]
+        end
+
+        subgraph "Components (Data)"
+            position["Position<br/>(x y)"]
+            velocity["Velocity<br/>(vx vy)"]
+            ball["Ball<br/>(radius mass)"]
+            fan["Fan<br/>(force direction<br/>radius angle)"]
+            block["Block<br/>(width height<br/>is-static)"]
+            emitter["Emitter<br/>(spawn-rate<br/>max-balls)"]
+            magnet["Magnet<br/>(force radius<br/>repel/attract)"]
+        end
+
+        subgraph "Systems (Logic)"
+            apply_forces["Apply Forces System<br/>Gravity + custom forces"]
+            fan_system["Fan System<br/>Directional forces"]
+            magnet_system["Magnet System<br/>Attraction/Repulsion"]
+            collision_system["Collision System<br/>Ball-Ball, Ball-Block<br/>Uses Quadtree"]
+            boundary_system["Boundary System<br/>Canvas edge handling"]
+            emitter_system["Emitter System<br/>Spawn new balls"]
+        end
+
+        subgraph "Spatial Optimization"
+            quadtree["Quadtree<br/>(800x600 canvas)<br/>Max depth: 5<br/>Max capacity: 10"]
+            entity_bounds["Entity Bounds<br/>(x y radius type)"]
+        end
+
+        subgraph "Physics Loop (60 Hz)"
+            loop_start["Start Loop<br/>(dt = 1/60)"]
+            clear_qt["Clear Quadtree"]
+            run_systems["Run Systems<br/>(in order)"]
+            sync_client["Sync to Clients<br/>WebSocket broadcast"]
+            metrics["Track Metrics<br/>(frame time,<br/>collision count)"]
+            loop_end["Sleep until<br/>next frame"]
+        end
+
+        subgraph "Persistence"
+            physics_db["Physics Database"]
+            save_settings["Save Canvas Settings<br/>(gravity, sim rate)"]
+            save_components["Save Components<br/>(balls, fans, etc)"]
+            save_bodies["Save Runtime State<br/>(positions, velocities)"]
+        end
+    end
+
+    %% Storage relationships
+    storage --> entities
+    entities --> position
+    entities --> velocity
+    entities --> ball
+    entities --> fan
+    entities --> block
+    entities --> emitter
+    entities --> magnet
+
+    %% System dependencies
+    apply_forces --> position
+    apply_forces --> velocity
+    
+    fan_system --> position
+    fan_system --> velocity
+    fan_system --> fan
+    
+    magnet_system --> position
+    magnet_system --> velocity
+    magnet_system --> magnet
+    
+    collision_system --> position
+    collision_system --> velocity
+    collision_system --> ball
+    collision_system --> block
+    collision_system --> quadtree
+    
+    boundary_system --> position
+    boundary_system --> velocity
+    boundary_system --> ball
+    
+    emitter_system --> emitter
+    emitter_system --> storage
+
+    %% Quadtree integration
+    position --> entity_bounds
+    ball --> entity_bounds
+    entity_bounds --> quadtree
+
+    %% Physics loop flow
+    loop_start --> clear_qt
+    clear_qt --> run_systems
+    run_systems --> apply_forces
+    apply_forces --> fan_system
+    fan_system --> magnet_system
+    magnet_system --> collision_system
+    collision_system --> boundary_system
+    boundary_system --> emitter_system
+    emitter_system --> sync_client
+    sync_client --> metrics
+    metrics --> loop_end
+    loop_end --> loop_start
+
+    %% Database persistence
+    storage --> physics_db
+    save_settings --> physics_db
+    save_components --> physics_db
+    save_bodies --> physics_db
+
+    %% Styling
+    classDef componentStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef systemStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef loopStyle fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef storageStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef optimStyle fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    classDef dbStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+
+    class position,velocity,ball,fan,block,emitter,magnet componentStyle
+    class apply_forces,fan_system,magnet_system,collision_system,boundary_system,emitter_system systemStyle
+    class loop_start,clear_qt,run_systems,sync_client,metrics,loop_end loopStyle
+    class storage,entities storageStyle
+    class quadtree,entity_bounds optimStyle
+    class physics_db,save_settings,save_components,save_bodies dbStyle

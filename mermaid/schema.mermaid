@@ -2,20 +2,83 @@ erDiagram
     USERS {
         int id PK
         text email UK
-        text password_hash
         text username UK
+        text auth0_sub UK "Auth0 subject ID"
+        text preferred_color "User drawing color"
+        datetime last_login_at
         datetime created_at
+        datetime updated_at
     }
     SESSIONS {
-        text id PK
+        int id PK
         int user_id FK
+        text session_id UK
         datetime created_at
         datetime expires_at
     }
     CANVAS_STATES {
         int id PK
         text canvas_id UK
-        text state
+        text state_json
+        int version
+        datetime created_at
         datetime updated_at
     }
+    CANVAS_HISTORY {
+        int id PK
+        text canvas_id
+        int user_id FK
+        text action_type "create/update/delete"
+        text object_data "JSON data"
+        datetime timestamp
+    }
+    COLLABORATORS {
+        int id PK
+        text canvas_id
+        int user_id FK
+        text role "owner/editor/viewer"
+        datetime joined_at
+    }
+    PHYSICS_CANVAS_SETTINGS {
+        text canvas_id PK
+        real gravity_x
+        real gravity_y
+        int simulation_rate "Hz (updates/sec)"
+        int max_objects
+        datetime created_at
+        datetime updated_at
+    }
+    PHYSICS_COMPONENTS {
+        text id PK
+        text canvas_id FK
+        text component_type "ball/fan/block/emitter/magnet"
+        text properties_json "Component-specific data"
+        int created_by FK
+        datetime created_at
+    }
+    PHYSICS_BODIES {
+        text id PK
+        text component_id FK
+        real position_x
+        real position_y
+        real velocity_x
+        real velocity_y
+        real rotation "Radians"
+        int is_sleeping "0=active, 1=sleeping"
+        datetime updated_at
+    }
+    PHYSICS_COMPONENT_TYPES {
+        text type_name PK
+        text description
+    }
+
     USERS ||--o{ SESSIONS : "has"
+    USERS ||--o{ CANVAS_HISTORY : "creates"
+    USERS ||--o{ COLLABORATORS : "collaborates"
+    USERS ||--o{ PHYSICS_COMPONENTS : "creates"
+
+    CANVAS_STATES ||--o{ PHYSICS_CANVAS_SETTINGS : "has physics config"
+    CANVAS_STATES ||--o{ PHYSICS_COMPONENTS : "contains"
+
+    PHYSICS_COMPONENTS ||--o{ PHYSICS_BODIES : "has runtime state"
+    PHYSICS_COMPONENTS }o--|| PHYSICS_COMPONENT_TYPES : "is type of"
